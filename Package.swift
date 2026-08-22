@@ -13,14 +13,27 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [
         .library(name: "MeetingCore", targets: ["MeetingCore"]),
+        .library(name: "MeetingPersistence", targets: ["MeetingPersistence"]),
     ],
     dependencies: [
+        // SQLite
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.0"),
     ],
     targets: [
         // MARK: - 도메인 + 추론 정책 (외부 의존성 없음 → 테스트가 모델 없이 전부 돌아간다)
         .target(name: "MeetingCore"),
 
+        // MARK: - 저장소
+        .target(
+            name: "MeetingPersistence",
+            dependencies: ["MeetingCore", .product(name: "GRDB", package: "GRDB.swift")]
+        ),
+
         // MARK: - 테스트 (무거운 모델 없이 동작)
         .testTarget(name: "MeetingCoreTests", dependencies: ["MeetingCore"]),
+        .testTarget(
+            name: "MeetingPersistenceTests",
+            dependencies: ["MeetingCore", "MeetingPersistence"]
+        ),
     ]
 )
