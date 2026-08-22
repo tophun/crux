@@ -1,0 +1,11 @@
+# PR Checker용 SwiftFormat 설정 (CI의 `swiftformat --lint`와 동일한 규칙)
+--maxwidth 140
+--swiftversion 6.0
+# SwiftLint의 trailing_comma 규칙(제거)과 정책을 맞춘다
+--trailing-commas never
+# 줄바꿈된 조건문에서 `{`를 다음 줄로 내리는 룰 — SwiftLint opening_brace(같은 줄 선호)와 충돌
+--disable wrapMultilineStatementBraces
+# `.flatMap { $0 }` → keypath 변환이 Optional 중첩 타입을 바꿔 컴파일 에러 유발 (MeetingImporter)
+--disable preferKeyPath
+# 매니페스트는 포맷 대상에서 제외 (불필요한 diff churn 방지)
+--exclude .build,.swiftpm,.xcbuild,Fixtures,Package.swift

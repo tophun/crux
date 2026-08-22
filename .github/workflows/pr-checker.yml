@@ -1,0 +1,89 @@
+name: PR Checker
+
+on:
+  pull_request:
+    branches: [main]
+
+# 같은 PR에 새 커밋이 push되면 진행 중인 검사를 취소하고 최신 커밋만 검사한다
+concurrency:
+  group: pr-checker-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── 린트: 스타일·컨벤션 위반 차단 ─────────────────────────────────────────
+  # 규칙은 저장소의 .swiftlint.yml / .swiftformat / Tests/.swiftlint.yml 에서 관리한다.
+  # Swift 6.2 문법 파싱을 위해 macOS 러너 + brew 설치본을 사용한다.
+  lint:
+    name: Lint (SwiftLint · SwiftFormat)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install linters
+        run: brew install swiftlint swiftformat
+
+      - name: SwiftFormat (포맷 검사)
+        run: swiftformat --lint .
+
+      - name: SwiftLint (warning도 실패 처리)
+        run: swiftlint --strict
+
+  # ── 의존성 취약점: Package.resolved를 OSV 데이터베이스와 대조 ───────────────
+  dependencies:
+    name: Dependency vulnerabilities (OSV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install osv-scanner (v2.5.1 고정)
+        run: |
+          curl -fsSLo /usr/local/bin/osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.5.1/osv-scanner_linux_amd64
+          chmod +x /usr/local/bin/osv-scanner
+
+      - name: Scan resolved dependencies
+        run: osv-scanner scan source --lockfile=Package.resolved
+
+  # ── 시크릿 유출: PR 커밋에서 API 토큰·키 패턴 검사 ────────────────────────
+  # 이 프로젝트는 Atlassian API 토큰 등 외부 자격 증명을 다루므로 커밋 유출을 조기에 잡는다.
+  secrets:
+    name: Secret leaks (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # 대상 브랜치(origin/main)와의 커밋 범위 비교에 필요
+
+      - name: Install gitleaks (v8.30.1 고정)
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar xz -C /usr/local/bin gitleaks
+
+      - name: Scan PR commits
+        run: >-
+          gitleaks detect --source . --redact --verbose
+          --log-opts="origin/${{ github.base_ref }}..${{ github.sha }}"
+
+  # ── 코드 수준 보안 분석: CodeQL Swift 정적 분석 ────────────────────────────
+  # 결과는 리포지터리 Security 탭의 Code scanning alerts로 올라간다.
+  codeql:
+    name: Static security analysis (CodeQL · Swift)
+    runs-on: macos-26
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+
+      - uses: github/codeql-action/autobuild@v3
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:swift"
