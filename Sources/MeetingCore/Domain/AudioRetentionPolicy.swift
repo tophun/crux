@@ -103,7 +103,7 @@ public struct AudioRetentionPolicy: Hashable, Sendable, Codable {
     /// - 경계는 "기준 시각 + 보관 일수 <= 지금"이다. 정확히 30일째면 지운다.
     public func expired(among candidates: [Candidate], now: Date) -> [UUID] {
         guard let days = retention.days else { return [] }
-        let window = TimeInterval(days) * 86_400
+        let window = TimeInterval(days) * 86400
         return candidates
             .filter { $0.isCompleted && $0.hasAudio }
             .filter { $0.referenceDate.addingTimeInterval(window) <= now }

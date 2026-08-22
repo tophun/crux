@@ -48,7 +48,7 @@ public struct MeetingDetectionPolicy: Sendable {
 
         public var event: CalendarEvent? {
             switch self {
-            case .imminent(let event, _), .started(let event, _): event
+            case let .imminent(event, _), let .started(event, _): event
             case .idle, .unscheduled: nil
             }
         }
@@ -163,12 +163,12 @@ public struct MeetingDetectionPolicy: Sendable {
         switch verdict {
         case .idle:
             return nil
-        case .imminent(let event, let seconds):
+        case let .imminent(event, seconds):
             let minutes = max(1, Int((seconds / 60).rounded()))
             return "\(event.title) 시작 \(minutes)분 전입니다."
-        case .started(let event, _):
+        case let .started(event, _):
             return "\(event.title) 회의 중이신가요? 녹음을 진행하시겠습니까?"
-        case .unscheduled(let appName):
+        case let .unscheduled(appName):
             return "\(appName)에서 회의 중이신가요? 녹음을 진행하시겠습니까?"
         }
     }

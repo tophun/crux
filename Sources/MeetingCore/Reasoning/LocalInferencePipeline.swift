@@ -103,6 +103,7 @@ public struct LocalInferencePipeline: Sendable {
         )
 
         // MARK: 1차 추출 — 구간별 비사고 모드
+
         for window in windows {
             progress?(.extracting(window: window.index + 1, total: windows.count))
             do {
@@ -134,6 +135,7 @@ public struct LocalInferencePipeline: Sendable {
         let candidateCount = facts.count
 
         // MARK: 복잡도 평가 → 사고 모드 재검토 대상 선정
+
         var routing: [(fact: MeetingFact, decision: RoutingDecision)] = facts.map { fact in
             (fact, configuration.router.decide(for: fact, segments: segments, peers: facts))
         }
@@ -142,7 +144,7 @@ public struct LocalInferencePipeline: Sendable {
         let reviewTargets = routing
             .filter { $0.decision.needsThinking && $0.fact.kind != .topic }
             .prefix(configuration.maxThinkingReviews)
-        if routing.filter({ $0.decision.needsThinking }).count > configuration.maxThinkingReviews {
+        if routing.count(where: { $0.decision.needsThinking }) > configuration.maxThinkingReviews {
             problems.append("재검토 대상이 상한(\(configuration.maxThinkingReviews))을 넘어 점수가 높은 항목만 처리")
         }
 
@@ -185,11 +187,13 @@ public struct LocalInferencePipeline: Sendable {
         facts = facts.filter { !$0.discarded }
 
         // MARK: 반복 발언 통합
+
         let dedupeResult = configuration.deduplicator.merge(facts)
         facts = dedupeResult.facts
         problems += dedupeResult.changeLog.map { "[통합] \($0)" }
 
         // MARK: 근거 재검증 — 원문에 없는 인용은 여기서 사라진다.
+
         var evidenceRejected = 0
         facts = facts.map { fact in
             var updated = fact
@@ -206,6 +210,7 @@ public struct LocalInferencePipeline: Sendable {
         }
 
         // MARK: 마감일 근거 검증 — 원문에 없는 날짜는 확정하지 않는다.
+
         facts = facts.map { fact in
             let (updated, reason) = DueDateGrounding.apply(to: fact, segments: segments)
             if let reason { problems.append("[마감일] \(reason)") }
@@ -213,6 +218,7 @@ public struct LocalInferencePipeline: Sendable {
         }
 
         // MARK: 사담 구간에서만 나온 후보 제거 — 회식·인사 같은 내용이 회의록에 새지 않게 한다(§9).
+
         let excludedSegmentIds = Set(
             relevance.filter { $0.label == .exclude }.map(\.segmentId.uuidString)
         )
@@ -233,11 +239,12 @@ public struct LocalInferencePipeline: Sendable {
         }
 
         // MARK: 최종 종합
+
         progress?(.assembling)
-        let conflictCount = facts.filter { !$0.ambiguityNotes.isEmpty }.count
-        let unresolvedCount = facts.filter {
+        let conflictCount = facts.count(where: { !$0.ambiguityNotes.isEmpty })
+        let unresolvedCount = facts.count(where: {
             $0.kind == .actionItem && ($0.assignee == nil || $0.dueDate == nil)
-        }.count
+        })
         let finalDecision = configuration.router.decideFinalPass(
             totalCandidates: max(candidateCount, 1),
             reviewedCandidates: thinkingReviewCount,
@@ -278,6 +285,7 @@ public struct LocalInferencePipeline: Sendable {
         }
 
         // MARK: 관측값 채우기
+
         let labelCounts = Dictionary(grouping: relevance, by: \.label).mapValues(\.count)
         note.generation = GenerationSummary(
             windowCount: windows.count,
@@ -319,7 +327,7 @@ public struct LocalInferencePipeline: Sendable {
             maxTokens: budget
         )
         do {
-            return (try parse(raw), 0)
+            return try (parse(raw), 0)
         } catch {
             var lastError = error
             var repairs = 0
@@ -335,26 +343,25 @@ public struct LocalInferencePipeline: Sendable {
                     maxTokens: maxTokens
                 )
                 do {
-                    return (try parse(retried), repairs)
+                    return try (parse(retried), repairs)
                 } catch {
                     lastError = error
                 }
             }
 
-            for _ in 0..<configuration.repairAttempts {
+            for _ in 0 ..< configuration.repairAttempts {
                 repairs += 1
                 let strippedRaw = ThinkingStripper.strip(raw).visibleText
-                let repairedRaw: String
-                if strippedRaw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let repairedRaw: String = if strippedRaw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     // 고칠 본문이 없으면 원래 작업을 비사고 모드로 다시 시킨다.
-                    repairedRaw = try await model.generate(
+                    try await model.generate(
                         systemPrompt: PromptLibrary.systemPrompt,
                         prompt: prompt,
                         mode: .nonThinking,
                         maxTokens: maxTokens
                     )
                 } else {
-                    repairedRaw = try await model.generate(
+                    try await model.generate(
                         systemPrompt: nil,
                         prompt: PromptLibrary.repairJSON(raw: strippedRaw, expectedShape: expectedShape),
                         mode: .nonThinking,
@@ -362,7 +369,7 @@ public struct LocalInferencePipeline: Sendable {
                     )
                 }
                 do {
-                    return (try parse(repairedRaw), repairs)
+                    return try (parse(repairedRaw), repairs)
                 } catch {
                     lastError = error
                 }
@@ -407,7 +414,7 @@ public struct LocalInferencePipeline: Sendable {
             OpenQuestion(question: $0.content, evidence: $0.evidence, confidence: $0.confidence)
         }
         note.topics = catalog.facts(.topic).map { Topic(title: $0.content) }
-        let decided = note.decisions.filter { $0.kind == .decided }.count
+        let decided = note.decisions.count(where: { $0.kind == .decided })
         note.summary = "자동 종합에 실패해 검증된 항목만 정리했습니다. 결정 \(decided)건, 액션아이템 \(note.actionItems.count)건, 리스크 \(note.risks.count)건이 확인됐습니다."
         return note
     }
@@ -430,7 +437,7 @@ public enum InferenceError: Error, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .emptyTranscript: "전사문이 비어 있어 회의록을 생성할 수 없습니다."
-        case .modelUnavailable(let message): "로컬 LLM을 사용할 수 없습니다: \(message)"
+        case let .modelUnavailable(message): "로컬 LLM을 사용할 수 없습니다: \(message)"
         }
     }
 }

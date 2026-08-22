@@ -146,7 +146,9 @@ public struct MeetingPublisher: Sendable {
                     + "assignee=\(issue.assigneeQuery ?? "미지정") due=\(issue.dueDate ?? "미지정")"
             )
             lines.append("  \(issue.summary)")
-            for paragraph in issue.detailParagraphs { lines.append("  - \(paragraph)") }
+            for paragraph in issue.detailParagraphs {
+                lines.append("  - \(paragraph)")
+            }
         }
         return lines.joined(separator: "\n")
     }

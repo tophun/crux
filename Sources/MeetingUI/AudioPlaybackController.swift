@@ -121,7 +121,7 @@ public final class AudioPlaybackController {
             isPlaying = false
             errorMessage = nil
         } catch {
-            self.player = nil
+            player = nil
             self.track = nil
             duration = 0
             isPlaying = false
@@ -134,13 +134,13 @@ public final class AudioPlaybackController {
         ticker = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(200))
-                guard let self, let player = self.player else { return }
-                self.currentTime = player.currentTime
-                if !player.isPlaying, self.isPlaying {
+                guard let self, let player else { return }
+                currentTime = player.currentTime
+                if !player.isPlaying, isPlaying {
                     // 끝까지 재생되면 처음으로 되돌린다.
-                    self.isPlaying = false
+                    isPlaying = false
                     if player.currentTime >= player.duration - 0.2 {
-                        self.currentTime = 0
+                        currentTime = 0
                         player.currentTime = 0
                     }
                     return

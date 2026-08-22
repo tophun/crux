@@ -104,7 +104,7 @@ public struct TranscriptSegmenter: Sendable {
                 pieces.append(String(remainder).trimmingCharacters(in: .whitespaces))
                 break
             }
-            pieces.append(String(remainder[remainder.startIndex..<cut]).trimmingCharacters(in: .whitespaces))
+            pieces.append(String(remainder[remainder.startIndex ..< cut]).trimmingCharacters(in: .whitespaces))
             remainder = remainder[cut...]
         }
         return pieces.filter { !$0.isEmpty }

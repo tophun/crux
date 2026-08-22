@@ -146,7 +146,7 @@ public struct LiveCapsuleView: View {
 
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
-                if case .generating(let fraction, _) = state {
+                if case let .generating(fraction, _) = state {
                     ProgressView(value: fraction)
                         .progressViewStyle(.linear)
                         .frame(width: isEnlarged ? 66 : 46)
@@ -196,7 +196,7 @@ public struct LiveCapsuleView: View {
                     .buttonStyle(.plain)
                     .help("회의록 생성 취소")
                 }
-                if isEnlarged, case .recording(_, let paused) = state {
+                if isEnlarged, case let .recording(_, paused) = state {
                     // 시간 위에 마우스를 올리면 일시정지·종료를 바로 할 수 있다.
                     Button(action: onTogglePause) {
                         Image(systemName: paused ? "play.fill" : "pause.fill")
@@ -254,7 +254,7 @@ public struct LiveCapsuleView: View {
     @ViewBuilder
     private var indicator: some View {
         switch state {
-        case .recording(_, let paused):
+        case let .recording(_, paused):
             HStack(spacing: 5) {
                 Circle()
                     .fill(paused ? Color.orange : Color.red)
@@ -284,32 +284,32 @@ public struct LiveCapsuleView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             switch state {
-            case .detected(let title, let message):
+            case let .detected(title, message):
                 if let title {
                     Text(title).font(.system(size: 12, weight: .semibold))
                 }
                 Text(message).font(.system(size: 11)).opacity(0.85)
                 Text("녹음은 이 기기에서만 저장되며 자동으로 시작하지 않습니다.")
                     .font(.system(size: 10)).opacity(0.6)
-            case .recording(let elapsed, let paused):
+            case let .recording(elapsed, paused):
                 Text("\(paused ? "일시정지" : "녹음 중") · \(LiveCapsuleState.clock(elapsed))")
                     .font(.system(size: 11))
                     .monospacedDigit()
                 Text("마이크와 시스템 오디오는 로컬 파일로만 저장됩니다.")
                     .font(.system(size: 10)).opacity(0.6)
-            case .generating(_, let message):
+            case let .generating(_, message):
                 Text(detailMessage ?? message)
                     .font(.system(size: 11))
                     .monospacedDigit()
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
-            case .previewReady(_, let count):
+            case let .previewReady(_, count):
                 Text("액션 아이템 \(count)개를 검토할 수 있습니다.")
                     .font(.system(size: 11))
-            case .published(let title, let issueCount):
+            case let .published(title, issueCount):
                 if let title { Text(title).font(.system(size: 12, weight: .semibold)) }
                 Text("Jira 이슈 \(issueCount)개 생성").font(.system(size: 11)).opacity(0.85)
-            case .failed(let message):
+            case let .failed(message):
                 Text(message)
                     .font(.system(size: 11))
                     .opacity(0.85)

@@ -174,7 +174,7 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(400))
                 guard let self else { return }
-                let snapshot = await self.progressSnapshot()
+                let snapshot = await progressSnapshot()
                 let fraction = estimator.fraction(
                     reported: snapshot.fraction,
                     elapsed: Date().timeIntervalSince(startedAt),
@@ -204,9 +204,9 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
         guard let first = results.first else { throw TranscriptionEngineError.emptyResult }
         let transcriptionResults: [TranscriptionResult]
         switch first {
-        case .success(let value):
+        case let .success(value):
             transcriptionResults = value
-        case .failure(let error):
+        case let .failure(error):
             throw TranscriptionEngineError.audioFileUnreadable(
                 audioURL,
                 underlying: error.localizedDescription
@@ -216,7 +216,7 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
         let segments = transcriptionResults
             .flatMap(\.segments)
             .sorted { $0.start < $1.start }
-            .map { $0 }
+            .map(\.self)
 
         var result: [TranscriptSegment] = []
         for segment in segments {

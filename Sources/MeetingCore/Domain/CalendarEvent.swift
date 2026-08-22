@@ -121,8 +121,8 @@ public struct ConferenceAppSignal: Hashable, Sendable {
     public static let knownConferenceApps: [String] = [
         "us.zoom.xos", "zoom.us", "Zoom",
         "com.microsoft.teams", "com.microsoft.teams2", "Microsoft Teams",
-        "com.google.Chrome", "com.apple.Safari",  // Google Meet은 브라우저에서 열린다
+        "com.google.Chrome", "com.apple.Safari", // Google Meet은 브라우저에서 열린다
         "com.hnc.Discord", "com.tinyspeck.slackmacgap", "Slack",
-        "com.webex.meetingmanager", "Webex",
+        "com.webex.meetingmanager", "Webex"
     ]
 }

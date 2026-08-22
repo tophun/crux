@@ -21,7 +21,7 @@ public struct MeetingDeleter: Sendable {
 
     private let repository: MeetingRepository
     private let evidenceStore: EvidenceFileStore
-    nonisolated(unsafe) private let fileManager: FileManager
+    private nonisolated(unsafe) let fileManager: FileManager
 
     public init(
         repository: MeetingRepository,

@@ -25,7 +25,7 @@ public struct AudioRetentionService: Sendable {
     }
 
     private let repository: MeetingRepository
-    nonisolated(unsafe) private let fileManager: FileManager
+    private nonisolated(unsafe) let fileManager: FileManager
     private let logSink: (@Sendable (String) -> Void)?
 
     public init(
@@ -43,11 +43,11 @@ public struct AudioRetentionService: Sendable {
     public func applyAfterProcessing(meetingId: UUID, policy: AudioRetentionPolicy) throws -> Outcome {
         switch policy.actionAfterProcessing() {
         case .keep:
-            return .none
+            .none
         case .discardRaw:
-            return try removeAudio(meetingId: meetingId, kinds: [.microphone, .system], reason: "원본 트랙 정리")
+            try removeAudio(meetingId: meetingId, kinds: [.microphone, .system], reason: "원본 트랙 정리")
         case .discardAll:
-            return try removeAudio(meetingId: meetingId, kinds: Set(AudioTrackKind.allCases), reason: "보관 안 함 설정")
+            try removeAudio(meetingId: meetingId, kinds: Set(AudioTrackKind.allCases), reason: "보관 안 함 설정")
         }
     }
 
@@ -132,10 +132,10 @@ public struct AudioRetentionService: Sendable {
     }
 
     public func diskUsage(root: URL = AudioRetentionService.defaultMeetingsRoot) throws -> DiskUsage {
-        let tracked = Set(
-            try repository.audioRetentionCandidates()
+        let tracked = try Set(
+            repository.audioRetentionCandidates()
                 .flatMap { try repository.tracks(meetingId: $0.meetingId) }
-                .map { $0.fileURL.standardizedFileURL.path }
+                .map(\.fileURL.standardizedFileURL.path)
         )
         guard let enumerator = fileManager.enumerator(at: root, includingPropertiesForKeys: [.fileSizeKey]) else {
             return .empty

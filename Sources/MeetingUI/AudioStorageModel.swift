@@ -67,10 +67,10 @@ public final class AudioStorageModel {
 
     public init(repository: MeetingRepository) {
         self.repository = repository
-        self.service = AudioRetentionService(repository: repository)
+        service = AudioRetentionService(repository: repository)
         let policy = AudioRetentionStore.policy
-        self.retention = policy.retention
-        self.discardRawAfterProcessing = policy.discardRawAfterProcessing
+        retention = policy.retention
+        discardRawAfterProcessing = policy.discardRawAfterProcessing
         refresh()
     }
 

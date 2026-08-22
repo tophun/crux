@@ -26,7 +26,7 @@ struct EditMergeTests {
     }
 
     private func sample() -> [Decision] {
-        (0..<3).map { index in
+        (0 ..< 3).map { index in
             Decision(
                 content: "결정 \(index)",
                 kind: .decided,

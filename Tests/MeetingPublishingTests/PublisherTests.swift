@@ -1,7 +1,7 @@
 import Foundation
-import Testing
 @testable import MeetingCore
 @testable import MeetingPublishing
+import Testing
 
 @Suite("Atlassian 인증 정보")
 struct AtlassianCredentialsTests {

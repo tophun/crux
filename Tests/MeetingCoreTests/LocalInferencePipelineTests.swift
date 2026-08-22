@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("추론 파이프라인")
 struct LocalInferencePipelineTests {

@@ -15,7 +15,7 @@ import MeetingCore
 public struct MeetingStorage: Sendable {
     public let root: URL
     // FileManager는 Sendable이 아니지만 파일 조작에 스레드 안전하게 쓰인다.
-    nonisolated(unsafe) private let fileManager: FileManager
+    private nonisolated(unsafe) let fileManager: FileManager
 
     public init(root: URL, fileManager: FileManager = .default) {
         self.root = root

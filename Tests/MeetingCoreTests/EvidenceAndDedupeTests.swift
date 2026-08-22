@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("근거 검증")
 struct EvidenceValidatorTests {

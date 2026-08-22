@@ -171,7 +171,10 @@ struct GenerationSummaryView: View {
             Text("처리 정보").font(.headline)
             Text("구간 \(summary.windowCount)개 · 후보 \(summary.candidateCount)건 · 재검토 \(summary.thinkingReviewCount)건")
             Text("반복 통합 \(summary.mergedDuplicateCount)건 · 근거 미확인 제거 \(summary.evidenceRejectedCount)건")
-            Text("회의록 유지 \(summary.keptSegmentCount) / 요약 \(summary.condensedSegmentCount) / 제외 \(summary.excludedSegmentCount) / 보류 \(summary.uncertainSegmentCount) 구간")
+            Text(
+                "회의록 유지 \(summary.keptSegmentCount) / 요약 \(summary.condensedSegmentCount)"
+                    + " / 제외 \(summary.excludedSegmentCount) / 보류 \(summary.uncertainSegmentCount) 구간"
+            )
         }
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -313,7 +316,7 @@ struct TranscriptTab: View {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(detail.segments) { segment in
                         let label = labels[segment.id] ?? .uncertain
-                        if (showExcluded || label != .exclude),
+                        if showExcluded || label != .exclude,
                            filter.isEmpty || segment.text.localizedCaseInsensitiveContains(filter) {
                             let isPlayingSegment = state.playback.currentTime >= segment.startTime
                                 && state.playback.currentTime < segment.endTime
@@ -450,12 +453,12 @@ struct MarkdownPreviewTab: View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(MarkdownBlockParser.parse(markdown)) { block in
                 switch block {
-                case .heading(let level, let text):
+                case let .heading(level, text):
                     inline(text)
                         .font(headingFont(level))
                         .padding(.top, level <= 1 ? 4 : 18)
                         .padding(.bottom, level <= 1 ? 10 : 6)
-                case .bullet(let text):
+                case let .bullet(text):
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Circle()
                             .fill(.secondary)
@@ -466,7 +469,7 @@ struct MarkdownPreviewTab: View {
                             .textSelection(.enabled)
                     }
                     .padding(.vertical, 3)
-                case .checklist(let text, let done):
+                case let .checklist(text, done):
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Image(systemName: done ? "checkmark.square.fill" : "square")
                             .foregroundStyle(done ? Color.accentColor : .secondary)
@@ -476,12 +479,12 @@ struct MarkdownPreviewTab: View {
                             .textSelection(.enabled)
                     }
                     .padding(.vertical, 3)
-                case .paragraph(let text):
+                case let .paragraph(text):
                     inline(text)
                         .lineSpacing(4)
                         .textSelection(.enabled)
                         .padding(.vertical, 4)
-                case .table(let headers, let rows):
+                case let .table(headers, rows):
                     MarkdownTableView(headers: headers, rows: rows)
                         .padding(.vertical, 6)
                 }

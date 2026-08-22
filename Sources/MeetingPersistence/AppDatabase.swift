@@ -27,7 +27,7 @@ public final class AppDatabase: Sendable {
     public static func inMemory() throws -> AppDatabase {
         var configuration = Configuration()
         configuration.foreignKeysEnabled = true
-        return try AppDatabase(writer: try DatabaseQueue(configuration: configuration))
+        return try AppDatabase(writer: DatabaseQueue(configuration: configuration))
     }
 
     public static var defaultURL: URL {

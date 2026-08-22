@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("내부 사고 제거")
 struct ThinkingStripperTests {

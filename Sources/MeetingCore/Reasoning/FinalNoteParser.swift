@@ -25,6 +25,7 @@ public struct FinalNoteParser: Sendable {
         note.summary = root["summary", "요약"].stringValue ?? ""
 
         // MARK: 결정사항
+
         for item in root["decisions", "결정사항"].arrayValue {
             guard let content = item["content", "decision", "내용"].stringValue else { continue }
             guard let source = resolve(item, kind: .decision, content: content, catalog: catalog, problems: &problems)
@@ -51,6 +52,7 @@ public struct FinalNoteParser: Sendable {
         }
 
         // MARK: 액션아이템
+
         for item in root["actionItems", "action_items", "액션아이템"].arrayValue {
             guard let task = item["task", "content", "내용"].stringValue else { continue }
             guard let source = resolve(item, kind: .actionItem, content: task, catalog: catalog, problems: &problems)
@@ -89,6 +91,7 @@ public struct FinalNoteParser: Sendable {
         }
 
         // MARK: 미해결 질문
+
         for item in root["openQuestions", "open_questions", "미해결질문"].arrayValue {
             guard let question = item["question", "content", "내용"].stringValue else { continue }
             guard let source = resolve(item, kind: .openQuestion, content: question, catalog: catalog, problems: &problems)
@@ -103,15 +106,20 @@ public struct FinalNoteParser: Sendable {
         }
 
         // MARK: 리스크
+
         for item in root["risks", "리스크"].arrayValue {
             guard let content = item["content", "risk", "내용"].stringValue else { continue }
             guard let source = resolve(item, kind: .risk, content: content, catalog: catalog, problems: &problems)
             else { continue }
             var severity = source.severity ?? .unknown
             if let text = item["severity", "심각도"].stringValue?.lowercased() {
-                if text.contains("high") || text.contains("높") { severity = .high }
-                else if text.contains("medium") || text.contains("중") { severity = .medium }
-                else if text.contains("low") || text.contains("낮") { severity = .low }
+                if text.contains("high") || text.contains("높") {
+                    severity = .high
+                } else if text.contains("medium") || text.contains("중") {
+                    severity = .medium
+                } else if text.contains("low") || text.contains("낮") {
+                    severity = .low
+                }
             }
             note.risks.append(
                 RiskItem(
@@ -124,6 +132,7 @@ public struct FinalNoteParser: Sendable {
         }
 
         // MARK: 주제
+
         for item in root["topics", "주제"].arrayValue {
             guard let title = item["title", "topic", "제목"].stringValue ?? item.stringValue else { continue }
             note.topics.append(

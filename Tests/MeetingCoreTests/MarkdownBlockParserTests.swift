@@ -20,7 +20,7 @@ struct MarkdownBlockParserTests {
             summary: "배포 일정과 담당자를 정했다.",
             decisions: [
                 Decision(content: "목요일 배포", kind: .decided, evidence: evidence),
-                Decision(content: "성능 개선 검토", kind: .proposed, evidence: evidence),
+                Decision(content: "성능 개선 검토", kind: .proposed, evidence: evidence)
             ],
             actionItems: [
                 ActionItem(task: "체크리스트 작성", assignee: "홍길동", dueDate: "2026-03-12", evidence: evidence)
@@ -43,14 +43,14 @@ struct MarkdownBlockParserTests {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         // 표 구분선은 화면에 그리지 않으므로 셈에서 뺀다.
-        let separatorCount = contentLines.filter { $0.hasPrefix("| ---") }.count
+        let separatorCount = contentLines.count(where: { $0.hasPrefix("| ---") })
         let tableRowCount = blocks.reduce(0) { total, block in
-            if case .table(let headers, let rows) = block {
+            if case let .table(headers, rows) = block {
                 return total + (headers.isEmpty ? 0 : 1) + rows.count
             }
             return total
         }
-        let nonTableBlocks = blocks.filter { if case .table = $0 { return false } else { return true } }
+        let nonTableBlocks = blocks.filter { if case .table = $0 { false } else { true } }
         #expect(nonTableBlocks.count + tableRowCount == contentLines.count - separatorCount)
     }
 
@@ -60,7 +60,7 @@ struct MarkdownBlockParserTests {
         #expect(blocks == [
             .heading(level: 1, text: "회의록"),
             .heading(level: 2, text: "요약"),
-            .paragraph(text: "내용"),
+            .paragraph(text: "내용")
         ])
     }
 

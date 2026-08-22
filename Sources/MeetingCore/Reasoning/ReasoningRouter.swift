@@ -102,13 +102,13 @@ public struct ReasoningRouter: Sendable {
     static let vagueExpressions: [String] = [
         "검토", "추후", "일단", "보류", "나중에", "다시 논의", "논의해", "고민", "아마",
         "될 것 같", "될 것같", "가능할 것", "해보고", "확인해보", "정도", "쯤", "언젠가",
-        "협의", "조율", "봐야", "대략", "웬만하면", "웬만", "가급적",
+        "협의", "조율", "봐야", "대략", "웬만하면", "웬만", "가급적"
     ]
 
     /// 마감일로 확정하기 어려운 표현
     static let vagueDueDates: [String] = [
         "쯤", "정도", "이내", "안에", "무렵", "다음에", "추후", "빠르게", "조만간", "가능하면",
-        "이번 중", "다음 중", "곧",
+        "이번 중", "다음 중", "곧"
     ]
 
     public var configuration: Configuration
@@ -242,8 +242,8 @@ public enum TextSimilarity {
         let characters = Array(cleaned)
         guard characters.count > 1 else { return Set(characters.map(String.init)) }
         var result: Set<String> = []
-        for index in 0..<(characters.count - 1) {
-            result.insert(String(characters[index...index + 1]))
+        for index in 0 ..< (characters.count - 1) {
+            result.insert(String(characters[index ... index + 1]))
         }
         return result
     }

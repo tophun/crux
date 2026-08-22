@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("1차 추출 응답 파싱")
 struct WindowExtractionParserTests {
@@ -32,11 +32,11 @@ struct WindowExtractionParserTests {
         """
         let parsed = try parser.parse(raw: raw, window: window, meetingId: Fixtures.meetingId)
 
-        #expect(parsed.facts.filter { $0.kind == .decision }.count == 1)
-        #expect(parsed.facts.filter { $0.kind == .actionItem }.count == 1)
-        #expect(parsed.facts.filter { $0.kind == .risk }.count == 1)
-        #expect(parsed.facts.filter { $0.kind == .openQuestion }.count == 1)
-        #expect(parsed.facts.filter { $0.kind == .topic }.count == 1)
+        #expect(parsed.facts.count(where: { $0.kind == .decision }) == 1)
+        #expect(parsed.facts.count(where: { $0.kind == .actionItem }) == 1)
+        #expect(parsed.facts.count(where: { $0.kind == .risk }) == 1)
+        #expect(parsed.facts.count(where: { $0.kind == .openQuestion }) == 1)
+        #expect(parsed.facts.count(where: { $0.kind == .topic }) == 1)
 
         let action = parsed.facts.first { $0.kind == .actionItem }!
         #expect(action.assignee == "홍길동")
@@ -159,7 +159,7 @@ struct FinalNoteParserTests {
                 dueDateNote: "다음 주 월요일",
                 evidence: [Fixtures.evidence(for: segments[3])],
                 confidence: 0.8
-            ),
+            )
         ])
     }
 

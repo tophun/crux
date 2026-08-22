@@ -1,6 +1,6 @@
 import Foundation
-import Security
 import MeetingCore
+import Security
 
 /// Atlassian 인증 정보. 토큰은 로그·인자·화면에 남기지 않는다.
 public struct AtlassianCredentials: Sendable {
@@ -53,7 +53,7 @@ public struct KeychainCredentialStore: AtlassianCredentialStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecValueData as String: Data(credentials.apiToken.utf8),
+            kSecValueData as String: Data(credentials.apiToken.utf8)
         ]
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
@@ -67,7 +67,7 @@ public struct KeychainCredentialStore: AtlassianCredentialStore {
             kSecAttrService as String: service,
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecMatchLimit as String: kSecMatchLimitOne
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -91,7 +91,7 @@ public struct KeychainCredentialStore: AtlassianCredentialStore {
     public func delete() throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: service
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
@@ -105,7 +105,7 @@ public struct KeychainCredentialStore: AtlassianCredentialStore {
 
         public var errorDescription: String? {
             switch self {
-            case .keychain(let status): "Keychain 오류(\(status))"
+            case let .keychain(status): "Keychain 오류(\(status))"
             case .malformedAccount: "저장된 Atlassian 계정 형식이 올바르지 않습니다."
             }
         }
@@ -126,7 +126,7 @@ public struct EnvironmentCredentialStore: AtlassianCredentialStore {
         return AtlassianCredentials(site: site, email: email, apiToken: token)
     }
 
-    public func save(_ credentials: AtlassianCredentials) throws {
+    public func save(_: AtlassianCredentials) throws {
         throw PublishError.missingCredentials("환경 변수 저장소는 쓰기를 지원하지 않습니다.")
     }
 
@@ -154,6 +154,8 @@ public struct ChainedCredentialStore: AtlassianCredentialStore {
     }
 
     public func delete() throws {
-        for store in stores { try? store.delete() }
+        for store in stores {
+            try? store.delete()
+        }
     }
 }

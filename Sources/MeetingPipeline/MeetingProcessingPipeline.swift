@@ -100,6 +100,7 @@ public actor MeetingProcessingPipeline {
         var problems: [String] = []
 
         // MARK: 1. 오디오 준비
+
         let track = try await runStage(.prepareAudio, meetingId: meetingId, recorder: recorder, onUpdate: onUpdate) {
             let tracks = try repository.tracks(meetingId: meetingId)
             guard let selected = tracks.first(where: { $0.kind == .mixed }) ?? tracks.first else {
@@ -117,6 +118,7 @@ public actor MeetingProcessingPipeline {
         }
 
         // MARK: 2. 음성 인식
+
         var segments = force ? [] : try repository.transcript(meetingId: meetingId)
         if segments.isEmpty {
             try repository.updateStatus(.transcribing, meetingId: meetingId)
@@ -149,8 +151,9 @@ public actor MeetingProcessingPipeline {
         }
 
         // MARK: 3~5. 회의록 생성 (사실 추출 → 재검토 → 최종 종합)
+
         try repository.updateStatus(.analyzing, meetingId: meetingId)
-        let editor = self.editor
+        let editor = editor
         let output = try await runStage(.extractFacts, meetingId: meetingId, recorder: recorder, onUpdate: onUpdate) {
             try await coordinator.withLanguageModel { model in
                 let pipeline = LocalInferencePipeline(model: model, configuration: inferenceConfiguration)
@@ -160,7 +163,7 @@ public actor MeetingProcessingPipeline {
                     segments: segments,
                     progress: { progress in
                         switch progress {
-                        case .extracting(let window, let total):
+                        case let .extracting(window, total):
                             Task { [weak self] in
                                 await self?.emit(
                                     onUpdate,
@@ -172,7 +175,7 @@ public actor MeetingProcessingPipeline {
                                     message: "사실 추출 \(window)/\(total) 구간"
                                 )
                             }
-                        case .reviewing(let item, let total):
+                        case let .reviewing(item, total):
                             Task { [weak self] in
                                 await self?.emit(
                                     onUpdate,
@@ -227,6 +230,7 @@ public actor MeetingProcessingPipeline {
         try markSucceeded(.assembleNote, meetingId: meetingId)
 
         // MARK: 6. 저장 — 회의록은 DB, 근거는 로컬 파일로 분리한다(요구사항 7).
+
         var note = output.note
         var trace = MeetingSkillTrace()
         trace.record(
@@ -274,7 +278,9 @@ public actor MeetingProcessingPipeline {
         applyRetention(meetingId: meetingId)
 
         let metrics = await recorder.all()
-        for line in problems.prefix(20) { logSink?("문제: \(line)") }
+        for line in problems.prefix(20) {
+            logSink?("문제: \(line)")
+        }
 
         return Result(
             note: note,
@@ -370,7 +376,7 @@ public actor MeetingProcessingPipeline {
         let candidates = [
             storage.url(for: track.kind, extension: track.fileURL.pathExtension),
             storage.mixedDirectory.appendingPathComponent(track.fileURL.lastPathComponent),
-            storage.rawDirectory.appendingPathComponent(track.fileURL.lastPathComponent),
+            storage.rawDirectory.appendingPathComponent(track.fileURL.lastPathComponent)
         ]
         guard let found = candidates.first(where: { fileManager.fileExists(atPath: $0.path) }) else {
             return track
@@ -401,8 +407,8 @@ public enum PipelineError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .meetingNotFound(let id): "회의를 찾을 수 없습니다: \(id)"
-        case .audioTrackMissing(let id): "회의에 연결된 오디오 파일이 없습니다: \(id)"
+        case let .meetingNotFound(id): "회의를 찾을 수 없습니다: \(id)"
+        case let .audioTrackMissing(id): "회의에 연결된 오디오 파일이 없습니다: \(id)"
         case .busy: "다른 회의를 처리하는 중입니다. 끝난 뒤에 다시 시도하세요."
         }
     }

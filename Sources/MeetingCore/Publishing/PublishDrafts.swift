@@ -197,7 +197,7 @@ public struct JiraIssueDraft: Identifiable, Hashable, Sendable, Codable {
             .map { text in
                 [
                     "type": "paragraph",
-                    "content": [["type": "text", "text": text]],
+                    "content": [["type": "text", "text": text]]
                 ]
             }
         return ["type": "doc", "version": 1, "content": content]

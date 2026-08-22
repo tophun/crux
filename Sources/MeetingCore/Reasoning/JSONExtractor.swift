@@ -87,13 +87,13 @@ public enum JSONExtractor {
         var inString = false
         var escaped = false
 
-        for index in startIndex..<characters.count {
+        for index in startIndex ..< characters.count {
             let character = characters[index]
             if escaped {
                 escaped = false
                 continue
             }
-            if character == "\\" && inString {
+            if character == "\\", inString {
                 escaped = true
                 continue
             }
@@ -107,7 +107,7 @@ public enum JSONExtractor {
             } else if character == closing {
                 depth -= 1
                 if depth == 0 {
-                    return String(characters[startIndex...index])
+                    return String(characters[startIndex ... index])
                 }
             }
         }
@@ -119,7 +119,7 @@ public enum JSONExtractor {
         var fixes: [String] = []
 
         let smartQuotes: [(String, String)] = [
-            ("\u{201C}", "\""), ("\u{201D}", "\""), ("\u{2018}", "'"), ("\u{2019}", "'"),
+            ("\u{201C}", "\""), ("\u{201D}", "\""), ("\u{2018}", "'"), ("\u{2019}", "'")
         ]
         for (from, to) in smartQuotes where result.contains(from) {
             result = result.replacingOccurrences(of: from, with: to)
@@ -155,7 +155,7 @@ public enum JSONExtractor {
                 index += 1
                 continue
             }
-            if character == "\\" && inString {
+            if character == "\\", inString {
                 output.append(character)
                 escaped = true
                 index += 1
@@ -168,7 +168,9 @@ public enum JSONExtractor {
                 continue
             }
             if !inString, character == "/", index + 1 < characters.count, characters[index + 1] == "/" {
-                while index < characters.count, characters[index] != "\n" { index += 1 }
+                while index < characters.count, characters[index] != "\n" {
+                    index += 1
+                }
                 continue
             }
             output.append(character)
@@ -189,7 +191,7 @@ public enum JSONExtractor {
                 escaped = false
                 continue
             }
-            if character == "\\" && inString {
+            if character == "\\", inString {
                 output.append(character)
                 escaped = true
                 continue

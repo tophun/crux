@@ -54,7 +54,7 @@ public struct AppLog: Sendable {
 
     /// 기존 로그 싱크 자리에 그대로 끼울 수 있는 클로저
     public func sink(_ category: Category) -> @Sendable (String) -> Void {
-        { message in self.write(category, message) }
+        { message in write(category, message) }
     }
 
     static func timestamp() -> String {

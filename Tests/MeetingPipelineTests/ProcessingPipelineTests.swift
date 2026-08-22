@@ -1,10 +1,10 @@
 import AVFoundation
 import Foundation
-import Testing
 @testable import MeetingAudio
 @testable import MeetingCore
 @testable import MeetingPersistence
 @testable import MeetingPipeline
+import Testing
 
 @Suite("회의 처리 파이프라인")
 struct ProcessingPipelineTests {
@@ -405,12 +405,11 @@ struct MeetingDeleterTests {
         let storage = MeetingStorage.forMeeting(id: meetingId, base: harness.directory)
         try storage.createDirectories()
 
-        let audioURL: URL
-        if copyAudioIntoStorage {
-            audioURL = storage.url(for: .mixed, extension: "m4a")
+        let audioURL: URL = if copyAudioIntoStorage {
+            storage.url(for: .mixed, extension: "m4a")
         } else {
             // 사용자가 가져온 원본을 복사하지 않고 참조만 한 경우
-            audioURL = harness.directory.appendingPathComponent("사용자원본.m4a")
+            harness.directory.appendingPathComponent("사용자원본.m4a")
         }
         try Data("audio".utf8).write(to: audioURL)
 

@@ -31,13 +31,12 @@ public struct FactReviewParser: Sendable {
         var problems: [String] = []
 
         let verdictText = root["verdict", "decision", "판정"].stringValue?.lowercased() ?? "confirm"
-        let verdict: Verdict
-        if verdictText.contains("discard") || verdictText.contains("폐기") || verdictText.contains("drop") {
-            verdict = .discard
+        let verdict: Verdict = if verdictText.contains("discard") || verdictText.contains("폐기") || verdictText.contains("drop") {
+            .discard
         } else if verdictText.contains("revise") || verdictText.contains("수정") {
-            verdict = .revise
+            .revise
         } else {
-            verdict = .confirm
+            .confirm
         }
 
         var fact = original
@@ -70,9 +69,13 @@ public struct FactReviewParser: Sendable {
 
         if fact.kind == .risk {
             let severityText = root["severity", "심각도"].stringValue?.lowercased() ?? ""
-            if severityText.contains("high") || severityText.contains("높") { fact.severity = .high }
-            else if severityText.contains("medium") || severityText.contains("중") { fact.severity = .medium }
-            else if severityText.contains("low") || severityText.contains("낮") { fact.severity = .low }
+            if severityText.contains("high") || severityText.contains("높") {
+                fact.severity = .high
+            } else if severityText.contains("medium") || severityText.contains("중") {
+                fact.severity = .medium
+            } else if severityText.contains("low") || severityText.contains("낮") {
+                fact.severity = .low
+            }
         }
 
         if let confidence = root["confidence", "신뢰도"].confidenceValue {

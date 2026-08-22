@@ -114,11 +114,12 @@ public enum KoreanStyleRules {
     /// Do-NOT: 탐지·윤문 모두 제외. 고유명사·수치·날짜·직접 인용·표준 기술 용어는 건드리지 않는다.
     public static let protectedTerms: [String] = [
         "API", "LLM", "GPU", "CPU", "QA", "MCP", "SQL", "URL", "JSON", "SDK", "UI", "UX",
-        "prompt", "token", "pipeline", "Confluence", "Jira", "Slack", "Zoom", "Teams",
+        "prompt", "token", "pipeline", "Confluence", "Jira", "Slack", "Zoom", "Teams"
     ]
 
     public static let all: [KoreanStyleRule] = [
         // MARK: A. 번역투
+
         KoreanStyleRule(
             id: "A-1",
             category: .translationese,
@@ -209,6 +210,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: C. 기계적 구조
+
         KoreanStyleRule(
             id: "C-5",
             category: .structuralPattern,
@@ -238,6 +240,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: D. AI 관용구
+
         KoreanStyleRule(
             id: "D-1",
             category: .signaturePhrase,
@@ -273,6 +276,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: G. 완곡
+
         KoreanStyleRule(
             id: "G-1",
             category: .hedging,
@@ -291,6 +295,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: H. 접속사
+
         KoreanStyleRule(
             id: "H-1",
             category: .conjunctionOveruse,
@@ -309,6 +314,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: I. 형식명사
+
         KoreanStyleRule(
             id: "I-2",
             category: .formalNoun,
@@ -337,6 +343,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: J. 시각 장식
+
         KoreanStyleRule(
             id: "J-1",
             category: .visualDecoration,
@@ -355,6 +362,7 @@ public enum KoreanStyleRules {
         ),
 
         // MARK: K. fluent-korean — 의미 명확성
+
         KoreanStyleRule(
             id: "K-1",
             category: .clarity,
@@ -378,7 +386,7 @@ public enum KoreanStyleRules {
             prescription: "관형격 조사 \"~의\"를 3회 이상 겹쳐 쓰지 않는다",
             pattern: "[가-힣]+의 [가-힣]+의",
             threshold: 1
-        ),
+        )
     ]
 
     public static func rule(id: String) -> KoreanStyleRule? {
@@ -390,7 +398,7 @@ extension NSTextCheckingResult {
     /// 캡처 그룹 문자열
     func substring(at index: Int, in source: String) -> String? {
         guard index < numberOfRanges else { return nil }
-        let range = self.range(at: index)
+        let range = range(at: index)
         guard range.location != NSNotFound, let swiftRange = Range(range, in: source) else { return nil }
         return String(source[swiftRange])
     }

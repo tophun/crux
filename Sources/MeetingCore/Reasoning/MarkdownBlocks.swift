@@ -15,11 +15,11 @@ public enum MarkdownBlock: Equatable, Sendable, Identifiable {
 
     public var id: String {
         switch self {
-        case .heading(let level, let text): "h\(level):\(text)"
-        case .bullet(let text): "li:\(text)"
-        case .checklist(let text, let done): "task:\(done):\(text)"
-        case .table(let headers, let rows): "table:\(headers.joined(separator: "|")):\(rows.count)"
-        case .paragraph(let text): "p:\(text)"
+        case let .heading(level, text): "h\(level):\(text)"
+        case let .bullet(text): "li:\(text)"
+        case let .checklist(text, done): "task:\(done):\(text)"
+        case let .table(headers, rows): "table:\(headers.joined(separator: "|")):\(rows.count)"
+        case let .paragraph(text): "p:\(text)"
         }
     }
 }

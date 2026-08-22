@@ -72,9 +72,9 @@ public struct AudioSegment: Identifiable, Hashable, Sendable, Codable {
     public var duration: TimeInterval { max(0, endTime - startTime) }
 }
 
-extension AudioTrack {
+public extension AudioTrack {
     /// 재생에 쓸 트랙을 고른다. 합성본 → 마이크 → 시스템 오디오 순이다.
-    public static func preferredForPlayback(_ tracks: [AudioTrack]) -> AudioTrack? {
+    static func preferredForPlayback(_ tracks: [AudioTrack]) -> AudioTrack? {
         let order: [AudioTrackKind] = [.mixed, .microphone, .system]
         for kind in order {
             if let track = tracks.first(where: { $0.kind == kind }) { return track }
@@ -82,7 +82,7 @@ extension AudioTrack {
         return tracks.first
     }
 
-    public var displayName: String {
+    var displayName: String {
         switch kind {
         case .mixed: "전체(합성)"
         case .microphone: "마이크"

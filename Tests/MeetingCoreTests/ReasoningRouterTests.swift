@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("사고 모드 자동 라우팅")
 struct ReasoningRouterTests {

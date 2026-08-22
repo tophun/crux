@@ -29,22 +29,21 @@ public protocol LocalLanguageModel: Sendable {
     func unload() async
 }
 
-extension LocalLanguageModel {
-    public func generate(
+public extension LocalLanguageModel {
+    func generate(
         systemPrompt: String?,
         prompt: String,
         mode: ReasoningMode,
         maxTokens: Int
     ) async throws -> String {
-        let merged: String
-        if let systemPrompt, !systemPrompt.isEmpty {
-            merged = systemPrompt + "\n\n" + prompt
+        let merged: String = if let systemPrompt, !systemPrompt.isEmpty {
+            systemPrompt + "\n\n" + prompt
         } else {
-            merged = prompt
+            prompt
         }
         return try await generate(prompt: merged, mode: mode, maxTokens: maxTokens)
     }
 
-    public func load() async throws {}
-    public func unload() async {}
+    func load() async throws {}
+    func unload() async {}
 }
