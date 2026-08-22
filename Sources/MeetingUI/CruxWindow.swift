@@ -2,13 +2,13 @@ import AppKit
 import MeetingCore
 import SwiftUI
 
-/// Live Capsule을 담는 플로팅 창.
+/// Crux을 담는 플로팅 창.
 ///
 /// - 화면 **최상단(메뉴바 영역)** 에 붙여 노치와 이어지게 그린다. `visibleFrame`이 아니라 `frame` 기준이다.
 /// - `NSPanel`의 `.nonactivatingPanel`을 써서 다른 앱의 포커스를 빼앗지 않는다.
 /// - MacBook 내장 화면에서는 노치 중심, 외부 모니터에서는 현재 활성 화면 상단 중앙에 붙는다.
 @MainActor
-public final class LiveCapsuleWindowController {
+public final class CruxWindowController {
     private var panel: NSPanel?
     private var hosting: NSHostingView<AnyView>?
     private var metrics: NotchMetrics?
@@ -25,7 +25,7 @@ public final class LiveCapsuleWindowController {
     public init() {}
 
     public func show(
-        state: LiveCapsuleState,
+        state: CruxState,
         detailMessage: String? = nil,
         onPrimaryAction: @escaping () -> Void,
         onDismiss: @escaping () -> Void,
@@ -52,7 +52,7 @@ public final class LiveCapsuleWindowController {
         render = { [weak self] in
             guard let self else { return }
             let view = AnyView(
-                LiveCapsuleView(
+                CruxView(
                     state: state,
                     detailMessage: detailMessage,
                     metrics: metrics,
@@ -164,8 +164,8 @@ public final class LiveCapsuleWindowController {
         }
         // 창과 내용이 같은 곡선으로 움직여야 한 덩어리처럼 보인다.
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = LiveCapsuleAnimation.duration
-            context.timingFunction = LiveCapsuleAnimation.timingFunction
+            context.duration = CruxAnimation.duration
+            context.timingFunction = CruxAnimation.timingFunction
             context.allowsImplicitAnimation = true
             panel.animator().setFrame(frame, display: true)
         }

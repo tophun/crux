@@ -2,7 +2,7 @@ import Foundation
 
 /// 파일 로그. 앱을 Finder에서 실행하면 표준 출력이 사라져 문제를 추적할 수 없다.
 ///
-/// `~/Library/Logs/LiveCapsule/live-capsule.log`에 남긴다. 회의 내용·오디오·토큰은 남기지 않는다.
+/// `~/Library/Logs/Crux/crux.log`에 남긴다. 회의 내용·오디오·토큰은 남기지 않는다.
 public struct AppLog: Sendable {
     public enum Category: String, Sendable {
         case session, audio, pipeline, model, publish, ui
@@ -24,7 +24,7 @@ public struct AppLog: Sendable {
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library")
         return base
             .appendingPathComponent("Logs/\(AppIdentity.bundleName)", isDirectory: true)
-            .appendingPathComponent("live-capsule.log")
+            .appendingPathComponent("crux.log")
     }
 
     public func write(_ category: Category, _ message: String) {

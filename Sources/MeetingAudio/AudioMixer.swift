@@ -100,7 +100,7 @@ public enum AudioMixer {
         }
         writer.startSession(atSourceTime: .zero)
 
-        let queue = DispatchQueue(label: "live-capsule.audio-mixer")
+        let queue = DispatchQueue(label: "crux.audio-mixer")
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             let finished = Locked(false)
             input.requestMediaDataWhenReady(on: queue) {

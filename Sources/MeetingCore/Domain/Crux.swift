@@ -1,9 +1,9 @@
 import Foundation
 
-/// Live Capsule 상태(요구사항 3).
+/// Crux 상태(요구사항 3).
 ///
 /// 회의 임박 → 회의 시작 감지 → 녹음 중 → 회의록 생성 중 → Preview 준비 완료 → 게시 완료
-public enum LiveCapsuleState: Equatable, Sendable {
+public enum CruxState: Equatable, Sendable {
     case hidden
     /// 회의 임박
     case imminent(title: String, minutesUntilStart: Int)
@@ -158,7 +158,7 @@ public enum LiveCapsuleState: Equatable, Sendable {
 }
 
 /// 상태 전이를 일으키는 사건.
-public enum LiveCapsuleEvent: Equatable, Sendable {
+public enum CruxEvent: Equatable, Sendable {
     case detection(MeetingDetectionPolicy.Verdict, message: String?)
     /// 사용자가 회의록 시작을 승인
     case userStartedMeeting
@@ -176,16 +176,16 @@ public enum LiveCapsuleEvent: Equatable, Sendable {
     case reset
 }
 
-/// Live Capsule 상태 머신. UI와 분리해 두어 전이 규칙을 테스트로 고정한다.
-public struct LiveCapsuleMachine: Sendable {
-    public private(set) var state: LiveCapsuleState
+/// Crux 상태 머신. UI와 분리해 두어 전이 규칙을 테스트로 고정한다.
+public struct CruxMachine: Sendable {
+    public private(set) var state: CruxState
     /// 사용자가 닫은 이벤트. 같은 회의에 다시 묻지 않기 위해 기록한다.
     public private(set) var dismissedEventIds: Set<String>
     /// 현재 진행 중인 회의의 캘린더 이벤트
     public private(set) var activeEvent: CalendarEvent?
 
     public init(
-        state: LiveCapsuleState = .hidden,
+        state: CruxState = .hidden,
         dismissedEventIds: Set<String> = [],
         activeEvent: CalendarEvent? = nil
     ) {
@@ -195,7 +195,7 @@ public struct LiveCapsuleMachine: Sendable {
     }
 
     @discardableResult
-    public mutating func apply(_ event: LiveCapsuleEvent) -> LiveCapsuleState {
+    public mutating func apply(_ event: CruxEvent) -> CruxState {
         switch event {
         case let .detection(verdict, message):
             // 녹음·처리 중에는 감지 결과로 상태를 덮지 않는다.

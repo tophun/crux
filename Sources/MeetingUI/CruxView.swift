@@ -2,15 +2,15 @@ import MeetingCore
 import QuartzCore
 import SwiftUI
 
-/// Live Capsule 본체(요구사항 3).
+/// Crux 본체(요구사항 3).
 ///
 /// 화면 최상단에 붙어 **노치와 한 덩어리처럼** 보이도록 그린다.
 /// - 위쪽 모서리는 각지게(화면 끝에 밀착), 아래쪽만 둥글게
 /// - 노치가 있는 화면에서는 노치 폭만큼 비워 두고 좌우에 내용을 배치한다
 /// - **좌측은 아이콘과 상태, 우측은 시간·진행률** 한 줄로 읽힌다
 /// - **마우스를 올리면 캡슐이 커지면서** 동작 버튼이 나온다. 클릭하면 상세까지 펼쳐 고정된다
-public struct LiveCapsuleView: View {
-    let state: LiveCapsuleState
+public struct CruxView: View {
+    let state: CruxState
     let detailMessage: String?
     let metrics: NotchMetrics
     /// 마우스 오버로 커진 상태. 창이 크기를 다시 재야 하므로 밖에서 들고 있는다.
@@ -31,7 +31,7 @@ public struct LiveCapsuleView: View {
     let onCancelProcessing: () -> Void
 
     public init(
-        state: LiveCapsuleState,
+        state: CruxState,
         detailMessage: String? = nil,
         metrics: NotchMetrics,
         isHovering: Bool = false,
@@ -304,7 +304,7 @@ public struct LiveCapsuleView: View {
                 Text("녹음은 이 기기에서만 저장되며 자동으로 시작하지 않습니다.")
                     .font(.system(size: 10)).opacity(0.6)
             case let .recording(elapsed, paused):
-                Text("\(paused ? "일시정지" : "녹음 중") · \(LiveCapsuleState.clock(elapsed))")
+                Text("\(paused ? "일시정지" : "녹음 중") · \(CruxState.clock(elapsed))")
                     .font(.system(size: 11))
                     .monospacedDigit()
                 Text("마이크와 시스템 오디오는 로컬 파일로만 저장됩니다.")
@@ -353,7 +353,7 @@ struct CapsuleButtonStyle: ButtonStyle {
 ///
 /// SwiftUI 내용과 창(NSPanel) 크기가 **같은 시간·같은 곡선**으로 움직여야 한 덩어리로 보인다.
 /// 값이 어긋나면 내용이 먼저 자리를 잡고 창이 뒤늦게 따라오면서 덜컹거린다.
-enum LiveCapsuleAnimation {
+enum CruxAnimation {
     static let duration: TimeInterval = 0.22
 
     /// SwiftUI 쪽 곡선. macOS 창 애니메이션과 같은 easeOut 느낌을 맞춘다.

@@ -499,7 +499,7 @@ struct MeetingDeleterTests {
 
     @Test("회의 디렉터리 안팎을 정확히 구분한다")
     func distinguishesInsideAndOutside() {
-        let root = URL(fileURLWithPath: "/Users/me/Library/Application Support/LiveCapsule/meetings/abc")
+        let root = URL(fileURLWithPath: "/Users/me/Library/Application Support/Crux/meetings/abc")
         #expect(MeetingDeleter.isInside(root.appendingPathComponent("raw/microphone.m4a"), root: root))
         #expect(!MeetingDeleter.isInside(URL(fileURLWithPath: "/Users/me/Desktop/회의.m4a"), root: root))
         // 접두어만 같은 다른 디렉터리를 안쪽으로 착각하면 안 된다.

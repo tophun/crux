@@ -13,7 +13,7 @@ import UniformTypeIdentifiers
 
 /// 앱 조립 지점. 여기서만 무거운 엔진과 외부 연동 구현을 알고, 나머지 모듈은 프로토콜만 본다.
 @main
-struct LiveCapsuleApp: App {
+struct CruxApp: App {
     @State private var state: AppState
     @State private var coordinator: MeetingSessionCoordinator
     /// 오디오 보관 설정과 사용량
@@ -182,7 +182,7 @@ struct LiveCapsuleApp: App {
                 ContentUnavailableView(
                     "검토할 회의록이 없습니다",
                     systemImage: "doc.text.magnifyingglass",
-                    description: Text("회의록 생성이 끝나면 Live Capsule에서 열 수 있습니다.")
+                    description: Text("회의록 생성이 끝나면 Crux에서 열 수 있습니다.")
                 )
                 .frame(width: 480, height: 260)
             }
@@ -249,13 +249,13 @@ struct LiveCapsuleApp: App {
     }
 }
 
-/// Live Capsule 창을 관리한다. 상태가 바뀔 때마다 캡슐을 갱신한다.
+/// Crux 창을 관리한다. 상태가 바뀔 때마다 캡슐을 갱신한다.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let capsuleWindow = LiveCapsuleWindowController()
+    private let capsuleWindow = CruxWindowController()
     private var coordinator: MeetingSessionCoordinator?
     private var syncTask: Task<Void, Never>?
-    private var lastState: LiveCapsuleState = .hidden
+    private var lastState: CruxState = .hidden
 
     func attach(coordinator: MeetingSessionCoordinator) {
         guard self.coordinator == nil else { return }
@@ -287,7 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             },
             onOpenPreview: {
-                LiveCapsuleApp.activateWindow(titled: "게시 전 검토")
+                CruxApp.activateWindow(titled: "게시 전 검토")
             },
             onTogglePause: { Task { await coordinator.togglePause() } },
             onStop: { Task { await coordinator.stopAndProcess() } },
@@ -295,7 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    private func handlePrimaryAction(_ state: LiveCapsuleState) {
+    private func handlePrimaryAction(_ state: CruxState) {
         guard let coordinator else { return }
         switch state {
         case .detected, .imminent:
@@ -307,9 +307,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { await coordinator.stopAndProcess() }
             }
         case .previewReady:
-            LiveCapsuleApp.activateWindow(titled: "게시 전 검토")
+            CruxApp.activateWindow(titled: "게시 전 검토")
         case .published:
-            LiveCapsuleApp.activateWindow(titled: "게시 전 검토")
+            CruxApp.activateWindow(titled: "게시 전 검토")
         case .failed:
             Task { await coordinator.pollOnce() }
         case .generating, .hidden:

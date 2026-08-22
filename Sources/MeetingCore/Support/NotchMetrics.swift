@@ -3,7 +3,7 @@ import Foundation
 
 /// 노치와 캡슐을 한 덩어리로 붙이기 위한 화면 기하 정보.
 ///
-/// Live Capsule은 메뉴바 아래에 떠 있는 창이 아니라 **화면 최상단에 붙어 노치와 이어지는 모양**이다.
+/// Crux은 메뉴바 아래에 떠 있는 창이 아니라 **화면 최상단에 붙어 노치와 이어지는 모양**이다.
 /// 그래서 `visibleFrame`(메뉴바 아래)이 아니라 `frame`(화면 전체)을 기준으로 위치를 잡는다.
 public struct NotchMetrics: Equatable, Sendable {
     /// 화면 전체 영역 (메뉴바 포함)

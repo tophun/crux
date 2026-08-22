@@ -1,17 +1,17 @@
-# Live Capsule
+# Crux
 
-> 제품명은 **Live Capsule**로 확정했다. 화면 상단의 플로팅 캡슐 UI 이름이자 제품 이름이다.
+> 제품명은 **Crux**로 확정했다. 화면 상단의 플로팅 캡슐 UI 이름이자 제품 이름이다.
 > 코드에서는 `AppIdentity.productName`(표시 이름)과 `AppIdentity.bundleName`(파일·번들 이름)에서만 정의한다.
 
 macOS 전용 **온디바이스 AI 회의록** 앱.
 
-- 캘린더가 회의를 감지하고, **Live Capsule**이 회의록 시작을 제안한다.
+- 캘린더가 회의를 감지하고, **Crux**이 회의록 시작을 제안한다.
 - 녹음·음성 인식·회의록 생성·한국어 윤문은 모두 이 기기에서 처리한다.
 - **Preview Viewer**에서 사용자가 검토·수정하고 승인한 내용만 **Confluence**에 게시하고
   액션 아이템을 **Jira** 이슈로 만든다.
 - 회의 오디오, 전체 전사문, 근거 타임스탬프는 외부로 전송하지 않는다.
 
-> 제품명이 확정되지 않았으므로 문서에서는 `Live Capsule`을 사용한다.
+> 제품명이 확정되지 않았으므로 문서에서는 `Crux`을 사용한다.
 > 코드에는 제품명을 넣지 않았고, 사용자에게 보이는 이름은 `Sources/MeetingCore/Support/AppIdentity.swift`의
 > `productName` 한 곳에서만 정의한다.
 
@@ -27,7 +27,7 @@ macOS 전용 **온디바이스 AI 회의록** 앱.
 | SwiftUI 회의 목록·상세·타임라인·메뉴바 | 구현 완료 |
 | 마이크 녹음 (`AVAudioEngine`) + 시스템 오디오 (`ScreenCaptureKit`) + 트랙 분리·mixed 생성 | 구현 완료 (실기기 권한 검증 필요) |
 | 캘린더 회의 감지 (EventKit) + 중복 알림 방지 | 구현 완료 (권한 승인 후 검증 필요) |
-| Live Capsule (상단 플로팅 캡슐, 포커스 비탈취) | 구현 완료 (육안 미검증) |
+| Crux (상단 플로팅 캡슐, 포커스 비탈취) | 구현 완료 (육안 미검증) |
 | Preview Viewer (회의록 / Jira 액션 아이템 / 근거 확인) | 구현 완료 |
 | 한국어 윤문 Skill (`korean-meeting-editor`) | 구현 완료 |
 | Confluence 게시 · Jira 이슈 생성 · 상호 링크 | 구현 완료 |
@@ -62,15 +62,15 @@ xcodebuild -scheme MeetingApp -destination 'platform=OS X,arch=arm64' \
 
 # 3) 앱 번들 생성 (캘린더·마이크·화면 기록 권한은 번들에서만 받을 수 있다)
 ./Scripts/make_app.sh
-open .xcbuild/LiveCapsule.app
+open .xcbuild/Crux.app
 
 # 산출물
 .xcbuild/Build/Products/Debug/meetingctl
-.xcbuild/LiveCapsule.app
+.xcbuild/Crux.app
 ```
 
 `make_app.sh`는 Info.plist(권한 사용 설명), mlx Metal 셰이더(`Contents/MacOS/mlx.metallib`), ad-hoc 코드 서명을
-함께 넣는다. 번들 식별자는 기본 `local.livecapsule.app`이며 Developer ID를 쓰게 되면 `BUNDLE_ID` 환경 변수로 바꾼다.
+함께 넣는다. 번들 식별자는 기본 `local.crux.app`이며 Developer ID를 쓰게 되면 `BUNDLE_ID` 환경 변수로 바꾼다.
 
 `-skipMacroValidation`은 `mlx-swift-lm`의 매크로(`MLXHuggingFaceMacros`) 신뢰 확인을 건너뛰기 위한 것이다.
 Xcode GUI에서는 첫 빌드 때 매크로 신뢰를 한 번 눌러주면 된다.
@@ -141,8 +141,8 @@ open .xcbuild/Build/Products/Debug/MeetingApp
 
 | 용도 | 기본 모델 | 저장 위치 |
 | --- | --- | --- |
-| 음성 인식 | WhisperKit `openai_whisper-large-v3-v20240930_turbo` (large-v3 turbo) | `~/Library/Application Support/LiveCapsule/models` |
-| 회의록 생성 | `mlx-community/Qwen3-4B-4bit` (사고 모드 전환이 가능한 원본 Qwen3-4B) | `~/Library/Application Support/LiveCapsule/models/mlx` |
+| 음성 인식 | WhisperKit `openai_whisper-large-v3-v20240930_turbo` (large-v3 turbo) | `~/Library/Application Support/Crux/models` |
+| 회의록 생성 | `mlx-community/Qwen3-4B-4bit` (사고 모드 전환이 가능한 원본 Qwen3-4B) | `~/Library/Application Support/Crux/models/mlx` |
 
 - 첫 실행 때 두 모델을 내려받는다(합계 약 4GB). 이후에는 네트워크 없이 동작한다.
 - 메모리가 부족하면 음성 인식 모델을 `openai_whisper-large-v3-v20240930_626MB`로 낮출 수 있다
@@ -152,7 +152,7 @@ open .xcbuild/Build/Products/Debug/MeetingApp
 
 ## 권한
 
-앱 번들(`.xcbuild/LiveCapsule.app`)로 실행해야 권한을 받을 수 있다. CLI 실행 파일은 번들이 아니라
+앱 번들(`.xcbuild/Crux.app`)로 실행해야 권한을 받을 수 있다. CLI 실행 파일은 번들이 아니라
 캘린더 권한을 받을 수 없다(실행 시 그 사실을 알려 준다).
 
 | 권한 | 용도 | 요청 방법 |
@@ -188,9 +188,9 @@ Google Calendar 일정을 **네트워크 요청 없이** 읽는다.
   근거 인용·타임스탬프·내부 ID를 다시 확인한다.
 - API 호출은 앱이 사용자 승인 후 실행한다. 모델이 직접 호출하지 않는다.
 
-## Live Capsule과 Preview Viewer
+## Crux과 Preview Viewer
 
-Live Capsule은 화면 상단 중앙의 작은 플로팅 캡슐이다(`NSPanel`의 `.nonactivatingPanel` — 다른 앱의
+Crux은 화면 상단 중앙의 작은 플로팅 캡슐이다(`NSPanel`의 `.nonactivatingPanel` — 다른 앱의
 포커스를 빼앗지 않는다). 외부 모니터를 쓰면 마우스가 있는 화면에 표시한다.
 
 ```
@@ -230,7 +230,7 @@ Preview Viewer 탭: **회의록** / **Jira 액션 아이템** / **근거 확인*
 1. **SwiftPM CLI로는 LLM 실행 파일을 만들 수 없다.** MLX Metal 셰이더 때문에 `xcodebuild`와
    Metal Toolchain이 필요하다.
 2. **권한은 앱 번들에서만 받을 수 있다.** CLI의 `calendar` 명령은 번들이 아니라 캘린더 권한을 받지 못한다
-   (실행 시 그 사실을 알려 준다). 녹음·캘린더·시스템 오디오는 `LiveCapsule.app`으로 실행해야 한다.
+   (실행 시 그 사실을 알려 준다). 녹음·캘린더·시스템 오디오는 `Crux.app`으로 실행해야 한다.
 3. **회의록 항목 중복.** 같은 내용이 결정사항과 액션아이템에 함께 나오는 경우가 있다.
 4. **인식 힌트(`--vocabulary`) 부작용.** 프롬프트 토큰이 디코딩에 영향을 주어 구간이 거칠게 합쳐질 수 있다
    (검증에서 24구간 → 6구간). 기본값은 비활성이며, `TranscriptSegmenter`가 90자를 넘는 구간을 문장 단위로
@@ -247,7 +247,7 @@ Preview Viewer 탭: **회의록** / **Jira 액션 아이템** / **근거 확인*
 10. **Preview 품질 경고가 편집 즉시 갱신되지 않는다.** 화면에서 문장을 고친 뒤 경고 목록이 바로 바뀌지 않을 수 있다.
     게시 직전 검열 게이트가 다시 검사하므로 잘못된 내용이 나가지는 않는다.
 11. **한 번에 한 회의만 처리한다.** 처리 중 다른 회의를 요청하면 거부한다(모델을 동시에 두 개 올리지 않기 위함).
-12. **Live Capsule 육안 미검증.** 상태 머신은 테스트로 고정했지만 화면 렌더링은 화면 기록 권한이 없어
+12. **Crux 육안 미검증.** 상태 머신은 테스트로 고정했지만 화면 렌더링은 화면 기록 권한이 없어
     캡처할 수 없었다.
 
 ## 저장소 구조
@@ -263,7 +263,7 @@ Sources/
   MeetingInference/     MLX Swift + Qwen3 엔진
   MeetingPublishing/    Atlassian 게시 (앱에서 유일하게 외부로 HTTP를 보내는 모듈)
   MeetingPipeline/      단계 오케스트레이션, 모델 수명 관리, 근거 파일, 게시 준비
-  MeetingUI/            SwiftUI 화면 + Live Capsule + Preview Viewer
+  MeetingUI/            SwiftUI 화면 + Crux + Preview Viewer
   MeetingApp/           앱 조립 지점 (메뉴바 + 창 + 캡슐 + 설정)
   MeetingCLI/           meetingctl 헤드리스 하네스
 Scripts/make_app.sh    앱 번들 생성 (권한 사용 설명 + ad-hoc 서명)
@@ -273,4 +273,4 @@ docs/                   설계·계획·Skill·개인정보·평가 문서
 ```
 
 자세한 설계는 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), Skill 구성은 [docs/SKILLS.md](docs/SKILLS.md),
-캘린더·Atlassian·Live Capsule 설계와 검증 기록은 [docs/PHASE2-PLAN.md](docs/PHASE2-PLAN.md)를 참고한다.
+캘린더·Atlassian·Crux 설계와 검증 기록은 [docs/PHASE2-PLAN.md](docs/PHASE2-PLAN.md)를 참고한다.
