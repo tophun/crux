@@ -13,7 +13,7 @@ struct AudioRetentionPolicyTests {
     ) -> AudioRetentionPolicy.Candidate {
         AudioRetentionPolicy.Candidate(
             meetingId: UUID(),
-            referenceDate: now.addingTimeInterval(-ago * 86_400),
+            referenceDate: now.addingTimeInterval(-ago * 86400),
             isCompleted: completed,
             hasAudio: hasAudio
         )

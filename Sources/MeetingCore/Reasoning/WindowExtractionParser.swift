@@ -28,6 +28,7 @@ public struct WindowExtractionParser: Sendable {
         var facts: [MeetingFact] = []
 
         // MARK: 결정/제안
+
         for item in root["decisions", "decision", "결정사항"].arrayValue {
             guard let content = item["content", "decision", "내용"].stringValue else { continue }
             let kindText = item["kind", "type", "status"].stringValue?.lowercased() ?? ""
@@ -51,6 +52,7 @@ public struct WindowExtractionParser: Sendable {
         }
 
         // MARK: 액션아이템
+
         for item in root["actionItems", "action_items", "actions", "액션아이템"].arrayValue {
             guard let task = item["task", "content", "action", "내용"].stringValue else { continue }
             let (evidence, evidenceProblems) = resolveEvidence(item, window: window)
@@ -72,6 +74,7 @@ public struct WindowExtractionParser: Sendable {
         }
 
         // MARK: 리스크
+
         for item in root["risks", "risk", "리스크"].arrayValue {
             guard let content = item["content", "risk", "내용"].stringValue else { continue }
             let (evidence, evidenceProblems) = resolveEvidence(item, window: window)
@@ -90,6 +93,7 @@ public struct WindowExtractionParser: Sendable {
         }
 
         // MARK: 미해결 질문
+
         for item in root["openQuestions", "open_questions", "questions", "미해결질문"].arrayValue {
             guard let content = item["question", "content", "내용"].stringValue else { continue }
             let (evidence, evidenceProblems) = resolveEvidence(item, window: window)
@@ -107,6 +111,7 @@ public struct WindowExtractionParser: Sendable {
         }
 
         // MARK: 주제
+
         for item in root["topics", "topic", "주제"].arrayValue {
             let title = item["title", "topic", "제목"].stringValue ?? item.stringValue
             guard let title else { continue }
@@ -117,12 +122,13 @@ public struct WindowExtractionParser: Sendable {
                     kind: .topic,
                     content: title,
                     confidence: 0.5,
-                    ambiguityNotes: [item["summary", "요약"].stringValue].compactMap { $0 }
+                    ambiguityNotes: [item["summary", "요약"].stringValue].compactMap(\.self)
                 )
             )
         }
 
         // MARK: 사담 분류 — 모델 판정과 규칙 판정을 합친다.
+
         var modelLabels: [UUID: RelevanceLabel] = [:]
         for item in root["segmentRelevance", "segment_relevance", "relevance", "구간분류"].arrayValue {
             guard let shortId = item["segment", "segmentId", "id"].stringValue,

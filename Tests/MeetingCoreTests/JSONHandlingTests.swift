@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("LLM JSON 처리")
 struct JSONHandlingTests {

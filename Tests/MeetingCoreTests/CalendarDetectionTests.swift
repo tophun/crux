@@ -1,9 +1,9 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 extension Fixtures {
-    static let now = Date(timeIntervalSince1970: 1_772_000_000)  // 고정 기준 시각
+    static let now = Date(timeIntervalSince1970: 1_772_000_000) // 고정 기준 시각
 
     static func event(
         id: String = "evt-1",
@@ -15,7 +15,7 @@ extension Fixtures {
         attendeeCount: Int = 3,
         conferenceURL: URL? = URL(string: "https://meet.google.com/abc-defg-hij")
     ) -> CalendarEvent {
-        let attendees = (0..<attendeeCount).map { index in
+        let attendees = (0 ..< attendeeCount).map { index in
             EventAttendee(
                 name: index == 0 ? "김민수" : "참석자\(index)",
                 email: "user\(index)@example.com",
@@ -48,7 +48,7 @@ struct MeetingDetectionPolicyTests {
             Fixtures.event(id: "ok", startOffset: 60),
             Fixtures.event(id: "allday", startOffset: 60, isAllDay: true),
             Fixtures.event(id: "canceled", startOffset: 60, status: .canceled),
-            Fixtures.event(id: "solo", startOffset: 60, attendeeCount: 1),
+            Fixtures.event(id: "solo", startOffset: 60, attendeeCount: 1)
         ]
         let eligible = policy.eligibleEvents(events).map(\.id)
         #expect(eligible == ["ok"])
@@ -58,7 +58,7 @@ struct MeetingDetectionPolicyTests {
     func detectsImminent() {
         let event = Fixtures.event(startOffset: 180)
         let verdict = policy.decide(events: [event], now: Fixtures.now, notifiedEventIds: [])
-        guard case .imminent(let detected, let seconds) = verdict else {
+        guard case let .imminent(detected, seconds) = verdict else {
             Issue.record("임박 판정이 아님: \(verdict)")
             return
         }
@@ -71,7 +71,7 @@ struct MeetingDetectionPolicyTests {
     func detectsStarted() {
         let event = Fixtures.event(startOffset: -120)
         let verdict = policy.decide(events: [event], now: Fixtures.now, notifiedEventIds: [])
-        guard case .started(let detected, let reason) = verdict else {
+        guard case let .started(detected, reason) = verdict else {
             Issue.record("시작 판정이 아님: \(verdict)")
             return
         }
@@ -90,7 +90,7 @@ struct MeetingDetectionPolicyTests {
             notifiedEventIds: [],
             conferenceApps: [ConferenceAppSignal(appName: "Zoom", isFrontmost: true, usesAudio: true)]
         )
-        guard case .started(_, let reason) = verdict else {
+        guard case let .started(_, reason) = verdict else {
             Issue.record("시작 판정이 아님")
             return
         }
@@ -163,7 +163,7 @@ struct LiveCapsuleMachineTests {
         #expect(machine.state.capsuleText == "회의록 작성 중")
 
         machine.apply(.processingProgress(fraction: 0.5, message: "재검토 2/5 항목"))
-        if case .generating(let fraction, _) = machine.state {
+        if case let .generating(fraction, _) = machine.state {
             #expect(fraction == 0.5)
         } else {
             Issue.record("생성 상태가 아님")

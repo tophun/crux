@@ -1,9 +1,9 @@
 import AVFoundation
 import Foundation
-import Testing
 @testable import MeetingCore
 @testable import MeetingPersistence
 @testable import MeetingPipeline
+import Testing
 
 @Suite("오디오 보관 적용")
 struct AudioRetentionServiceTests {
@@ -42,7 +42,7 @@ struct AudioRetentionServiceTests {
         withNote: Bool = true,
         externalMicrophone: Bool = false
     ) throws -> Meeting {
-        let ended = Date().addingTimeInterval(-endedDaysAgo * 86_400)
+        let ended = Date().addingTimeInterval(-endedDaysAgo * 86400)
         let meeting = Meeting(
             title: "보관 테스트",
             startedAt: ended.addingTimeInterval(-600),
@@ -54,9 +54,9 @@ struct AudioRetentionServiceTests {
 
         let micDirectory = externalMicrophone ? harness.outside : harness.storage
         let tracks: [AudioTrack] = try [
-            (AudioTrackKind.microphone, try TestAudio.makeSilentFile(directory: micDirectory)),
-            (AudioTrackKind.system, try TestAudio.makeSilentFile(directory: harness.storage)),
-            (AudioTrackKind.mixed, try TestAudio.makeSilentFile(directory: harness.storage)),
+            (AudioTrackKind.microphone, TestAudio.makeSilentFile(directory: micDirectory)),
+            (AudioTrackKind.system, TestAudio.makeSilentFile(directory: harness.storage)),
+            (AudioTrackKind.mixed, TestAudio.makeSilentFile(directory: harness.storage))
         ].map { kind, url in
             AudioTrack(
                 meetingId: meeting.id,
@@ -76,7 +76,7 @@ struct AudioRetentionServiceTests {
     }
 
     func kinds(_ harness: Harness, _ meeting: Meeting) throws -> Set<AudioTrackKind> {
-        Set(try harness.repository.tracks(meetingId: meeting.id).map(\.kind))
+        try Set(harness.repository.tracks(meetingId: meeting.id).map(\.kind))
     }
 
     @Test("회의록 생성 후 원본 트랙만 지우고 합성본은 남긴다")
@@ -176,7 +176,7 @@ struct AudioRetentionServiceTests {
 
         #expect(disk.fileCount == tracked.count + 1)
         #expect(disk.untrackedFileCount == 1)
-        let orphanBytes = Int64((try orphan.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        let orphanBytes = try Int64((orphan.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
         #expect(disk.untrackedBytes == orphanBytes)
         #expect(disk.bytes > disk.untrackedBytes)
     }

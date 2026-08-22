@@ -74,7 +74,7 @@ public enum AudioMixer {
             AVLinearPCMBitDepthKey: 16,
             AVLinearPCMIsFloatKey: false,
             AVLinearPCMIsBigEndianKey: false,
-            AVLinearPCMIsNonInterleaved: false,
+            AVLinearPCMIsNonInterleaved: false
         ]
         let mixOutput = AVAssetReaderAudioMixOutput(audioTracks: audioTracks, audioSettings: readerSettings)
         guard reader.canAdd(mixOutput) else { throw CaptureError.mixFailed("믹스 출력을 만들 수 없습니다.") }
@@ -85,7 +85,7 @@ public enum AudioMixer {
             AVFormatIDKey: kAudioFormatMPEG4AAC,
             AVSampleRateKey: 16000,
             AVNumberOfChannelsKey: 1,
-            AVEncoderBitRateKey: 32000,
+            AVEncoderBitRateKey: 32000
         ]
         let input = AVAssetWriterInput(mediaType: .audio, outputSettings: writerSettings)
         input.expectsMediaDataInRealTime = false

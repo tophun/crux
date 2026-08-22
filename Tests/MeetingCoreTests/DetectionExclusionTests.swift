@@ -19,7 +19,7 @@ struct DetectionExclusionTests {
             endDate: start.addingTimeInterval(minutes * 60),
             isAllDay: allDay,
             status: status,
-            attendees: (0..<attendees).map { EventAttendee(name: "참석자 \($0)", email: "a\($0)@example.com") }
+            attendees: (0 ..< attendees).map { EventAttendee(name: "참석자 \($0)", email: "a\($0)@example.com") }
         )
     }
 
@@ -83,7 +83,7 @@ struct DetectionLeadTimeTests {
         #expect(policy.decide(events: [target], now: now, notifiedEventIds: []) == .idle)
         // 30초 전에는 뜬다.
         let later = now.addingTimeInterval(90)
-        if case .imminent(let shown, _) = policy.decide(events: [target], now: later, notifiedEventIds: []) {
+        if case let .imminent(shown, _) = policy.decide(events: [target], now: later, notifiedEventIds: []) {
             #expect(shown.id == target.id)
         } else {
             Issue.record("알림 시각이 지나면 임박 상태여야 한다")
@@ -114,7 +114,7 @@ struct DetectionLeadTimeTests {
         let now = Date()
         let policy = MeetingDetectionPolicy()
         let target = event(startsIn: 0, alarms: [0], now: now)
-        if case .started(let shown, _) = policy.decide(events: [target], now: now, notifiedEventIds: []) {
+        if case let .started(shown, _) = policy.decide(events: [target], now: now, notifiedEventIds: []) {
             #expect(shown.id == target.id)
         } else {
             Issue.record("시작 시각에는 확인을 물어야 한다")

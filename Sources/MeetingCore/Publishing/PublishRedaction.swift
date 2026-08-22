@@ -49,7 +49,7 @@ public enum PublishRedaction {
                 }
                 // 근거 타임스탬프 표기
                 for stamp in [TimeFormat.stamp(entry.startTime), TimeFormat.stamp(entry.endTime)]
-                where text.contains(stamp) {
+                    where text.contains(stamp) {
                     violations.append(Violation(kind: .timestamp, detail: stamp))
                 }
             }
@@ -81,17 +81,17 @@ public enum PublishError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .redactionFailed(let violations):
+        case let .redactionFailed(violations):
             "게시 본문에 내보내면 안 되는 내용이 있어 중단했습니다: \(PublishRedaction.describe(violations))"
         case .notApproved:
             "사용자가 승인하지 않은 회의록은 게시하지 않습니다."
-        case .missingCredentials(let message):
+        case let .missingCredentials(message):
             "Atlassian 인증 정보가 없습니다: \(message)"
-        case .api(let status, let message):
+        case let .api(status, message):
             "Atlassian API 오류(\(status)): \(message)"
-        case .invalidResponse(let message):
+        case let .invalidResponse(message):
             "Atlassian 응답을 해석할 수 없습니다: \(message)"
-        case .spaceNotFound(let key):
+        case let .spaceNotFound(key):
             "Confluence Space를 찾을 수 없습니다: \(key)"
         case .nothingToPublish:
             "게시할 항목이 없습니다."

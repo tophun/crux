@@ -56,7 +56,7 @@ public actor AtlassianClient {
             "spaceId": spaceId,
             "status": "current",
             "title": title,
-            "body": ["representation": "storage", "value": storageBody],
+            "body": ["representation": "storage", "value": storageBody]
         ]
         if let parentId { payload["parentId"] = parentId }
 
@@ -76,7 +76,7 @@ public actor AtlassianClient {
             "status": "current",
             "title": title,
             "body": ["representation": "storage", "value": storageBody],
-            "version": ["number": currentVersion + 1, "message": "회의록 Jira 링크 추가"],
+            "version": ["number": currentVersion + 1, "message": "회의록 Jira 링크 추가"]
         ]
         let response = try await send(method: "PUT", path: "/wiki/api/v2/pages/\(pageId)", body: payload)
         return try parsePage(response, fallbackTitle: title)
@@ -84,9 +84,13 @@ public actor AtlassianClient {
 
     private func parsePage(_ response: [String: Any], fallbackTitle: String) throws -> CreatedPage {
         let id: String
-        if let value = response["id"] as? String { id = value }
-        else if let value = response["id"] as? Int { id = String(value) }
-        else { throw PublishError.invalidResponse("페이지 id 없음") }
+        if let value = response["id"] as? String {
+            id = value
+        } else if let value = response["id"] as? Int {
+            id = String(value)
+        } else {
+            throw PublishError.invalidResponse("페이지 id 없음")
+        }
 
         let version = (response["version"] as? [String: Any])?["number"] as? Int ?? 1
         let links = response["_links"] as? [String: Any]
@@ -124,7 +128,7 @@ public actor AtlassianClient {
             "project": ["key": projectKey],
             "summary": summary,
             "issuetype": ["name": issueTypeName],
-            "description": descriptionADF,
+            "description": descriptionADF
         ]
         if let accountId { fields["assignee"] = ["accountId": accountId] }
         if let dueDate { fields["duedate"] = dueDate }
@@ -209,7 +213,7 @@ public actor AtlassianClient {
         guard let http = response as? HTTPURLResponse else {
             throw PublishError.invalidResponse("HTTP 응답이 아닙니다.")
         }
-        guard (200..<300).contains(http.statusCode) else {
+        guard (200 ..< 300).contains(http.statusCode) else {
             let message = String(decoding: data.prefix(500), as: UTF8.self)
             throw PublishError.api(status: http.statusCode, message: message)
         }
@@ -222,7 +226,7 @@ public actor AtlassianClient {
         query: [URLQueryItem]? = nil,
         body: [String: Any]? = nil
     ) async throws -> [String: Any] {
-        let data = try await perform(try request(method: method, path: path, query: query, body: body))
+        let data = try await perform(request(method: method, path: path, query: query, body: body))
         if data.isEmpty { return [:] }
         guard let object = try? JSONSerialization.jsonObject(with: data) else {
             throw PublishError.invalidResponse(String(decoding: data.prefix(200), as: UTF8.self))
@@ -236,7 +240,7 @@ public actor AtlassianClient {
         path: String,
         query: [URLQueryItem]? = nil
     ) async throws -> [Any] {
-        let data = try await perform(try request(method: method, path: path, query: query))
+        let data = try await perform(request(method: method, path: path, query: query))
         guard let array = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return [] }
         return array
     }

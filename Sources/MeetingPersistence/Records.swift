@@ -11,9 +11,10 @@ enum JSONColumn {
         encoder.outputFormatting = [.sortedKeys]
         return encoder
     }()
+
     static let decoder = JSONDecoder()
 
-    static func encode<T: Encodable>(_ value: T) -> String {
+    static func encode(_ value: some Encodable) -> String {
         guard let data = try? encoder.encode(value) else { return "null" }
         return String(decoding: data, as: UTF8.self)
     }

@@ -39,16 +39,16 @@ public protocol TranscriptionEngine: Sendable {
     func unload() async
 }
 
-extension TranscriptionEngine {
-    public func transcribe(
+public extension TranscriptionEngine {
+    func transcribe(
         audioURL: URL,
         meetingId: UUID
     ) async throws -> [TranscriptSegment] {
         try await transcribe(audioURL: audioURL, meetingId: meetingId, language: "ko", progress: nil)
     }
 
-    public func load() async throws {}
-    public func unload() async {}
+    func load() async throws {}
+    func unload() async {}
 }
 
 public enum TranscriptionEngineError: Error, LocalizedError, Sendable {
@@ -59,11 +59,11 @@ public enum TranscriptionEngineError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .audioFileMissing(let url):
+        case let .audioFileMissing(url):
             "오디오 파일을 찾을 수 없습니다: \(url.path)"
-        case .audioFileUnreadable(let url, let underlying):
+        case let .audioFileUnreadable(url, underlying):
             "오디오 파일을 읽을 수 없습니다: \(url.lastPathComponent) (\(underlying))"
-        case .modelUnavailable(let message):
+        case let .modelUnavailable(message):
             "음성 인식 모델을 사용할 수 없습니다: \(message)"
         case .emptyResult:
             "음성 인식 결과가 비어 있습니다."

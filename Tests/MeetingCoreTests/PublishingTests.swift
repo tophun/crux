@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 extension Fixtures {
     /// 게시 테스트용 회의록 — 근거·담당자·기한이 모두 들어 있다.
@@ -23,7 +23,7 @@ extension Fixtures {
                 kind: .proposed,
                 evidence: [evidence(for: segments[6], quote: "일단 보류하고 다음 주에 다시 논의하겠습니다.")],
                 confidence: 0.6
-            ),
+            )
         ]
         note.actionItems = [
             ActionItem(
@@ -42,7 +42,7 @@ extension Fixtures {
                 status: .proposed,
                 evidence: [evidence(for: segments[5], quote: "서버 시피유 사용률이 피크에 85퍼센트까지 올라가서 위험합니다.")],
                 confidence: 0.7
-            ),
+            )
         ]
         note.risks = [RiskItem(content: "서버 용량 초과 위험", severity: .high)]
         note.openQuestions = [OpenQuestion(question: "가격 정책 미정 — 사업팀 확인 필요")]
@@ -92,7 +92,7 @@ struct EvidenceBundleTests {
 
 @Suite("한국어 기한 해석")
 struct KoreanDateParserTests {
-    let reference = Date(timeIntervalSince1970: 1_772_000_000)  // 2026-02-25 기준
+    let reference = Date(timeIntervalSince1970: 1_772_000_000) // 2026-02-25 기준
 
     @Test("ISO 날짜를 그대로 해석한다")
     func parsesISO() {

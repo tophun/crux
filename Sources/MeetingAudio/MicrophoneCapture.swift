@@ -86,11 +86,11 @@ public actor MicrophoneCapture {
             AVFormatIDKey: kAudioFormatMPEG4AAC,
             AVSampleRateKey: configuration.sampleRate,
             AVNumberOfChannelsKey: configuration.channelCount,
-            AVEncoderBitRateKey: configuration.bitRate,
+            AVEncoderBitRateKey: configuration.bitRate
         ]
         let file = try AVAudioFile(forWriting: url, settings: settings)
         self.file = file
-        self.outputURL = url
+        outputURL = url
         isWriting = true
 
         let sink = AudioFileSink(file: file, inputFormat: inputFormat, targetFormat: targetFormat)
@@ -174,10 +174,10 @@ final class AudioFileSink: @unchecked Sendable {
         self.file = file
         if let targetFormat, targetFormat != inputFormat {
             self.targetFormat = targetFormat
-            self.converter = AVAudioConverter(from: inputFormat, to: targetFormat)
+            converter = AVAudioConverter(from: inputFormat, to: targetFormat)
         } else {
             self.targetFormat = nil
-            self.converter = nil
+            converter = nil
         }
     }
 
@@ -226,17 +226,17 @@ public enum CaptureError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .permissionDenied(let what):
+        case let .permissionDenied(what):
             "\(what) 권한이 없어 녹음할 수 없습니다. 시스템 설정에서 권한을 허용해 주세요."
         case .noInputDevice:
             "사용할 수 있는 오디오 입력 장치가 없습니다."
-        case .invalidState(let state):
+        case let .invalidState(state):
             "현재 상태(\(state))에서는 할 수 없는 동작입니다."
-        case .engineFailed(let message):
+        case let .engineFailed(message):
             "오디오 엔진을 시작할 수 없습니다: \(message)"
-        case .systemAudioUnavailable(let message):
+        case let .systemAudioUnavailable(message):
             "시스템 오디오를 캡처할 수 없습니다: \(message)"
-        case .mixFailed(let message):
+        case let .mixFailed(message):
             "오디오 합성에 실패했습니다: \(message)"
         }
     }

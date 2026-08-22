@@ -334,7 +334,7 @@ public enum PersistenceError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .notFound(let what): "저장된 항목을 찾을 수 없습니다: \(what)"
+        case let .notFound(what): "저장된 항목을 찾을 수 없습니다: \(what)"
         }
     }
 }

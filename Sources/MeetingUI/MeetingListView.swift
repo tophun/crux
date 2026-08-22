@@ -10,7 +10,6 @@ public struct MeetingListView: View {
     }
 
     public var body: some View {
-
         List(selection: Binding(
             get: { state.selectedMeetingId },
             set: { state.selectedMeetingId = $0 }
@@ -95,7 +94,6 @@ struct StatusBadge: View {
         }
     }
 }
-
 
 /// 삭제 확인 대화상자. 목록과 상세 화면에서 같은 문구를 쓴다.
 extension View {

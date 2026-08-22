@@ -84,7 +84,7 @@ struct EditableTextList: View {
                 HStack(alignment: .top, spacing: 8) {
                     TextField("내용", text: $draft.text, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
-                        .lineLimit(1...6)
+                        .lineLimit(1 ... 6)
                     Button {
                         drafts.removeAll { $0.id == draft.id }
                     } label: {

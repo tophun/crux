@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("불필요한 사담 제거")
 struct RelevancePolicyTests {
@@ -12,7 +12,7 @@ struct RelevancePolicyTests {
             "안녕하세요. 오늘 비가 많이 와서 늦었습니다.",
             "점심에 순대국 먹었는데 짰어요.",
             "주말에 야구 봤는데 재미있었어요.",
-            "다들 들리시나요. 마이크 확인 좀 하겠습니다.",
+            "다들 들리시나요. 마이크 확인 좀 하겠습니다."
         ]
         for text in cases {
             let heuristic = policy.heuristic(for: Fixtures.segment(0, text))
@@ -34,7 +34,7 @@ struct RelevancePolicyTests {
         let cases = [
             "결제 모듈 배포는 3월 12일 수요일로 확정합니다.",
             "서버 시피유 사용률이 85퍼센트까지 올라가서 위험합니다.",
-            "홍길동 님이 체크리스트를 다음 주 월요일까지 공유해 주세요.",
+            "홍길동 님이 체크리스트를 다음 주 월요일까지 공유해 주세요."
         ]
         for text in cases {
             let heuristic = policy.heuristic(for: Fixtures.segment(0, text))

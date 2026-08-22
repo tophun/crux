@@ -50,7 +50,8 @@ public enum PromptLibrary {
         {
           "topics": [{"title": "", "summary": ""}],
           "decisions": [{"content": "", "kind": "decided", "confidence": 0.0, "ambiguity": [], "evidence": [{"segment": "S0", "quote": ""}]}],
-          "actionItems": [{"task": "", "assignee": null, "dueDate": null, "dueDateNote": null, "confidence": 0.0, "ambiguity": [], "evidence": [{"segment": "S0", "quote": ""}]}],
+          "actionItems": [{"task": "", "assignee": null, "dueDate": null, "dueDateNote": null,
+            "confidence": 0.0, "ambiguity": [], "evidence": [{"segment": "S0", "quote": ""}]}],
           "risks": [{"content": "", "severity": "unknown", "confidence": 0.0, "evidence": [{"segment": "S0", "quote": ""}]}],
           "openQuestions": [{"question": "", "confidence": 0.0, "evidence": [{"segment": "S0", "quote": ""}]}],
           "segmentRelevance": [{"segment": "S0", "label": "KEEP"}]

@@ -36,12 +36,12 @@ public protocol CalendarProvider: Sendable {
 public enum ConferenceLinkExtractor {
     static let hosts = [
         "zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com",
-        "webex.com", "whereby.com", "discord.gg", "slack.com",
+        "webex.com", "whereby.com", "discord.gg", "slack.com"
     ]
 
     /// 여러 후보 문자열에서 첫 회의 링크를 찾는다.
     public static func extract(from candidates: [String?]) -> URL? {
-        for candidate in candidates.compactMap({ $0 }) {
+        for candidate in candidates.compactMap(\.self) {
             if let url = extract(from: candidate) { return url }
         }
         return nil

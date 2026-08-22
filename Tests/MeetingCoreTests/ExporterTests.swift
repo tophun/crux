@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("회의록 내보내기")
 struct MeetingNoteExporterTests {
@@ -58,7 +58,7 @@ struct MeetingNoteExporterTests {
         let order = ["## 날짜", "## 참여자", "## 내용", "### 요약", "### 논의", "## Action Item"]
         var cursor = markdown.startIndex
         for heading in order {
-            let found = markdown.range(of: heading, range: cursor..<markdown.endIndex)
+            let found = markdown.range(of: heading, range: cursor ..< markdown.endIndex)
             #expect(found != nil, "\(heading)이 순서대로 나와야 한다")
             cursor = found?.upperBound ?? cursor
         }

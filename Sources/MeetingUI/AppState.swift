@@ -53,9 +53,11 @@ public final class AppState {
     public var searchText: String = "" {
         didSet { reload() }
     }
+
     public var selectedMeetingId: UUID? {
         didSet { loadDetail() }
     }
+
     public private(set) var detail: MeetingDetail?
     /// 미리보기 / 전사문 화면 전환.
     public var detailTab: DetailTab = .preview
@@ -133,12 +135,12 @@ public final class AppState {
             let tracks = try repository.tracks(meetingId: id).map {
                 MeetingProcessingPipeline.resolveAudioFile(for: $0, meetingId: id)
             }
-            detail = MeetingDetail(
+            detail = try MeetingDetail(
                 meeting: meeting,
-                note: try repository.note(meetingId: id),
-                segments: try repository.transcript(meetingId: id),
-                relevance: try repository.relevance(meetingId: id),
-                jobs: try jobs.jobs(meetingId: id),
+                note: repository.note(meetingId: id),
+                segments: repository.transcript(meetingId: id),
+                relevance: repository.relevance(meetingId: id),
+                jobs: jobs.jobs(meetingId: id),
                 tracks: tracks,
                 attendees: attendees(meetingId: id)
             )
@@ -256,6 +258,7 @@ public final class AppState {
     }
 
     // MARK: - 산출물 수정
+
     //
     // 회의록은 초안이다. 사용자가 고친 내용이 최종본이며, 근거는 그대로 남는다(§11).
     // 전사문은 기록 원본이므로 수정 대상이 아니다.
@@ -403,7 +406,8 @@ public final class AppState {
     public func export(meetingId: UUID, format: ExportFormat, to directory: URL) -> URL? {
         do {
             guard let meeting = try repository.meeting(id: meetingId),
-                  let note = try repository.note(meetingId: meetingId) else {
+                  let note = try repository.note(meetingId: meetingId)
+            else {
                 statusMessage = "내보낼 회의록이 없습니다."
                 return nil
             }

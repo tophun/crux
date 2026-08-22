@@ -24,12 +24,11 @@ public enum ThinkingStripper {
         if let lastClose = raw.range(of: closeTag, options: .backwards) {
             let tail = String(raw[lastClose.upperBound...])
             // 닫는 태그 앞의 텍스트 중 열린 태그 앞부분은 사고 이전 서두이므로 함께 살린다.
-            let headRaw = String(raw[raw.startIndex..<lastClose.lowerBound])
-            let head: String
-            if let firstOpen = headRaw.range(of: openTag) {
-                head = String(headRaw[headRaw.startIndex..<firstOpen.lowerBound])
+            let headRaw = String(raw[raw.startIndex ..< lastClose.lowerBound])
+            let head = if let firstOpen = headRaw.range(of: openTag) {
+                String(headRaw[headRaw.startIndex ..< firstOpen.lowerBound])
             } else {
-                head = ""
+                ""
             }
             let merged = (head + "\n" + tail).trimmingCharacters(in: .whitespacesAndNewlines)
             return Result(visibleText: merged, containedThinking: true, thinkingTruncated: false)
@@ -37,7 +36,7 @@ public enum ThinkingStripper {
 
         // 열린 태그만 있으면 사고가 잘린 것으로 보고 태그 앞부분만 남긴다.
         if let firstOpen = raw.range(of: openTag) {
-            let head = String(raw[raw.startIndex..<firstOpen.lowerBound])
+            let head = String(raw[raw.startIndex ..< firstOpen.lowerBound])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             return Result(visibleText: head, containedThinking: true, thinkingTruncated: true)
         }

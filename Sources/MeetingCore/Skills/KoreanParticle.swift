@@ -8,12 +8,12 @@ public enum KoreanParticle {
         else { return nil }
         let value = last.value
         // 한글 음절 영역
-        if (0xAC00...0xD7A3).contains(value) {
+        if (0xAC00 ... 0xD7A3).contains(value) {
             return (value - 0xAC00) % 28 != 0
         }
         // 숫자는 읽는 소리 기준
-        if let digit = Character(last).wholeNumberValue, (0...9).contains(digit) {
-            return [0, 1, 3, 6, 7, 8].contains(digit)  // 영·일·삼·육·칠·팔
+        if let digit = Character(last).wholeNumberValue, (0 ... 9).contains(digit) {
+            return [0, 1, 3, 6, 7, 8].contains(digit) // 영·일·삼·육·칠·팔
         }
         // 영문은 자음으로 끝나면 종성 있는 것으로 본다
         if Character(last).isLetter {

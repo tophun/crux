@@ -22,21 +22,20 @@ actor FakeLanguageModel: LocalLanguageModel {
         self.responder = responder
     }
 
-    func generate(prompt: String, mode: ReasoningMode, maxTokens: Int) async throws -> String {
-        let kind: Call.Kind
-        if prompt.contains("형식만 고쳐서") {
-            kind = .repair
+    func generate(prompt: String, mode: ReasoningMode, maxTokens _: Int) async throws -> String {
+        let kind: Call.Kind = if prompt.contains("형식만 고쳐서") {
+            .repair
         } else if prompt.contains("segmentRelevance") {
-            kind = .extraction
+            .extraction
         } else if prompt.contains("재검토가 필요한 이유") {
-            kind = .review
+            .review
         } else if prompt.contains("evidenceIndex") {
-            kind = .finalNote
+            .finalNote
         } else {
-            kind = .unknown
+            .unknown
         }
         let call = Call(mode: mode, prompt: prompt, kind: kind)
-        let index = calls.filter { $0.kind == kind }.count
+        let index = calls.count(where: { $0.kind == kind })
         calls.append(call)
         return responder(call, index)
     }

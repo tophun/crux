@@ -73,7 +73,7 @@ public enum DueDateGrounding {
         guard fact.kind == .actionItem else { return (fact, nil) }
         let byId = Dictionary(segments.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
         let texts = fact.evidence.flatMap { evidence -> [String] in
-            [evidence.quote, byId[evidence.segmentId]?.text].compactMap { $0 }
+            [evidence.quote, byId[evidence.segmentId]?.text].compactMap(\.self)
         }
         let result = check(dueDate: fact.dueDate, dueDateNote: fact.dueDateNote, evidenceTexts: texts)
         var updated = fact

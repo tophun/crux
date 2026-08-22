@@ -1,10 +1,10 @@
 import Foundation
 import HuggingFace
+import MeetingCore
 import MLX
 import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
-import MeetingCore
 import Tokenizers
 
 /// MLX Swift 기반 로컬 LLM 엔진(§7).

@@ -58,14 +58,14 @@ public struct PublishPreparation: Sendable {
         )
         let findings = MeetingQualityChecker().check(note: note, bundle: bundle, evidence: evidence)
 
-        return Prepared(
+        return try Prepared(
             meeting: meeting,
             note: note,
             event: event,
             bundle: bundle,
             evidence: evidence,
             findings: findings,
-            alreadyPublished: try publishRecords.records(meetingId: meetingId)
+            alreadyPublished: publishRecords.records(meetingId: meetingId)
         )
     }
 

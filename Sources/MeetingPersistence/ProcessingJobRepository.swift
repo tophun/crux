@@ -61,7 +61,7 @@ public struct ProcessingJobRepository: Sendable {
                 arguments: [
                     ProcessingJobState.interrupted.rawValue,
                     "앱이 종료되어 중단됨 — 재처리 가능",
-                    ProcessingJobState.running.rawValue,
+                    ProcessingJobState.running.rawValue
                 ]
             )
             return db.changesCount
@@ -95,7 +95,7 @@ public struct ProcessingJobRepository: Sendable {
                     ProcessingJobState.pending.rawValue,
                     meetingId.uuidString,
                     ProcessingJobState.failed.rawValue,
-                    ProcessingJobState.interrupted.rawValue,
+                    ProcessingJobState.interrupted.rawValue
                 ]
             )
         }

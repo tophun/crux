@@ -45,9 +45,9 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
     }
 
     func transcribe(
-        audioURL: URL,
+        audioURL _: URL,
         meetingId: UUID,
-        language: String,
+        language _: String,
         progress: (@Sendable (TranscriptionProgress) -> Void)?
     ) async throws -> [TranscriptSegment] {
         transcribeCount += 1
@@ -76,7 +76,7 @@ actor ScriptedLanguageModel: LocalLanguageModel {
         self.responder = responder
     }
 
-    func generate(prompt: String, mode: ReasoningMode, maxTokens: Int) async throws -> String {
+    func generate(prompt: String, mode: ReasoningMode, maxTokens _: Int) async throws -> String {
         generateCount += 1
         return responder(prompt, mode)
     }
@@ -97,7 +97,7 @@ enum TestAudio {
         buffer.frameLength = frames
         // 완전한 무음 대신 아주 작은 신호를 넣어 길이가 0으로 판정되지 않게 한다.
         if let channel = buffer.floatChannelData?[0] {
-            for frame in 0..<Int(frames) {
+            for frame in 0 ..< Int(frames) {
                 channel[frame] = Float(sin(Double(frame) * 0.01)) * 0.01
             }
         }
@@ -127,7 +127,7 @@ enum TestScripts {
             TranscriptSegment(
                 meetingId: meetingId, index: 2, startTime: 16, endTime: 24,
                 text: "홍길동 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요.", confidence: 0.93
-            ),
+            )
         ]
     }
 

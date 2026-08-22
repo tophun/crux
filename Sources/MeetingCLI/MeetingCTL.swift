@@ -1,11 +1,11 @@
 import ArgumentParser
 import Foundation
+import MeetingAudio
+import MeetingCalendar
 import MeetingCore
 import MeetingInference
 import MeetingPersistence
 import MeetingPipeline
-import MeetingAudio
-import MeetingCalendar
 import MeetingPublishing
 import MeetingTranscription
 
@@ -18,7 +18,7 @@ struct MeetingCTL: AsyncParsableCommand {
         subcommands: [
             Run.self, Transcribe.self, Note.self, List.self, Show.self, Retry.self,
             Auth.self, CalendarCommand.self, Record.self, Preview.self, Publish.self,
-            Delete.self, Retention.self,
+            Delete.self, Retention.self
         ]
     )
 }
@@ -124,10 +124,14 @@ extension MeetingCTL {
             print(MeetingNoteExporter.markdown(result.note, meeting: imported.meeting))
             print("")
             print("--- 처리 정보 ---")
-            for metric in result.metrics { print(metric.description) }
+            for metric in result.metrics {
+                print(metric.description)
+            }
             print(String(format: "총 소요 %.1f초", Date().timeIntervalSince(started)))
             print("구간 \(result.segments.count)개, 문제 \(result.problems.count)건")
-            for problem in result.problems.prefix(15) { print("· \(problem)") }
+            for problem in result.problems.prefix(15) {
+                print("· \(problem)")
+            }
 
             if let out {
                 let directory = URL(fileURLWithPath: out)
@@ -222,7 +226,9 @@ extension MeetingCTL {
             try repository.updateRelevance(output.relevance)
             try repository.save(note: output.note)
             print(MeetingNoteExporter.markdown(output.note, meeting: meetingRecord))
-            for problem in output.problems.prefix(15) { print("· \(problem)") }
+            for problem in output.problems.prefix(15) {
+                print("· \(problem)")
+            }
         }
     }
 
@@ -261,9 +267,9 @@ extension MeetingCTL {
                 throw ValidationError("저장된 회의록이 없습니다.")
             }
             if format == "json" {
-                print(try MeetingNoteExporter.jsonString(note))
+                try print(MeetingNoteExporter.jsonString(note))
             } else {
-                print(MeetingNoteExporter.markdown(note, meeting: try repository.meeting(id: meetingId)))
+                try print(MeetingNoteExporter.markdown(note, meeting: repository.meeting(id: meetingId)))
             }
         }
     }
@@ -288,7 +294,6 @@ extension MeetingCTL {
         }
     }
 }
-
 
 // MARK: - 요구사항 1·2·3·4: 캘린더 · 녹음 · 검토 · 게시
 
@@ -393,10 +398,10 @@ extension MeetingCTL {
             if !apps.isEmpty {
                 print("실행 중인 회의 앱: " + apps.map { "\($0.appName)\($0.usesAudio ? "(마이크 사용 중)" : "")" }.joined(separator: ", "))
             }
-            let verdict = policy.decide(
+            let verdict = try policy.decide(
                 events: events,
                 now: now,
-                notifiedEventIds: try repository.notifiedEventIds(),
+                notifiedEventIds: repository.notifiedEventIds(),
                 conferenceApps: apps
             )
             print("감지 결과: \(verdict)")
@@ -457,7 +462,9 @@ extension MeetingCTL {
             try await Task.sleep(for: .seconds(Double(seconds)))
             let tracks = try await capture.stop()
             let problems = await capture.problems
-            for problem in problems { print("· \(problem)") }
+            for problem in problems {
+                print("· \(problem)")
+            }
 
             guard !tracks.isEmpty else { throw ValidationError("저장된 오디오가 없습니다.") }
             try repository.save(tracks: tracks)
@@ -539,7 +546,7 @@ extension MeetingCTL {
                 )
             )
             do {
-                print(try publisher.dryRun(bundle: prepared.bundle, evidence: prepared.evidence))
+                try print(publisher.dryRun(bundle: prepared.bundle, evidence: prepared.evidence))
             } catch {
                 print("검열 게이트에서 중단됨: \(error.localizedDescription)")
             }
@@ -617,11 +624,12 @@ extension MeetingCTL {
             for issue in outcome.issues {
                 print("Jira \(issue.key): \(issue.url)")
             }
-            for problem in outcome.problems { print("· \(problem)") }
+            for problem in outcome.problems {
+                print("· \(problem)")
+            }
         }
     }
 }
-
 
 extension MeetingCTL {
     /// 회의 삭제. 오디오·전사문·회의록·근거 파일을 함께 지운다.

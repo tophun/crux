@@ -56,8 +56,8 @@ public final class LiveCapsuleWindowController {
                     state: state,
                     detailMessage: detailMessage,
                     metrics: metrics,
-                    isHovering: self.isHovering,
-                    isPinned: self.isPinned,
+                    isHovering: isHovering,
+                    isPinned: isPinned,
                     onHoverChange: { [weak self] hovering in
                         self?.setHovering(hovering)
                     },
@@ -72,7 +72,7 @@ public final class LiveCapsuleWindowController {
                     onCancelProcessing: onCancelProcessing
                 )
             )
-            self.hosting?.rootView = view
+            hosting?.rootView = view
         }
 
         if hosting != nil {
@@ -80,7 +80,7 @@ public final class LiveCapsuleWindowController {
         } else {
             let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
             hostingView.translatesAutoresizingMaskIntoConstraints = true
-            self.hosting = hostingView
+            hosting = hostingView
 
             let panel = NSPanel(
                 contentRect: NSRect(x: 0, y: 0, width: 420, height: metrics.collapsedHeight),
@@ -147,7 +147,7 @@ public final class LiveCapsuleWindowController {
     /// - Parameter animated: 크기가 바뀌는 경우 부드럽게 움직인다. 처음 띄울 때는 애니메이션하지 않는다.
     public func reposition(animated: Bool = false, contentSize: CGSize? = nil) {
         guard let panel, let hosting else { return }
-        let metrics = self.metrics ?? NotchMetrics.from(screen: Self.activeScreen())
+        let metrics = metrics ?? NotchMetrics.from(screen: Self.activeScreen())
 
         var size = contentSize ?? hosting.fittingSize
         // 노치가 있는 화면에서는 최소한 노치를 덮을 만큼 넓혀 한 덩어리로 보이게 한다.

@@ -1,7 +1,7 @@
 import Foundation
-import Testing
 @testable import MeetingCore
 @testable import MeetingPipeline
+import Testing
 
 @Suite("모델 수명 관리 (16GB 제약)")
 struct ModelLifecycleTests {
@@ -42,12 +42,12 @@ struct ModelLifecycleTests {
             transcriptionEngine: FakeTranscriptionEngine(monitor: monitor) { TestScripts.segments(meetingId: $0) },
             languageModel: ScriptedLanguageModel(monitor: monitor, responder: TestScripts.responder)
         )
-        for _ in 0..<3 {
+        for _ in 0 ..< 3 {
             _ = try await coordinator.withLanguageModel { model in
                 try await model.generate(prompt: "test", mode: .nonThinking, maxTokens: 8)
             }
         }
         let snapshot = await monitor.snapshot()
-        #expect(snapshot.events.filter { $0 == "language.load" }.count == 1)
+        #expect(snapshot.events.count(where: { $0 == "language.load" }) == 1)
     }
 }

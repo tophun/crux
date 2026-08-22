@@ -7,7 +7,7 @@ import MeetingPersistence
 public struct MeetingImporter: Sendable {
     private let repository: MeetingRepository
     private let baseDirectory: URL?
-    nonisolated(unsafe) private let fileManager: FileManager
+    private nonisolated(unsafe) let fileManager: FileManager
 
     public init(repository: MeetingRepository, baseDirectory: URL? = nil, fileManager: FileManager = .default) {
         self.repository = repository

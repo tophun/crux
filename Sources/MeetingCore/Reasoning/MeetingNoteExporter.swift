@@ -15,7 +15,7 @@ public enum MeetingNoteExporter {
     }
 
     public static func jsonString(_ note: MeetingNote) throws -> String {
-        String(decoding: try json(note), as: UTF8.self)
+        try String(decoding: json(note), as: UTF8.self)
     }
 
     struct Payload: Encodable {

@@ -225,8 +225,8 @@ struct LiveCapsuleApp: App {
         NSApp.windows.first?.makeKeyAndOrderFront(nil)
     }
 
-    @MainActor
     /// 필수 권한(캘린더·마이크)이 없으면 안내 창을 띄운다.
+    @MainActor
     private func presentOnboardingIfNeeded() {
         guard !dismissedOnboarding else { return }
         guard OnboardingGate.shouldPresent(
@@ -298,7 +298,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch state {
         case .detected, .imminent:
             Task { await coordinator.startMeeting() }
-        case .recording(_, let paused):
+        case let .recording(_, paused):
             if paused {
                 Task { await coordinator.togglePause() }
             } else {
@@ -315,12 +315,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    func applicationWillTerminate(_: Notification) {
         syncTask?.cancel()
         capsuleWindow.close()
     }
 }
-
 
 /// 공유·더보기 묶음을 툴바 오른쪽 끝에 붙인다.
 ///

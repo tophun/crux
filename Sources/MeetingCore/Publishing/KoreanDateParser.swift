@@ -66,17 +66,17 @@ public enum KoreanDateParser {
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text))
         else { return nil }
-        return (0..<match.numberOfRanges).map { match.substring(at: $0, in: text) }
+        return (0 ..< match.numberOfRanges).map { match.substring(at: $0, in: text) }
     }
 
     private static func date(
         year: Int?,
         month: Int?,
         day: Int?,
-        reference: Date,
+        reference _: Date,
         calendar: Calendar
     ) -> Date? {
-        guard let year, let month, let day, (1...12).contains(month), (1...31).contains(day) else { return nil }
+        guard let year, let month, let day, (1 ... 12).contains(month), (1 ... 31).contains(day) else { return nil }
         var components = DateComponents()
         components.year = year
         components.month = month

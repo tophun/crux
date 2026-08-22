@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("한국어 규칙 기반 윤문")
 struct KoreanTextPolisherTests {
@@ -12,7 +12,7 @@ struct KoreanTextPolisherTests {
             ("배포 일정에 대해 논의했습니다.", "배포 일정을 논의했습니다."),
             ("이번 회의에 있어서 중요한 건 일정입니다.", "이번 회의에서 중요한 건 일정입니다."),
             ("우리 팀은 충분한 여유를 가지고 있습니다.", "우리 팀은 충분한 여유가 있습니다."),
-            ("배포는 다음 주로 결정되어집니다.", "배포는 다음 주로 결정됩니다."),
+            ("배포는 다음 주로 결정되어집니다.", "배포는 다음 주로 결정됩니다.")
         ]
         for (input, expected) in cases {
             #expect(polisher.polish(input).text == expected, "입력: \(input)")

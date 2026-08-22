@@ -31,6 +31,7 @@ public final class MeetingSessionCoordinator {
     public var defaultSpaceKey: String {
         didSet { UserDefaults.standard.set(defaultSpaceKey, forKey: "publish.spaceKey") }
     }
+
     public var defaultProjectKey: String {
         didSet { UserDefaults.standard.set(defaultProjectKey, forKey: "publish.projectKey") }
     }
@@ -81,8 +82,8 @@ public final class MeetingSessionCoordinator {
         self.detector = detector
         self.policy = policy
         self.log = log
-        self.defaultSpaceKey = UserDefaults.standard.string(forKey: "publish.spaceKey") ?? ""
-        self.defaultProjectKey = UserDefaults.standard.string(forKey: "publish.projectKey") ?? ""
+        defaultSpaceKey = UserDefaults.standard.string(forKey: "publish.spaceKey") ?? ""
+        defaultProjectKey = UserDefaults.standard.string(forKey: "publish.projectKey") ?? ""
     }
 
     // MARK: - 권한
@@ -149,7 +150,7 @@ public final class MeetingSessionCoordinator {
         var events: [CalendarEvent] = []
         if calendarStatus.canReadEvents {
             let now = Date()
-            events = (try? await calendarProvider.events(
+            events = await (try? calendarProvider.events(
                 from: now.addingTimeInterval(-3600),
                 to: now.addingTimeInterval(7200)
             )) ?? []
@@ -204,11 +205,11 @@ public final class MeetingSessionCoordinator {
         }
         switch verdict {
         case .idle: parts.append("판정: 표시할 것 없음")
-        case .imminent(let event, let seconds):
+        case let .imminent(event, seconds):
             parts.append("판정: \(event.title) \(Int(seconds / 60))분 전")
-        case .started(let event, let reason):
+        case let .started(event, reason):
             parts.append("판정: \(event.title) 시작됨(\(reason.rawValue))")
-        case .unscheduled(let appName):
+        case let .unscheduled(appName):
             parts.append("판정: 일정 없이 \(appName) 실행 중")
         }
         diagnose(parts.joined(separator: " · "))
@@ -263,7 +264,7 @@ public final class MeetingSessionCoordinator {
 
     public func togglePause() async {
         do {
-            if case .recording(_, let paused) = capsule {
+            if case let .recording(_, paused) = capsule {
                 if paused {
                     try await capture.resume()
                     capsule = machine.apply(.recordingResumed)
@@ -297,7 +298,7 @@ public final class MeetingSessionCoordinator {
                 throw CaptureError.mixFailed("저장된 오디오가 없습니다.")
             }
             try repository.save(tracks: tracks)
-            log?("트랙 저장 \(tracks.count)개: \(tracks.map { $0.kind.rawValue }.joined(separator: ", "))")
+            log?("트랙 저장 \(tracks.count)개: \(tracks.map(\.kind.rawValue).joined(separator: ", "))")
             // 목록이 계속 "녹음 중"으로 보이지 않도록 즉시 상태를 바꾸고 새로 고친다.
             try? repository.updateStatus(.transcribing, meetingId: meetingId)
             onMeetingsChanged?(meetingId)
@@ -312,16 +313,16 @@ public final class MeetingSessionCoordinator {
             let task = Task { try await self.pipeline.process(meetingId: meetingId) { [weak self] update in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    self.capsule = self.machine.apply(
+                    capsule = machine.apply(
                         .processingProgress(fraction: update.fraction, message: update.message)
                     )
                     // 단계가 바뀌면 목록의 상태 표시도 따라가게 한다.
                     if lastStage != update.stage {
                         lastStage = update.stage
-                        self.onMeetingsChanged?(nil)
+                        onMeetingsChanged?(nil)
                     }
                     // 캡슐 상세에 어떤 단계가 끝났고 무엇이 남았는지 보여 준다.
-                    self.detailMessage = Self.stageChecklist(current: update.stage)
+                    detailMessage = Self.stageChecklist(current: update.stage)
                 }
             } }
             processingCancel = { task.cancel() }
@@ -401,8 +402,8 @@ public final class MeetingSessionCoordinator {
                     projectKey: defaultProjectKey
                 )
             )
-            let preparation = self.preparation
-            let credentialStore = self.credentialStore
+            let preparation = preparation
+            let credentialStore = credentialStore
             // 근거를 들어 보며 검토할 수 있도록 이 회의의 오디오를 준비한다.
             let tracks = (try? repository.tracks(meetingId: meetingId)) ?? []
             playback.prepare(tracks: tracks)
@@ -446,7 +447,7 @@ public final class MeetingSessionCoordinator {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self else { return }
-                let elapsed = await self.capture.elapsed
+                let elapsed = await capture.elapsed
                 await MainActor.run {
                     self.capsule = self.machine.apply(.recordingTicked(elapsed: elapsed))
                 }

@@ -7,7 +7,7 @@ import MeetingCore
 /// 근거는 이 로컬 파일에만 둔다. Confluence·Jira로는 나가지 않는다(요구사항 7).
 public struct EvidenceFileStore: Sendable {
     private let baseDirectory: URL?
-    nonisolated(unsafe) private let fileManager: FileManager
+    private nonisolated(unsafe) let fileManager: FileManager
 
     public init(baseDirectory: URL? = nil, fileManager: FileManager = .default) {
         self.baseDirectory = baseDirectory
@@ -33,6 +33,6 @@ public struct EvidenceFileStore: Sendable {
     public func read(for meeting: Meeting) throws -> EvidenceBundle? {
         let source = url(for: meeting)
         guard fileManager.fileExists(atPath: source.path) else { return nil }
-        return try EvidenceBundle.decoded(from: try Data(contentsOf: source))
+        return try EvidenceBundle.decoded(from: Data(contentsOf: source))
     }
 }

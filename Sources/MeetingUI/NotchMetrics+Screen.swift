@@ -1,9 +1,9 @@
 import AppKit
 import MeetingCore
 
-extension NotchMetrics {
+public extension NotchMetrics {
     /// 화면에서 노치 정보를 읽는다. macOS 12+의 `safeAreaInsets`와 `auxiliaryTopLeftArea`를 쓴다.
-    public static func from(screen: NSScreen) -> NotchMetrics {
+    static func from(screen: NSScreen) -> NotchMetrics {
         let frame = screen.frame
         let topInset = screen.safeAreaInsets.top
 

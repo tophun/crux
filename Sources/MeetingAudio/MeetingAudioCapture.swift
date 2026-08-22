@@ -137,7 +137,7 @@ public actor MeetingAudioCapture: AudioCaptureService {
                 problems.append("녹음 종료 처리에 실패했지만 저장된 파일 \(salvaged.count)개를 회수했습니다.")
                 tracks += salvaged
                 inputs += salvaged.filter { $0.kind != .mixed }.map(\.fileURL)
-                log?("녹음 파일 회수: \(salvaged.map { $0.kind.rawValue }.joined(separator: ", "))")
+                log?("녹음 파일 회수: \(salvaged.map(\.kind.rawValue).joined(separator: ", "))")
             }
         }
 
@@ -170,7 +170,7 @@ public actor MeetingAudioCapture: AudioCaptureService {
         let candidates: [(AudioTrackKind, URL)] = [
             (.mixed, storage.url(for: .mixed, extension: "m4a")),
             (.microphone, storage.url(for: .microphone, extension: "m4a")),
-            (.system, storage.url(for: .system, extension: "m4a")),
+            (.system, storage.url(for: .system, extension: "m4a"))
         ]
         return candidates.compactMap { kind, url in
             guard FileManager.default.fileExists(atPath: url.path),

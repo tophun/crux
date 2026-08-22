@@ -1,7 +1,7 @@
 import Foundation
-import Testing
 @testable import MeetingCore
 @testable import MeetingPersistence
+import Testing
 
 @Suite("로컬 저장소")
 struct RepositoryTests {
@@ -43,7 +43,7 @@ struct RepositoryTests {
             TranscriptSegment(
                 meetingId: meetingId, index: 1, startTime: 8, endTime: 16,
                 text: "결제 모듈 배포는 3월 12일 수요일로 확정합니다.", confidence: 0.95
-            ),
+            )
         ]
     }
 
@@ -149,12 +149,12 @@ struct RepositoryTests {
         let segments = segments(meeting.id)
         let relevance = [
             RelevanceDecision(segmentId: segments[0].id, label: .exclude, reason: "인사"),
-            RelevanceDecision(segmentId: segments[1].id, label: .keep),
+            RelevanceDecision(segmentId: segments[1].id, label: .keep)
         ]
         try harness.repository.save(segments: segments, relevance: relevance, meetingId: meeting.id)
 
         #expect(try harness.repository.transcript(meetingId: meeting.id).count == 2)
-        #expect(try harness.repository.relevance(meetingId: meeting.id).filter { $0.label == .exclude }.count == 1)
+        #expect(try harness.repository.relevance(meetingId: meeting.id).count(where: { $0.label == .exclude }) == 1)
 
         // 재처리로 판정만 바뀌는 경우
         try harness.repository.updateRelevance([

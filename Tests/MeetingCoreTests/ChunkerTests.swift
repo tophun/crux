@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import MeetingCore
+import Testing
 
 @Suite("전사문 분할")
 struct TranscriptChunkerTests {
@@ -19,7 +19,7 @@ struct TranscriptChunkerTests {
     @Test("60분 회의는 5~10분 창으로 나뉘고 각 창이 문자 예산을 넘지 않는다")
     func splitsOneHourMeeting() {
         // 60분, 12초 간격 300개 구간 (구간당 약 80자)
-        let segments = (0..<300).map { index in
+        let segments = (0 ..< 300).map { index in
             TranscriptSegment(
                 meetingId: Fixtures.meetingId,
                 index: index,
@@ -63,7 +63,7 @@ struct TranscriptSegmenterTests {
         let result = segmenter.split(segments)
         #expect(result.count == segments.count)
         #expect(result.map(\.text) == segments.map(\.text))
-        #expect(result.map(\.index) == Array(0..<segments.count))
+        #expect(result.map(\.index) == Array(0 ..< segments.count))
     }
 
     @Test("여러 문장이 뭉친 긴 구간을 문장 단위로 나누고 시각을 배분한다")

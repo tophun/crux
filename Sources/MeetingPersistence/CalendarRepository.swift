@@ -58,7 +58,7 @@ public struct CalendarRepository: NotifiedEventStore, Sendable {
 
     public func notifiedEventIds() throws -> Set<String> {
         try database.writer.read { db in
-            Set(try String.fetchAll(db, sql: "SELECT eventId FROM notifiedEvent"))
+            try Set(String.fetchAll(db, sql: "SELECT eventId FROM notifiedEvent"))
         }
     }
 

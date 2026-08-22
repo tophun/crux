@@ -69,7 +69,7 @@ public enum TranscriptionModelCatalog {
             detail: "가장 정확합니다. 전사 시간이 2~3배 늘어납니다.",
             downloadSizeGB: 3.2,
             minimumMemoryGB: 16
-        ),
+        )
     ]
 
     /// 저장된 값이 목록에 없으면 기본값으로 돌린다. 앱 갱신으로 목록이 바뀌어도 안전하다.
@@ -111,7 +111,7 @@ public enum LanguageModelCatalog {
             detail: "요약과 표 정리가 더 정확합니다. 생성 시간이 약 2배입니다.",
             downloadSizeGB: 8.3,
             minimumMemoryGB: 16
-        ),
+        )
     ]
 
     public static func resolve(_ stored: String?) -> String {

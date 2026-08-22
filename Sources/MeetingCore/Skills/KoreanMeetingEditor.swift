@@ -84,7 +84,7 @@ public struct KoreanMeetingEditor: Sendable {
         let fields = Self.editableFields(of: note)
         let totalCharacters = fields.reduce(0) { $0 + $1.value.count }
         let spans = fields.flatMap { polisher.detect(in: $0.value) }
-        let s1Count = spans.filter { $0.severity == .s1 }.count
+        let s1Count = spans.count(where: { $0.severity == .s1 })
 
         if totalCharacters < 120 || spans.isEmpty { return .conservative }
         if s1Count >= 3 || spans.count >= 8 { return .strict }
@@ -188,7 +188,7 @@ public struct KoreanMeetingEditor: Sendable {
         let report = Report(
             mode: mode,
             detectedSpanCount: detectedTotal,
-            editedFieldCount: outcomes.filter { $0.changeRate > 0 }.count,
+            editedFieldCount: outcomes.count(where: { $0.changeRate > 0 }),
             rolledBackFieldCount: outcomes.filter(\.rolledBack).count,
             outcomes: outcomes,
             warnings: warnings
@@ -279,7 +279,7 @@ public struct KoreanMeetingEditor: Sendable {
     static func editableFields(of note: MeetingNote) -> [EditableField] {
         var fields: [EditableField] = [
             EditableField(name: "title", value: note.title) { value, note in note.title = value },
-            EditableField(name: "summary", value: note.summary) { value, note in note.summary = value },
+            EditableField(name: "summary", value: note.summary) { value, note in note.summary = value }
         ]
         for (index, decision) in note.decisions.enumerated() {
             fields.append(

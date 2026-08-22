@@ -77,7 +77,7 @@ public final class SystemAudioCapture: NSObject, SCStreamOutput, @unchecked Send
             AVFormatIDKey: kAudioFormatMPEG4AAC,
             AVSampleRateKey: 16000,
             AVNumberOfChannelsKey: 1,
-            AVEncoderBitRateKey: 32000,
+            AVEncoderBitRateKey: 32000
         ]
         let input = AVAssetWriterInput(mediaType: .audio, outputSettings: settings)
         input.expectsMediaDataInRealTime = true
@@ -86,8 +86,8 @@ public final class SystemAudioCapture: NSObject, SCStreamOutput, @unchecked Send
         }
         writer.add(input)
         self.writer = writer
-        self.audioInput = input
-        self.outputURL = url
+        audioInput = input
+        outputURL = url
 
         let configuration = SCStreamConfiguration()
         configuration.capturesAudio = true
@@ -184,7 +184,7 @@ public final class SystemAudioCapture: NSObject, SCStreamOutput, @unchecked Send
 
     // MARK: - SCStreamOutput
 
-    public func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
+    public func stream(_: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .audio, CMSampleBufferDataIsReady(sampleBuffer) else { return }
         lock.withLock {
             guard state == .recording, let writer, let audioInput else { return }

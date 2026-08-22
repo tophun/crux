@@ -97,7 +97,9 @@ public struct KoreanTextPolisher: Sendable {
 
     static func tidy(_ text: String) -> String {
         var result = text
-        while result.contains("  ") { result = result.replacingOccurrences(of: "  ", with: " ") }
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
+        }
         result = result.replacingOccurrences(of: " ,", with: ",")
         result = result.replacingOccurrences(of: " .", with: ".")
         result = result.replacingOccurrences(of: ",,", with: ",")
@@ -119,11 +121,11 @@ public enum ChangeRate {
     static func levenshtein(_ lhs: [Character], _ rhs: [Character]) -> Int {
         if lhs.isEmpty { return rhs.count }
         if rhs.isEmpty { return lhs.count }
-        var previous = Array(0...rhs.count)
+        var previous = Array(0 ... rhs.count)
         var current = [Int](repeating: 0, count: rhs.count + 1)
-        for i in 1...lhs.count {
+        for i in 1 ... lhs.count {
             current[0] = i
-            for j in 1...rhs.count {
+            for j in 1 ... rhs.count {
                 let cost = lhs[i - 1] == rhs[j - 1] ? 0 : 1
                 current[j] = min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost)
             }

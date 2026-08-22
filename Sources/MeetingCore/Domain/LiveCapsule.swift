@@ -24,23 +24,23 @@ public enum LiveCapsuleState: Equatable, Sendable {
     public var capsuleText: String {
         switch self {
         case .hidden:
-            return ""
-        case .imminent(let title, let minutes):
-            return "\(title) \(minutes)분 전"
+            ""
+        case let .imminent(title, minutes):
+            "\(title) \(minutes)분 전"
         case .detected:
-            return "회의가 시작된 것 같습니다"
-        case .recording(let elapsed, let paused):
-            return paused ? "일시정지 · \(Self.clock(elapsed))" : "녹음 중 · \(Self.clock(elapsed))"
+            "회의가 시작된 것 같습니다"
+        case let .recording(elapsed, paused):
+            paused ? "일시정지 · \(Self.clock(elapsed))" : "녹음 중 · \(Self.clock(elapsed))"
         case .generating:
-            return "회의록 작성 중"
+            "회의록 작성 중"
         case .previewReady:
-            return "회의록 준비 완료"
-        case .published(_, let issueCount):
-            return issueCount > 0
+            "회의록 준비 완료"
+        case let .published(_, issueCount):
+            issueCount > 0
                 ? "Confluence 게시 · Jira 이슈 \(issueCount)개 생성"
                 : "Confluence 게시 완료"
         case .failed:
-            return "처리 실패"
+            "처리 실패"
         }
     }
 
@@ -52,7 +52,7 @@ public enum LiveCapsuleState: Equatable, Sendable {
         case .hidden: "hidden"
         case .imminent: "imminent"
         case .detected: "detected"
-        case .recording(_, let paused): paused ? "recording.paused" : "recording"
+        case let .recording(_, paused): paused ? "recording.paused" : "recording"
         case .generating: "generating"
         case .previewReady: "previewReady"
         case .published: "published"
@@ -64,21 +64,21 @@ public enum LiveCapsuleState: Equatable, Sendable {
     public var statusText: String {
         switch self {
         case .hidden:
-            return ""
-        case .imminent(let title, _):
-            return title
+            ""
+        case let .imminent(title, _):
+            title
         case .detected:
-            return "회의가 시작된 것 같습니다"
-        case .recording(_, let paused):
-            return paused ? "일시정지" : "녹음 중"
+            "회의가 시작된 것 같습니다"
+        case let .recording(_, paused):
+            paused ? "일시정지" : "녹음 중"
         case .generating:
-            return "회의록 작성 중"
+            "회의록 작성 중"
         case .previewReady:
-            return "회의록 준비 완료"
+            "회의록 준비 완료"
         case .published:
-            return "게시 완료"
+            "게시 완료"
         case .failed:
-            return "처리 실패"
+            "처리 실패"
         }
     }
 
@@ -86,17 +86,17 @@ public enum LiveCapsuleState: Equatable, Sendable {
     public var trailingText: String? {
         switch self {
         case .hidden, .detected, .failed:
-            return nil
-        case .imminent(_, let minutes):
-            return "\(minutes)분 전"
-        case .recording(let elapsed, _):
-            return Self.clock(elapsed)
-        case .generating(let fraction, _):
-            return "\(Int((fraction * 100).rounded()))%"
-        case .previewReady(_, let count):
-            return count > 0 ? "액션 \(count)개" : nil
-        case .published(_, let issueCount):
-            return issueCount > 0 ? "이슈 \(issueCount)개" : nil
+            nil
+        case let .imminent(_, minutes):
+            "\(minutes)분 전"
+        case let .recording(elapsed, _):
+            Self.clock(elapsed)
+        case let .generating(fraction, _):
+            "\(Int((fraction * 100).rounded()))%"
+        case let .previewReady(_, count):
+            count > 0 ? "액션 \(count)개" : nil
+        case let .published(_, issueCount):
+            issueCount > 0 ? "이슈 \(issueCount)개" : nil
         }
     }
 
@@ -119,7 +119,7 @@ public enum LiveCapsuleState: Equatable, Sendable {
         case .hidden, .generating: nil
         case .imminent: "회의록 준비"
         case .detected: "회의록 시작"
-        case .recording(_, let paused): paused ? "재개" : "종료"
+        case let .recording(_, paused): paused ? "재개" : "종료"
         case .previewReady: "검토하기"
         case .published: "열기"
         case .failed: "다시 시도"
@@ -193,7 +193,7 @@ public struct LiveCapsuleMachine: Sendable {
     @discardableResult
     public mutating func apply(_ event: LiveCapsuleEvent) -> LiveCapsuleState {
         switch event {
-        case .detection(let verdict, let message):
+        case let .detection(verdict, message):
             // 녹음·처리 중에는 감지 결과로 상태를 덮지 않는다.
             switch state {
             case .recording, .generating, .previewReady, .published:
@@ -205,34 +205,34 @@ public struct LiveCapsuleMachine: Sendable {
         case .userStartedMeeting:
             state = .recording(elapsed: 0, paused: false)
 
-        case .recordingTicked(let elapsed):
-            if case .recording(_, let paused) = state {
+        case let .recordingTicked(elapsed):
+            if case let .recording(_, paused) = state {
                 state = .recording(elapsed: elapsed, paused: paused)
             }
 
         case .recordingPaused:
-            if case .recording(let elapsed, _) = state {
+            if case let .recording(elapsed, _) = state {
                 state = .recording(elapsed: elapsed, paused: true)
             }
 
         case .recordingResumed:
-            if case .recording(let elapsed, _) = state {
+            if case let .recording(elapsed, _) = state {
                 state = .recording(elapsed: elapsed, paused: false)
             }
 
         case .recordingStopped:
             state = .generating(fraction: 0, message: "회의록 작성 중")
 
-        case .processingProgress(let fraction, let message):
+        case let .processingProgress(fraction, message):
             state = .generating(fraction: min(1, max(0, fraction)), message: message)
 
-        case .previewReady(let meetingId, let count):
+        case let .previewReady(meetingId, count):
             state = .previewReady(meetingId: meetingId, actionItemCount: count)
 
-        case .published(let title, let issueCount):
+        case let .published(title, issueCount):
             state = .published(confluencePageTitle: title, jiraIssueCount: issueCount)
 
-        case .failed(let message):
+        case let .failed(message):
             state = .failed(message: message)
 
         case .dismissed:
@@ -256,16 +256,16 @@ public struct LiveCapsuleMachine: Sendable {
         case .idle:
             activeEvent = nil
             state = .hidden
-        case .imminent(let event, let seconds):
+        case let .imminent(event, seconds):
             activeEvent = event
             state = .imminent(title: event.title, minutesUntilStart: max(1, Int((seconds / 60).rounded())))
-        case .started(let event, _):
+        case let .started(event, _):
             activeEvent = event
             state = .detected(
                 title: event.title,
                 message: message ?? "\(event.title) 회의 중이신가요? 녹음을 진행하시겠습니까?"
             )
-        case .unscheduled(let appName):
+        case let .unscheduled(appName):
             activeEvent = nil
             state = .detected(
                 title: nil,
