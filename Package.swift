@@ -1,11 +1,11 @@
 // swift-tools-version: 6.2
 //
-// [PROJECT_NAME] — 온디바이스 AI 회의록 macOS 앱
+// Crux — 온디바이스 AI 회의록 macOS 앱
 //
-// 제품명은 아직 확정되지 않았으므로 모듈 이름에는 제품명을 넣지 않고 기능 이름만 사용한다.
-// 제품명을 확정하면 다음 두 곳만 바꾸면 된다.
-//   1. Sources/MeetingCore/Support/AppIdentity.swift 의 `productName`
-//   2. Scripts/make_app.sh 의 번들 식별자 (Phase 2)
+// 제품명은 Crux로 확정되었다. 모듈 이름에는 제품명을 넣지 않고 기능 이름만 사용한다.
+// 제품명·번들 이름이 바뀌는 곳:
+//   1. Sources/MeetingCore/Support/AppIdentity.swift 의 `productName` / `bundleName`
+//   2. Scripts/make_app.sh 의 APP_NAME / DISPLAY_NAME / BUNDLE_ID
 import PackageDescription
 
 let package = Package(

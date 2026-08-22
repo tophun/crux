@@ -1,4 +1,4 @@
-# 캘린더 · Atlassian · Live Capsule · Preview Viewer 설계와 검증
+# 캘린더 · Atlassian · Crux · Preview Viewer 설계와 검증
 
 추가 요구사항 1~7의 설계 결정, 구현 위치, 검증 상태를 정리한다.
 
@@ -16,10 +16,10 @@
 | --- | --- |
 | 일정을 읽어 회의 전후 상태 감지 | `MeetingCalendar/EventKitCalendarProvider`, `MeetingCore/MeetingDetectionPolicy` |
 | 제목·날짜·참석자·회의 링크를 회의록 메타데이터로 | `CalendarEvent` → `PublishBundleBuilder`가 제목·날짜·참석자를 캘린더 우선으로 사용 |
-| 시작 직전 또는 회의 앱·오디오 활성 시 Live Capsule | `MeetingDetectionPolicy.decide` — 임박(5분 전), 시작(10분 이내), 미등록 회의(회의 앱 + 마이크 사용 중) |
+| 시작 직전 또는 회의 앱·오디오 활성 시 Crux | `MeetingDetectionPolicy.decide` — 임박(5분 전), 시작(10분 이내), 미등록 회의(회의 앱 + 마이크 사용 중) |
 | 기본은 자동 녹음이 아니라 사용자 확인 | 캡슐이 "…가 시작된 것 같습니다. 회의록을 시작할까요?"를 띄우고, `startMeeting()`은 사용자 동작에서만 호출된다 |
 | 종일·취소·참석자 없는 일정 제외 | `eligibleEvents` (기본 참석자 2명 이상) |
-| 중복 알림 금지 | `notifiedEvent` 테이블 + `LiveCapsuleMachine.dismissedEventIds` — 앱을 다시 켜도 유지 |
+| 중복 알림 금지 | `notifiedEvent` 테이블 + `CruxMachine.dismissedEventIds` — 앱을 다시 켜도 유지 |
 | 캘린더 메타데이터는 로컬 저장 | `calendarEvent` 테이블. 네트워크 전송 없음 |
 
 회의 링크는 이벤트의 `url`, `location`, `notes`에서 Zoom·Meet·Teams·Webex 호스트를 찾아 뽑는다
@@ -53,17 +53,17 @@
 - 전송 직전 `MeetingPublisher.audit`이 검열 게이트를 실행한다.
 - API 호출은 앱(`MeetingPublishing`)이 실행한다. 모델은 호출 경로를 갖지 않는다.
 
-## 3. Live Capsule
+## 3. Crux
 
-`LiveCapsuleState` 상태 머신(순수)과 `LiveCapsuleWindowController`(AppKit)로 분리했다.
+`CruxState` 상태 머신(순수)과 `CruxWindowController`(AppKit)로 분리했다.
 
 | 요구사항 | 구현 |
 | --- | --- |
 | 상태 흐름 | `hidden → imminent → detected → recording → generating → previewReady → published` (+ `failed`) |
 | 표시 문구 | "회의가 시작된 것 같습니다", "녹음 중 · 12:34", "회의록 작성 중", "회의록 준비 완료", "Confluence 게시 · Jira 이슈 3개 생성" |
-| 작고 간결한 캡슐 + 클릭 확장 | `LiveCapsuleView` — 기본 한 줄, 탭하면 상세 패널 |
+| 작고 간결한 캡슐 + 클릭 확장 | `CruxView` — 기본 한 줄, 탭하면 상세 패널 |
 | 포커스 비탈취 | `NSPanel(styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView])`, `level = .statusBar`, `canJoinAllSpaces` |
-| 내장 화면 상단 중앙 / 외부 모니터는 활성 화면 | `LiveCapsuleWindowController.reposition()` — 마우스가 있는 화면의 `visibleFrame` 상단 중앙 |
+| 내장 화면 상단 중앙 / 외부 모니터는 활성 화면 | `CruxWindowController.reposition()` — 마우스가 있는 화면의 `visibleFrame` 상단 중앙 |
 | 녹음·일시정지·종료 상태 명확 표시 | 빨간 점(녹음) / 주황 점(일시정지), 경과 시간, 메뉴바에도 동일 상태 |
 | 회의 종료 후 Preview로 전환 | `previewReady` 상태의 주 버튼이 검토 창을 연다 |
 
@@ -113,7 +113,7 @@ $ swift build && swift test
 | 영역 | 테스트 |
 | --- | --- |
 | 회의 감지 정책 | 종일·취소·참석자 부족 제외, 임박·시작·미등록 판정, 중복 알림 방지, 확인 문구 |
-| Live Capsule | 전체 상태 흐름, 닫은 회의 재알림 금지, 녹음 중 감지 무시, 표시 문구 |
+| Crux | 전체 상태 흐름, 닫은 회의 재알림 금지, 녹음 중 감지 무시, 표시 문구 |
 | 한국어 윤문 | 번역투 치환, 서식 정리, 관용구 제거, 보호 용어, 임계 탐지, 앵커 손실·과도 변경 롤백, 근거·담당자·기한 불변, 경로 선택 |
 | 근거 분리 | contentId 부여, 파일 왕복, 파일명 |
 | 기한 해석 | ISO·월일·롤포워드, 상대 표현 거부 |
@@ -153,7 +153,7 @@ $ swift build && swift test
 
 - **실기기 권한 흐름**: 마이크·캘린더·화면 기록 권한은 사람이 승인 창을 눌러야 한다. 승인 후의 실제 녹음,
   일정 읽기, 시스템 오디오 캡처는 측정하지 못했다.
-- **Live Capsule 육안 렌더링**: 화면 기록 권한이 없어 `screencapture`가 검은 화면만 반환한다.
+- **Crux 육안 렌더링**: 화면 기록 권한이 없어 `screencapture`가 검은 화면만 반환한다.
 - **Atlassian 라이브 게시**: 아래 "라이브 검증 절차"를 사용자가 실행하면 확인된다.
 
 ## 라이브 검증 절차 (Atlassian)

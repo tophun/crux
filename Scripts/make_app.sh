@@ -1,5 +1,5 @@
 #!/bin/bash
-# Live Capsule 앱 번들 생성.
+# Crux 앱 번들 생성.
 #
 # EventKit(캘린더), 마이크, 화면 기록 권한은 번들 식별자 기준으로 부여되므로
 # 실행 파일이 아니라 .app 번들로 실행해야 한다.
@@ -16,10 +16,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG="${CONFIG:-Debug}"
 BINARY="$ROOT/.xcbuild/Build/Products/$CONFIG/MeetingApp"
 # 실행 파일·번들 디렉터리 이름(공백 없음)과 사용자에게 보이는 이름을 분리한다.
-APP_NAME="${APP_NAME:-LiveCapsule}"
-DISPLAY_NAME="${DISPLAY_NAME:-Live Capsule}"
+APP_NAME="${APP_NAME:-Crux}"
+DISPLAY_NAME="${DISPLAY_NAME:-Crux}"
 # Developer ID를 쓰게 되면 BUNDLE_ID를 조직 도메인으로 바꾼다.
-BUNDLE_ID="${BUNDLE_ID:-local.livecapsule.app}"
+BUNDLE_ID="${BUNDLE_ID:-local.crux.app}"
 APP_DIR="$ROOT/.xcbuild/$APP_NAME.app"
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then

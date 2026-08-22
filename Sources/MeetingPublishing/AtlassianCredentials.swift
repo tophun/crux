@@ -44,7 +44,7 @@ public protocol AtlassianCredentialStore: Sendable {
 public struct KeychainCredentialStore: AtlassianCredentialStore {
     private let service: String
 
-    public init(service: String = "LiveCapsule.Atlassian") {
+    public init(service: String = "Crux.Atlassian") {
         self.service = service
     }
 

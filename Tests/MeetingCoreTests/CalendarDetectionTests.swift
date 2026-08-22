@@ -139,11 +139,11 @@ struct MeetingDetectionPolicyTests {
     }
 }
 
-@Suite("Live Capsule 상태 머신")
-struct LiveCapsuleMachineTests {
+@Suite("Crux 상태 머신")
+struct CruxMachineTests {
     @Test("감지 → 녹음 → 생성 → Preview → 게시 순서로 전이한다")
     func fullLifecycle() {
-        var machine = LiveCapsuleMachine()
+        var machine = CruxMachine()
         let event = Fixtures.event(startOffset: -60)
 
         machine.apply(.detection(.started(event: event, reason: .scheduleTime), message: nil))
@@ -180,7 +180,7 @@ struct LiveCapsuleMachineTests {
 
     @Test("사용자가 닫은 회의는 다시 표시하지 않는다")
     func respectsDismissal() {
-        var machine = LiveCapsuleMachine()
+        var machine = CruxMachine()
         let event = Fixtures.event(startOffset: -60)
         machine.apply(.detection(.started(event: event, reason: .scheduleTime), message: nil))
         machine.apply(.dismissed)
@@ -193,7 +193,7 @@ struct LiveCapsuleMachineTests {
 
     @Test("녹음·처리 중에는 감지 결과로 상태를 덮지 않는다")
     func detectionDoesNotOverrideRecording() {
-        var machine = LiveCapsuleMachine()
+        var machine = CruxMachine()
         machine.apply(.userStartedMeeting)
         machine.apply(.recordingTicked(elapsed: 30))
         machine.apply(.detection(.imminent(event: Fixtures.event(startOffset: 120), secondsUntilStart: 120), message: nil))
@@ -202,14 +202,14 @@ struct LiveCapsuleMachineTests {
 
     @Test("임박 상태는 회의 제목과 남은 시간을 보여준다")
     func imminentText() {
-        var machine = LiveCapsuleMachine()
+        var machine = CruxMachine()
         machine.apply(.detection(.imminent(event: Fixtures.event(startOffset: 300), secondsUntilStart: 300), message: nil))
         #expect(machine.state.capsuleText == "주간 유저성장 회의 5분 전")
     }
 
     @Test("숨은 상태는 확장할 수 없고 표시되지 않는다")
     func hiddenState() {
-        let machine = LiveCapsuleMachine()
+        let machine = CruxMachine()
         #expect(!machine.state.isVisible)
         #expect(!machine.state.isExpandable)
     }

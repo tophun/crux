@@ -7,13 +7,13 @@ import MeetingPipeline
 import MeetingPublishing
 import Observation
 
-/// 캘린더 감지 → Live Capsule → 녹음 → 회의록 생성 → Preview → 게시를 잇는 조정자.
+/// 캘린더 감지 → Crux → 녹음 → 회의록 생성 → Preview → 게시를 잇는 조정자.
 ///
 /// 기본 동작은 자동 녹음이 아니라 사용자 확인이다. 감지는 캡슐에 제안만 띄운다.
 @MainActor
 @Observable
 public final class MeetingSessionCoordinator {
-    public private(set) var capsule: LiveCapsuleState = .hidden
+    public private(set) var capsule: CruxState = .hidden
     public private(set) var detailMessage: String?
     public private(set) var previewModel: PreviewViewerModel?
     public private(set) var lastError: String?
@@ -36,7 +36,7 @@ public final class MeetingSessionCoordinator {
         didSet { UserDefaults.standard.set(defaultProjectKey, forKey: "publish.projectKey") }
     }
 
-    private var machine = LiveCapsuleMachine()
+    private var machine = CruxMachine()
     private let calendarProvider: any CalendarProvider
     private let calendarRepository: CalendarRepository
     private let detector: ConferenceAppDetector
