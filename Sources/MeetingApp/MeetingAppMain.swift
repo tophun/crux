@@ -18,6 +18,7 @@ struct CruxApp: App {
     @State private var coordinator: MeetingSessionCoordinator
     /// 오디오 보관 설정과 사용량
     @State private var storage: AudioStorageModel
+    @State private var installs: ModelInstallCenter
     /// 이번 실행에서 온보딩을 닫았는지. "나중에 하기"를 누르면 다시 띄우지 않는다.
     @State private var dismissedOnboarding = false
     private let onboarding = OnboardingWindowController()
@@ -74,6 +75,26 @@ struct CruxApp: App {
         let playback = AudioPlaybackController()
         _storage = State(initialValue: AudioStorageModel(repository: repository))
 
+        // 모델 설치 관리. 카탈로그의 모든 선택지를 미리 만들어 두고
+        // 설정·온보딩·메뉴바가 같은 인스턴스를 바라보게 한다.
+        let transcriptionInstallers: [String: any ModelInstalling] = Dictionary(
+            uniqueKeysWithValues: TranscriptionModelCatalog.all.map { choice in
+                (choice.id, WhisperModelInstaller(modelVariant: choice.id))
+            }
+        )
+        let languageInstallers: [String: any ModelInstalling] = Dictionary(
+            uniqueKeysWithValues: LanguageModelCatalog.all.map { choice in
+                (choice.id, MLXModelInstaller(modelId: choice.id))
+            }
+        )
+        _installs = State(
+            initialValue: ModelInstallCenter(
+                transcriptionInstallers: transcriptionInstallers,
+                languageInstallers: languageInstallers
+            )
+        )
+        let installs = _installs.wrappedValue
+
         _state = State(
             initialValue: AppState(
                 repository: repository,
@@ -94,6 +115,14 @@ struct CruxApp: App {
                 pipeline: pipeline,
                 preparation: preparation,
                 playback: playback,
+                // 모델이 없으면 녹음해도 처리가 실패하므로 시작 자체를 막는다.
+                // startMeeting이 메인 액터에서만 부르므로 assumeIsolated가 안전하다.
+                recordingGate: {
+                    let ready = MainActor.assumeIsolated { installs.readyForCapture }
+                    return ready
+                        ? nil
+                        : "음성 인식·회의록 생성 모델이 아직 설치되지 않았습니다. 설정 → 일반에서 모델을 내려받은 뒤 시작하세요."
+                },
                 log: log.sink(.session)
             )
         )
@@ -192,6 +221,7 @@ struct CruxApp: App {
             MenuBarContentView(
                 state: state,
                 coordinator: coordinator,
+                installs: installs,
                 openWindow: { Self.activateWindow(titled: AppIdentity.productName) }
             )
         } label: {
@@ -203,7 +233,8 @@ struct CruxApp: App {
                 databaseURL: databaseURL,
                 modelDirectory: AppIdentity.dataDirectory().appendingPathComponent("models"),
                 coordinator: coordinator,
-                storage: storage
+                storage: storage,
+                installs: installs
             )
         }
     }
@@ -235,7 +266,7 @@ struct CruxApp: App {
             calendarAuthorized: coordinator.calendarStatus == .authorized,
             microphoneGranted: coordinator.microphoneStatus == .granted
         ) else { return }
-        onboarding.show(coordinator: coordinator) { dismissedOnboarding = true }
+        onboarding.show(coordinator: coordinator, installs: installs) { dismissedOnboarding = true }
     }
 
     private func importAudio() {

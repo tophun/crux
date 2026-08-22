@@ -10,11 +10,17 @@ import SwiftUI
 /// 여기서 권한을 받는다. 자동으로 녹음을 시작하지는 않는다.
 public struct OnboardingView: View {
     @Bindable var coordinator: MeetingSessionCoordinator
+    @Bindable var installs: ModelInstallCenter
     /// 안내를 닫을 때 부른다.
     let onFinish: () -> Void
 
-    public init(coordinator: MeetingSessionCoordinator, onFinish: @escaping () -> Void) {
+    public init(
+        coordinator: MeetingSessionCoordinator,
+        installs: ModelInstallCenter,
+        onFinish: @escaping () -> Void
+    ) {
         self.coordinator = coordinator
+        self.installs = installs
         self.onFinish = onFinish
     }
 
@@ -28,6 +34,10 @@ public struct OnboardingView: View {
                 microphoneRow
                 Divider()
                 systemAudioRow
+                Divider()
+                transcriptionModelRow
+                Divider()
+                languageModelRow
             }
             Divider()
             footer
@@ -40,7 +50,7 @@ public struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("\(AppIdentity.productName) 시작하기")
                 .font(.title2.bold())
-            Text("회의를 감지하고 녹음하려면 아래 권한이 필요합니다. 녹음·전사·회의록 생성은 모두 이 기기에서만 실행되며, 오디오와 전사문은 외부로 전송하지 않습니다.")
+            Text("회의를 감지하고 녹음하려면 아래 권한과 두 개의 모델이 필요합니다. 권한 확인, 녹음, 전사, 회의록 생성은 모두 이 기기에서만 실행되며 오디오와 전사문은 외부로 전송하지 않습니다.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -90,10 +100,36 @@ public struct OnboardingView: View {
         }
     }
 
+    /// 기본 모델 두 가지. 없으면 처리가 실패하므로 여기서 받게 안내한다.
+    /// 다른 모델은 설정 → 일반에서 나중에 고를 수 있다.
+    private var transcriptionModelRow: some View {
+        ModelInstallRow(
+            symbol: "waveform.badge.magnifyingglass",
+            title: "음성 인식 모델",
+            detail: "녹음을 글로 옮깁니다. 네트워크는 지금 내려받을 때만 쓰고, 실행은 모두 이 기기에서 합니다.",
+            choice: TranscriptionModelCatalog.choice(for: TranscriptionModelCatalog.defaultId),
+            status: installs.transcription[TranscriptionModelCatalog.defaultId] ?? .notInstalled
+        ) {
+            installs.installTranscription(TranscriptionModelCatalog.defaultId)
+        }
+    }
+
+    private var languageModelRow: some View {
+        ModelInstallRow(
+            symbol: "doc.text.below.ecg",
+            title: "회의록 생성 모델",
+            detail: "전사문에서 요약·결정·Action Item을 뽑아냅니다. 마찬가지로 이 기기에서만 실행됩니다.",
+            choice: LanguageModelCatalog.choice(for: LanguageModelCatalog.defaultId),
+            status: installs.language[LanguageModelCatalog.defaultId] ?? .notInstalled
+        ) {
+            installs.installLanguage(LanguageModelCatalog.defaultId)
+        }
+    }
+
     private var footer: some View {
         HStack {
             if remaining > 0 {
-                Text("남은 필수 권한 \(remaining)개")
+                Text("남은 준비 \(remaining)개")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -110,11 +146,13 @@ public struct OnboardingView: View {
         .padding(20)
     }
 
-    /// 아직 받지 못한 필수 권한 수. 시스템 오디오는 선택이라 세지 않는다.
+    /// 아직 남은 필수 권한과 기본 모델 수. 시스템 오디오는 선택이라 세지 않는다.
     private var remaining: Int {
         OnboardingGate.remainingRequired(
             calendarAuthorized: coordinator.calendarStatus == .authorized,
-            microphoneGranted: coordinator.microphoneStatus == .granted
+            microphoneGranted: coordinator.microphoneStatus == .granted,
+            transcriptionModelInstalled: installs.selectedTranscriptionStatus().isInstalled,
+            languageModelInstalled: installs.selectedLanguageStatus().isInstalled
         )
     }
 
@@ -211,6 +249,79 @@ struct PermissionRow: View {
     }
 }
 
+/// 모델 설치 한 줄. 권한 줄과 같은 골격이고, 오른쪽에 설치 버튼이나 진행률이 온다.
+struct ModelInstallRow: View {
+    let symbol: String
+    let title: String
+    let detail: String
+    let choice: ModelChoice?
+    let status: ModelInstallCenter.Status
+    let install: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: symbol)
+                .font(.title3)
+                .frame(width: 26)
+                .foregroundStyle(status.isInstalled ? Color.green : .secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(title).font(.headline)
+                    Text("필수")
+                        .font(.caption2)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.15), in: Capsule())
+                }
+                Text(detailText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if case let .installing(fraction) = status {
+                    HStack(spacing: 8) {
+                        ProgressView(value: fraction)
+                        Text("\(Int((fraction * 100).rounded()))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer(minLength: 12)
+            action
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+    }
+
+    private var detailText: String {
+        guard let choice else { return detail }
+        return "\(choice.name) · \(detail) (내려받기 \(sizeText(choice.downloadSizeGB)))"
+    }
+
+    @ViewBuilder
+    private var action: some View {
+        switch status {
+        case .installed:
+            Label("설치됨", systemImage: "checkmark.circle.fill")
+                .labelStyle(.titleAndIcon)
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .notInstalled:
+            Button("내려받기", action: install)
+                .buttonStyle(.borderedProminent)
+        case .installing:
+            Text("설치 중…")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func sizeText(_ gigabytes: Double) -> String {
+        gigabytes < 1
+            ? "\(Int((gigabytes * 1000).rounded()))MB"
+            : String(format: "%.1fGB", gigabytes)
+    }
+}
+
 /// 온보딩을 담는 창.
 ///
 /// SwiftUI `Window` 씬은 `openWindow` 액션이 있어야 열 수 있어 App 구조체에서 다루기 번거롭다.
@@ -225,7 +336,11 @@ public final class OnboardingWindowController {
         window?.isVisible == true
     }
 
-    public func show(coordinator: MeetingSessionCoordinator, onFinish: @escaping () -> Void) {
+    public func show(
+        coordinator: MeetingSessionCoordinator,
+        installs: ModelInstallCenter,
+        onFinish: @escaping () -> Void
+    ) {
         if let window {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -233,7 +348,7 @@ public final class OnboardingWindowController {
         }
 
         let hosting = NSHostingController(
-            rootView: OnboardingView(coordinator: coordinator) { [weak self] in
+            rootView: OnboardingView(coordinator: coordinator, installs: installs) { [weak self] in
                 onFinish()
                 self?.close()
             }

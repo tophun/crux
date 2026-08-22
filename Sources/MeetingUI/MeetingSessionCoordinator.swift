@@ -52,6 +52,9 @@ public final class MeetingSessionCoordinator {
     /// 검토 화면에서 녹음을 들을 수 있게 공유하는 재생 컨트롤러
     private let playback: AudioPlaybackController
     private let log: (@Sendable (String) -> Void)?
+    /// 녹음 시작 전 마지막 관문. 막는 이유를 반환하고, 통과면 nil을 반환한다.
+    /// 모델 미설치 같은 "지금 시작하면 처리가 실패하는" 상태를 잡는다.
+    private let recordingGate: (@Sendable () -> String?)?
 
     private var pollingTask: Task<Void, Never>?
     private var tickTask: Task<Void, Never>?
@@ -69,6 +72,7 @@ public final class MeetingSessionCoordinator {
         playback: AudioPlaybackController? = nil,
         detector: ConferenceAppDetector = ConferenceAppDetector(),
         policy: MeetingDetectionPolicy = MeetingDetectionPolicy(),
+        recordingGate: (@Sendable () -> String?)? = nil,
         log: (@Sendable (String) -> Void)? = nil
     ) {
         self.calendarProvider = calendarProvider
@@ -81,6 +85,7 @@ public final class MeetingSessionCoordinator {
         self.playback = playback ?? AudioPlaybackController()
         self.detector = detector
         self.policy = policy
+        self.recordingGate = recordingGate
         self.log = log
         defaultSpaceKey = UserDefaults.standard.string(forKey: "publish.spaceKey") ?? ""
         defaultProjectKey = UserDefaults.standard.string(forKey: "publish.projectKey") ?? ""
@@ -230,6 +235,13 @@ public final class MeetingSessionCoordinator {
     /// 사용자가 "회의록 시작"을 눌렀을 때. 자동으로 시작하지 않는다.
     public func startMeeting() async {
         lastError = nil
+        // 모델 미설치 같은 상태에서는 녹음해도 처리가 실패하므로 시작 전에 막는다.
+        if let recordingGate, let reason = recordingGate() {
+            lastError = reason
+            capsule = machine.apply(.failed(message: reason))
+            log?("녹음 시작 거부: \(reason)")
+            return
+        }
         let event = machine.activeEvent
         if let event {
             try? calendarRepository.markNotified(eventId: event.id, at: Date())

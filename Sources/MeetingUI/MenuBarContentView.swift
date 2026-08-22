@@ -9,15 +9,18 @@ import SwiftUI
 public struct MenuBarContentView: View {
     @Bindable var state: AppState
     @Bindable var coordinator: MeetingSessionCoordinator
+    @Bindable var installs: ModelInstallCenter
     let openWindow: () -> Void
 
     public init(
         state: AppState,
         coordinator: MeetingSessionCoordinator,
+        installs: ModelInstallCenter,
         openWindow: @escaping () -> Void
     ) {
         self.state = state
         self.coordinator = coordinator
+        self.installs = installs
         self.openWindow = openWindow
     }
 
@@ -45,7 +48,12 @@ public struct MenuBarContentView: View {
             Button("회의록 시작") {
                 Task { await coordinator.startMeeting() }
             }
-            .disabled(coordinator.microphoneStatus != .granted)
+            .disabled(coordinator.microphoneStatus != .granted || !installs.readyForCapture)
+            .help(
+                installs.readyForCapture
+                    ? "녹음을 시작합니다"
+                    : "모델을 먼저 내려받으세요 — 설정 → 일반, 또는 앱을 다시 켜면 안내가 열립니다"
+            )
         }
     }
 

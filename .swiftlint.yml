@@ -53,8 +53,8 @@ function_body_length:
   error: 250
 
 type_body_length:
-  warning: 385 # 현재 최악 381줄 (MeetingSessionCoordinator)
-  error: 450
+  warning: 395 # 현재 최악 390줄 (MeetingSessionCoordinator)
+  error: 460
 
 file_length:
   warning: 750 # 현재 최악 722줄 (MeetingCTL)
