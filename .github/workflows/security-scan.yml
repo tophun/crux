@@ -1,0 +1,60 @@
+name: Security Scan (CodeQL)
+
+# 코드 수준 보안 정적 분석(CodeQL Swift). 풀 빌드에 30분 가까이 걸리므로
+# PR마다가 아니라 주 1회 + main 푸시 + 수동 실행으로만 돌린다.
+#
+# 비공개 저장소는 Advanced Security 라이선스 없이는 SARIF 업로드(Security 탭)가
+# 불가능하므로, 결과를 워크플로우 아티팩트로 내려받도록 구성했다.
+# 저장소를 공개 전환하거나 GHAS를 쓰게 되면 analyze 단계의 `upload: false`를
+# 제거하면 Security 탭 연동이 켜진다.
+#
+# 참고: macOS 러너는 분당 10배 과금이라 1회 실행 ≈ 유료 300분. 무료 크레딧
+# (월 2,000분) 기준으로 주간 실행이 부담되면 cron 주기를 늘리면 된다.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1" # 매주 월요일 12:00 KST
+  workflow_dispatch:
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  codeql:
+    name: Static security analysis (CodeQL · Swift)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache SwiftPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.swiftpm/cache
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+
+      - uses: github/codeql-action/autobuild@v3
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:swift"
+          upload: false # 비공개 저장소는 SARIF 업로드 불가 → 아티팩트로 대체
+
+      - name: Save results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-swift-sarif
+          path: ../results/*.sarif
+          if-no-files-found: error

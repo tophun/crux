@@ -81,23 +81,5 @@ jobs:
           gitleaks detect --source . --redact --verbose
           --log-opts="origin/${{ github.base_ref }}..${{ github.sha }}"
 
-  # ── 코드 수준 보안 분석: CodeQL Swift 정적 분석 ────────────────────────────
-  # 결과는 리포지터리 Security 탭의 Code scanning alerts로 올라간다.
-  codeql:
-    name: Static security analysis (CodeQL · Swift)
-    runs-on: macos-26
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: swift
-
-      - uses: github/codeql-action/autobuild@v3
-
-      - uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:swift"
+# 코드 수준 보안 정적 분석(CodeQL)은 풀 빌드에 30분 가까이 걸려 PR 게이트에서 뺐다.
+# security-scan.yml(주 1회 스케줄 + main 푸시)에서 실행한다.
