@@ -170,7 +170,9 @@ public struct WindowExtractionParser: Sendable {
             let (resolved, reason) = validator.resolve(shortId: shortId, quote: quote, in: window)
             if let resolved {
                 evidence.append(resolved)
-                if let reason { problems.append(reason) }
+                if let reason {
+                    problems.append(reason)
+                }
             } else if let reason {
                 problems.append(reason)
             }
@@ -184,9 +186,15 @@ public struct WindowExtractionParser: Sendable {
 
     func severity(from text: String?) -> RiskSeverity {
         guard let text = text?.lowercased() else { return .unknown }
-        if text.contains("high") || text.contains("높") || text.contains("심각") { return .high }
-        if text.contains("medium") || text.contains("중") { return .medium }
-        if text.contains("low") || text.contains("낮") { return .low }
+        if text.contains("high") || text.contains("높") || text.contains("심각") {
+            return .high
+        }
+        if text.contains("medium") || text.contains("중") {
+            return .medium
+        }
+        if text.contains("low") || text.contains("낮") {
+            return .low
+        }
         return .unknown
     }
 }

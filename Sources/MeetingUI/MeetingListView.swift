@@ -102,7 +102,11 @@ extension View {
             state.pendingDeletion.map { "‘\($0.displayTitle)’를 삭제할까요?" } ?? "회의를 삭제할까요?",
             isPresented: Binding(
                 get: { state.pendingDeletion != nil },
-                set: { if !$0 { state.cancelDelete() } }
+                set: {
+                    if !$0 {
+                        state.cancelDelete()
+                    }
+                }
             ),
             titleVisibility: .visible
         ) {

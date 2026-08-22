@@ -61,15 +61,21 @@ public struct LiveCapsuleView: View {
     }
 
     /// 커진 상태인지. 마우스를 올렸거나 상세를 고정했을 때다.
-    private var isEnlarged: Bool { isHovering || isPinned }
+    private var isEnlarged: Bool {
+        isHovering || isPinned
+    }
 
     private var isPreviewReady: Bool {
-        if case .previewReady = state { return true }
+        if case .previewReady = state {
+            return true
+        }
         return false
     }
 
     private var isFailed: Bool {
-        if case .failed = state { return true }
+        if case .failed = state {
+            return true
+        }
         return false
     }
 
@@ -92,15 +98,21 @@ public struct LiveCapsuleView: View {
 
     /// 한쪽이 지나치게 길어지지 않게 막는다. 긴 회의 제목은 말줄임한다.
     /// 커진 상태에서는 상태 문구가 잘리지 않도록 넉넉히 잡는다.
-    private var sideMaxWidth: CGFloat { isEnlarged ? 340 : 170 }
+    private var sideMaxWidth: CGFloat {
+        isEnlarged ? 340 : 170
+    }
 
     /// 막대 높이. 항상 노치와 같은 높이를 유지한다.
     ///
     /// 커질 때 높이까지 바꾸면 창이 위아래로 움직여 노치 상단이 잘려 보인다.
     /// 확장은 좌우 폭과 아래쪽(버튼 줄)으로만 한다.
-    private var barHeight: CGFloat { metrics.collapsedHeight }
+    private var barHeight: CGFloat {
+        metrics.collapsedHeight
+    }
 
-    private var horizontalPadding: CGFloat { isEnlarged ? 14 : 10 }
+    private var horizontalPadding: CGFloat {
+        isEnlarged ? 14 : 10
+    }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -307,7 +319,9 @@ public struct LiveCapsuleView: View {
                 Text("액션 아이템 \(count)개를 검토할 수 있습니다.")
                     .font(.system(size: 11))
             case let .published(title, issueCount):
-                if let title { Text(title).font(.system(size: 12, weight: .semibold)) }
+                if let title {
+                    Text(title).font(.system(size: 12, weight: .semibold))
+                }
                 Text("Jira 이슈 \(issueCount)개 생성").font(.system(size: 11)).opacity(0.85)
             case let .failed(message):
                 Text(message)
@@ -343,7 +357,9 @@ enum LiveCapsuleAnimation {
     static let duration: TimeInterval = 0.22
 
     /// SwiftUI 쪽 곡선. macOS 창 애니메이션과 같은 easeOut 느낌을 맞춘다.
-    static var swiftUI: Animation { .easeOut(duration: duration) }
+    static var swiftUI: Animation {
+        .easeOut(duration: duration)
+    }
 
     /// AppKit 쪽 곡선.
     static var timingFunction: CAMediaTimingFunction {

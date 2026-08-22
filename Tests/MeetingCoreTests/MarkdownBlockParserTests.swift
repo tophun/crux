@@ -1,7 +1,6 @@
 import Foundation
-import Testing
-
 @testable import MeetingCore
+import Testing
 
 @Suite("회의록 마크다운 미리보기")
 struct MarkdownBlockParserTests {
@@ -50,7 +49,13 @@ struct MarkdownBlockParserTests {
             }
             return total
         }
-        let nonTableBlocks = blocks.filter { if case .table = $0 { false } else { true } }
+        let nonTableBlocks = blocks.filter {
+            if case .table = $0 {
+                false
+            } else {
+                true
+            }
+        }
         #expect(nonTableBlocks.count + tableRowCount == contentLines.count - separatorCount)
     }
 

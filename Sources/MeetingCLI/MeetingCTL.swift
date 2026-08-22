@@ -54,7 +54,9 @@ struct CommonOptions: ParsableArguments {
         let verbose = verbose
         let log: @Sendable (String) -> Void = { message in
             AppLog.shared.write(.model, message)
-            if verbose { FileHandle.standardError.write(Data(("[model] " + message + "\n").utf8)) }
+            if verbose {
+                FileHandle.standardError.write(Data(("[model] " + message + "\n").utf8))
+            }
         }
         var transcription = WhisperKitTranscriptionEngine.Configuration()
         transcription.model = whisperModel
@@ -80,7 +82,9 @@ struct CommonOptions: ParsableArguments {
             coordinator: makeCoordinator(),
             logSink: { message in
                 AppLog.shared.write(.pipeline, message)
-                if verbose { FileHandle.standardError.write(Data(("[pipeline] " + message + "\n").utf8)) }
+                if verbose {
+                    FileHandle.standardError.write(Data(("[pipeline] " + message + "\n").utf8))
+                }
             }
         )
     }
@@ -166,7 +170,9 @@ extension MeetingCTL {
             configuration.allowDownload = !options.offline
             configuration.vocabularyHint = options.vocabulary
             let engine = WhisperKitTranscriptionEngine(configuration: configuration) { message in
-                if verbose { FileHandle.standardError.write(Data(("[whisper] " + message + "\n").utf8)) }
+                if verbose {
+                    FileHandle.standardError.write(Data(("[whisper] " + message + "\n").utf8))
+                }
             }
             let started = Date()
             let segments = try await engine.transcribe(
@@ -211,7 +217,9 @@ extension MeetingCTL {
             inference.localDirectory = options.llmDirectory.map { URL(fileURLWithPath: $0) }
             let verbose = options.verbose
             let model = Qwen3InferenceEngine(configuration: inference) { message in
-                if verbose { FileHandle.standardError.write(Data(("[llm] " + message + "\n").utf8)) }
+                if verbose {
+                    FileHandle.standardError.write(Data(("[llm] " + message + "\n").utf8))
+                }
             }
             let pipeline = LocalInferencePipeline(model: model)
             let output = try await pipeline.generateNote(
@@ -390,7 +398,9 @@ extension MeetingCTL {
             for event in eligible {
                 let attendees = event.attendeeDisplayNames.joined(separator: ", ")
                 print("- \(event.title) | \(event.startDate) | 참석자 \(event.attendees.count)명 (\(attendees))")
-                if let url = event.conferenceURL { print("  회의 링크: \(url.absoluteString)") }
+                if let url = event.conferenceURL {
+                    print("  회의 링크: \(url.absoluteString)")
+                }
             }
 
             let detector = ConferenceAppDetector()
@@ -608,7 +618,9 @@ extension MeetingCTL {
 
             let verbose = options.verbose
             let client = AtlassianClient(credentials: credentials) { message in
-                if verbose { FileHandle.standardError.write(Data(("[atlassian] " + message + "\n").utf8)) }
+                if verbose {
+                    FileHandle.standardError.write(Data(("[atlassian] " + message + "\n").utf8))
+                }
             }
             let publisher = MeetingPublisher(client: client) { message in
                 FileHandle.standardError.write(Data(("[publish] " + message + "\n").utf8))
@@ -717,7 +729,9 @@ extension MeetingCTL {
             }
 
             guard sweep else {
-                if !expired.isEmpty { print("실제로 정리하려면 --sweep 를 붙이세요.") }
+                if !expired.isEmpty {
+                    print("실제로 정리하려면 --sweep 를 붙이세요.")
+                }
                 return
             }
             let outcome = try service.sweep(policy: rule)

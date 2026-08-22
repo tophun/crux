@@ -22,7 +22,9 @@ public struct NotchMetrics: Equatable, Sendable {
         self.notchCenterX = notchCenterX ?? screenFrame.midX
     }
 
-    public var hasNotch: Bool { notchWidth > 0 && notchHeight > 0 }
+    public var hasNotch: Bool {
+        notchWidth > 0 && notchHeight > 0
+    }
 
     /// 캡슐의 접힌 높이. 노치가 있으면 노치와 같은 높이로 맞춰 한 덩어리로 보이게 한다.
     public var collapsedHeight: CGFloat {

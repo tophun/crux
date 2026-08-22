@@ -49,11 +49,11 @@ cyclomatic_complexity:
   error: 40
 
 function_body_length:
-  warning: 180 # 현재 최악 179줄 (LocalInferencePipeline)
+  warning: 185 # 현재 최악 183줄 (LocalInferencePipeline)
   error: 250
 
 type_body_length:
-  warning: 380 # 현재 최악 373줄 (MeetingSessionCoordinator)
+  warning: 385 # 현재 최악 381줄 (MeetingSessionCoordinator)
   error: 450
 
 file_length:

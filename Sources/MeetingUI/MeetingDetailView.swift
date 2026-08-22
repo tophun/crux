@@ -36,7 +36,6 @@ public struct MeetingDetailView: View {
         .deleteConfirmation(state: state)
     }
 
-    @ViewBuilder
     private func header(_ detail: MeetingDetail) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             // 제목·날짜·상태는 카드 하나에 모아 보여 준다. 제목은 카드 안에서 바로 고칠 수 있다.
@@ -69,7 +68,6 @@ public struct MeetingDetailView: View {
     }
 
     /// 툴바 우측 버튼. 공유는 시스템 공유 시트로 마크다운 텍스트를 보낸다.
-    @ViewBuilder
     func actionButtons(_ detail: MeetingDetail) -> some View {
         HStack(spacing: 6) {
             ShareLink(item: MeetingNoteExporter.document(
@@ -112,7 +110,9 @@ public struct MeetingDetailView: View {
 
     /// 상황에 따라 달라지는 재생성 항목 이름.
     private func regenerateTitle(_ detail: MeetingDetail) -> String {
-        if detail.meeting.status == .failed { return "다시 처리" }
+        if detail.meeting.status == .failed {
+            return "다시 처리"
+        }
         return detail.note == nil ? "회의록 생성" : "다시 생성"
     }
 
@@ -233,13 +233,17 @@ struct TitleField: View {
             .focused($isFocused)
             .onSubmit { commit() }
             .onChange(of: isFocused) { _, focused in
-                if !focused { commit() }
+                if !focused {
+                    commit()
+                }
             }
             .onAppear { draft = current }
             .onChange(of: detail.meeting.id) { _, _ in draft = current }
             .onChange(of: current) { _, newValue in
                 // 다시 생성 등으로 제목이 바뀌면 입력 중이 아닐 때만 따라간다.
-                if !isFocused { draft = newValue }
+                if !isFocused {
+                    draft = newValue
+                }
             }
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -366,7 +370,9 @@ struct MarkdownPreviewTab: View {
     @State private var draft = ""
 
     /// 편집 상태는 AppState가 든다. 제목 칸이 같은 편집/저장 흐름을 따라야 하기 때문이다.
-    private var isEditing: Bool { state.isEditingDocument }
+    private var isEditing: Bool {
+        state.isEditingDocument
+    }
 
     private var markdown: String? {
         guard let note = detail.note else { return nil }
@@ -374,74 +380,72 @@ struct MarkdownPreviewTab: View {
     }
 
     var body: some View {
-        Group {
-            if let markdown {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 10) {
-                        Picker("", selection: $showsSource) {
-                            Text("Preview").tag(false)
-                            Text("Markdown").tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(width: 180)
-                        .disabled(isEditing)
-                        Spacer()
-                        if isEditing {
-                            Button("취소") { state.isEditingDocument = false }
-                                .buttonStyle(.bordered)
-                            Button("저장") {
-                                state.updateDocument(draft, meetingId: detail.meeting.id)
-                                state.isEditingDocument = false
-                            }
-                            .buttonStyle(.borderedProminent)
-                        } else {
-                            Button {
-                                draft = markdown
-                                state.isEditingDocument = true
-                            } label: {
-                                Label("편집", systemImage: "pencil")
-                            }
-                            .buttonStyle(.bordered)
-                            Button {
-                                copy(markdown)
-                            } label: {
-                                Label("복사", systemImage: "doc.on.doc")
-                            }
-                            .buttonStyle(.bordered)
-                        }
+        if let markdown {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 10) {
+                    Picker("", selection: $showsSource) {
+                        Text("Preview").tag(false)
+                        Text("Markdown").tag(true)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    Divider()
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 180)
+                    .disabled(isEditing)
+                    Spacer()
                     if isEditing {
-                        // 서식 있는 화면을 직접 고칠 수는 없으므로 원본 마크다운을 편집한다.
-                        TextEditor(text: $draft)
-                            .font(.system(size: 12, design: .monospaced))
-                            .scrollContentBackground(.hidden)
-                            .padding(12)
+                        Button("취소") { state.isEditingDocument = false }
+                            .buttonStyle(.bordered)
+                        Button("저장") {
+                            state.updateDocument(draft, meetingId: detail.meeting.id)
+                            state.isEditingDocument = false
+                        }
+                        .buttonStyle(.borderedProminent)
                     } else {
-                        ScrollView {
-                            if showsSource {
-                                Text(markdown)
-                                    .font(.system(size: 12, design: .monospaced))
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding()
-                            } else {
-                                rendered(markdown)
-                            }
+                        Button {
+                            draft = markdown
+                            state.isEditingDocument = true
+                        } label: {
+                            Label("편집", systemImage: "pencil")
+                        }
+                        .buttonStyle(.bordered)
+                        Button {
+                            copy(markdown)
+                        } label: {
+                            Label("복사", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                Divider()
+                if isEditing {
+                    // 서식 있는 화면을 직접 고칠 수는 없으므로 원본 마크다운을 편집한다.
+                    TextEditor(text: $draft)
+                        .font(.system(size: 12, design: .monospaced))
+                        .scrollContentBackground(.hidden)
+                        .padding(12)
+                } else {
+                    ScrollView {
+                        if showsSource {
+                            Text(markdown)
+                                .font(.system(size: 12, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        } else {
+                            rendered(markdown)
                         }
                     }
                 }
-                .onChange(of: detail.meeting.id) { _, _ in state.isEditingDocument = false }
-            } else {
-                ContentUnavailableView(
-                    "아직 회의록이 없습니다",
-                    systemImage: "doc.richtext",
-                    description: Text("회의록을 생성하면 여기에서 문서 형태로 볼 수 있습니다.")
-                )
             }
+            .onChange(of: detail.meeting.id) { _, _ in state.isEditingDocument = false }
+        } else {
+            ContentUnavailableView(
+                "아직 회의록이 없습니다",
+                systemImage: "doc.richtext",
+                description: Text("회의록을 생성하면 여기에서 문서 형태로 볼 수 있습니다.")
+            )
         }
     }
 

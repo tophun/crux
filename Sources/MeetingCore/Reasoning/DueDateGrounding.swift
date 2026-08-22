@@ -93,7 +93,9 @@ public enum DueDateGrounding {
                 current = ""
             }
         }
-        if !current.isEmpty { groups.append(current) }
+        if !current.isEmpty {
+            groups.append(current)
+        }
         return groups
     }
 

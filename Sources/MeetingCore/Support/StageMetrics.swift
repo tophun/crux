@@ -91,5 +91,7 @@ public actor StageMetricsRecorder {
         return value
     }
 
-    public func all() -> [StageMetric] { metrics }
+    public func all() -> [StageMetric] {
+        metrics
+    }
 }

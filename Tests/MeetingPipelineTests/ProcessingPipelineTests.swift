@@ -212,7 +212,7 @@ struct ProcessingPipelineTests {
     }
 
     @Test("가져오기는 오디오를 회의 디렉터리로 복사하고 메타데이터만 DB에 저장한다")
-    func importCopiesAudio() async throws {
+    func importCopiesAudio() throws {
         let harness = try makeHarness()
         let audio = try TestAudio.makeSilentFile(directory: harness.directory)
         let importer = MeetingImporter(repository: harness.repository, baseDirectory: harness.directory)

@@ -140,8 +140,12 @@ public struct EvidenceValidator: Sendable {
         let normalizedQuote = Self.normalize(quote)
         let normalizedText = Self.normalize(text)
         guard !normalizedQuote.isEmpty, !normalizedText.isEmpty else { return false }
-        if normalizedText.contains(normalizedQuote) { return true }
-        if normalizedQuote.contains(normalizedText), normalizedText.count >= minimumQuoteLength { return true }
+        if normalizedText.contains(normalizedQuote) {
+            return true
+        }
+        if normalizedQuote.contains(normalizedText), normalizedText.count >= minimumQuoteLength {
+            return true
+        }
         guard normalizedQuote.count >= minimumQuoteLength else { return false }
         // 인용은 보통 구간의 일부이므로 겹침 계수로 본다. jaccard는 길이 차이에 지나치게 민감하다.
         return TextSimilarity.overlap(normalizedQuote, normalizedText) >= minimumOverlap
@@ -152,13 +156,14 @@ public struct EvidenceValidator: Sendable {
         var result: [Evidence] = []
         for item in evidence {
             let key = item.segmentId + "|" + Self.normalize(item.quote)
-            if seen.insert(key).inserted { result.append(item) }
+            if seen.insert(key).inserted {
+                result.append(item)
+            }
         }
         return result.sorted { $0.startTime < $1.startTime }
     }
 
     static func normalize(_ text: String) -> String {
-        let allowed = text.lowercased().filter { $0.isLetter || $0.isNumber }
-        return allowed
+        text.lowercased().filter { $0.isLetter || $0.isNumber }
     }
 }

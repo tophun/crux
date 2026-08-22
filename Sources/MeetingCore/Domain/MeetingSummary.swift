@@ -10,7 +10,9 @@ public struct MeetingSummary: Identifiable, Hashable, Sendable {
     public var openQuestionCount: Int
     public var riskCount: Int
 
-    public var id: UUID { meeting.id }
+    public var id: UUID {
+        meeting.id
+    }
 
     public init(
         meeting: Meeting,
@@ -31,7 +33,9 @@ public struct MeetingSummary: Identifiable, Hashable, Sendable {
     }
 
     public var displayTitle: String {
-        if let noteTitle, !noteTitle.isEmpty { return noteTitle }
+        if let noteTitle, !noteTitle.isEmpty {
+            return noteTitle
+        }
         return meeting.title
     }
 }

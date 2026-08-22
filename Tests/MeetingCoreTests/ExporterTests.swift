@@ -35,18 +35,18 @@ struct MeetingNoteExporterTests {
     @Test("JSON은 명세의 최상위 구조를 따른다")
     func jsonMatchesSpecShape() throws {
         let data = try MeetingNoteExporter.json(sampleNote())
-        let object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         for key in ["title", "summary", "decisions", "actionItems", "openQuestions", "risks", "topics"] {
             #expect(object[key] != nil, "누락된 키: \(key)")
         }
-        let decisions = object["decisions"] as! [[String: Any]]
+        let decisions = try #require(object["decisions"] as? [[String: Any]])
         #expect(decisions[0]["content"] as? String == "배포를 3월 12일로 확정")
-        let evidence = decisions[0]["evidence"] as! [[String: Any]]
+        let evidence = try #require(decisions[0]["evidence"] as? [[String: Any]])
         #expect(evidence[0]["segmentId"] != nil)
         #expect(evidence[0]["startTime"] != nil)
         #expect(evidence[0]["quote"] != nil)
 
-        let actions = object["actionItems"] as! [[String: Any]]
+        let actions = try #require(object["actionItems"] as? [[String: Any]])
         // 근거 없는 담당자·마감일은 null로 남는다.
         #expect(actions[1]["assignee"] is NSNull || actions[1]["assignee"] == nil)
         #expect(actions[1]["status"] as? String == "proposed")

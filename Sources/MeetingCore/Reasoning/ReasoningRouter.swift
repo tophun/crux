@@ -69,7 +69,9 @@ public struct RoutingDecision: Hashable, Sendable {
         self.signals = signals
     }
 
-    public var needsThinking: Bool { mode == .thinking }
+    public var needsThinking: Bool {
+        mode == .thinking
+    }
 }
 
 /// 사용자가 아니라 앱이 사고 모드를 결정한다(§8).
@@ -211,8 +213,12 @@ public struct ReasoningRouter: Sendable {
         unresolvedCount: Int
     ) -> RoutingDecision {
         var signals: Set<RoutingSignal> = []
-        if conflictCount > 0 { signals.insert(.conflictingStatements) }
-        if unresolvedCount > 0 { signals.insert(.decisionAmbiguous) }
+        if conflictCount > 0 {
+            signals.insert(.conflictingStatements)
+        }
+        if unresolvedCount > 0 {
+            signals.insert(.decisionAmbiguous)
+        }
 
         let ratio = totalCandidates > 0 ? Double(reviewedCandidates) / Double(totalCandidates) : 0
         if ratio >= configuration.finalPassThinkingRatio, reviewedCandidates > 0 {

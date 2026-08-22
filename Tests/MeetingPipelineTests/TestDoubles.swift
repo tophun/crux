@@ -18,10 +18,14 @@ actor ModelResidencyMonitor {
         case "language.unload": languageLoaded = false
         default: break
         }
-        if transcriptionLoaded, languageLoaded { violated = true }
+        if transcriptionLoaded, languageLoaded {
+            violated = true
+        }
     }
 
-    func snapshot() -> (events: [String], violated: Bool) { (events, violated) }
+    func snapshot() -> (events: [String], violated: Bool) {
+        (events, violated)
+    }
 }
 
 /// 오디오 없이 정해진 전사 결과를 돌려주는 엔진.
@@ -51,8 +55,12 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
         progress: (@Sendable (TranscriptionProgress) -> Void)?
     ) async throws -> [TranscriptSegment] {
         transcribeCount += 1
-        if let delay { try await Task.sleep(for: delay) }
-        if let failure { throw failure }
+        if let delay {
+            try await Task.sleep(for: delay)
+        }
+        if let failure {
+            throw failure
+        }
         let result = segments(meetingId)
         progress?(
             TranscriptionProgress(processedSeconds: 60, totalSeconds: 60, segmentCount: result.count)
@@ -60,9 +68,17 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
         return result
     }
 
-    func load() async throws { await monitor?.record("transcription.load") }
-    func unload() async { await monitor?.record("transcription.unload") }
-    func callCount() -> Int { transcribeCount }
+    func load() async throws {
+        await monitor?.record("transcription.load")
+    }
+
+    func unload() async {
+        await monitor?.record("transcription.unload")
+    }
+
+    func callCount() -> Int {
+        transcribeCount
+    }
 }
 
 /// 정해진 JSON을 돌려주는 가짜 LLM.
@@ -81,9 +97,17 @@ actor ScriptedLanguageModel: LocalLanguageModel {
         return responder(prompt, mode)
     }
 
-    func load() async throws { await monitor?.record("language.load") }
-    func unload() async { await monitor?.record("language.unload") }
-    func callCount() -> Int { generateCount }
+    func load() async throws {
+        await monitor?.record("language.load")
+    }
+
+    func unload() async {
+        await monitor?.record("language.unload")
+    }
+
+    func callCount() -> Int {
+        generateCount
+    }
 }
 
 enum TestAudio {

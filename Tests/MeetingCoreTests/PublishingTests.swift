@@ -228,7 +228,7 @@ struct PublishBundleBuilderTests {
     }
 
     @Test("Confluence 본문은 날짜와 참석자를 가장 먼저 노출한다")
-    func pageOrdering() {
+    func pageOrdering() throws {
         let event = Fixtures.event(id: "evt", startOffset: 0)
         let bundle = builder.build(
             note: Fixtures.publishableNote(),
@@ -237,13 +237,13 @@ struct PublishBundleBuilderTests {
             options: options()
         )
         let html = bundle.page.storageBody()
-        let dateIndex = html.range(of: "날짜")!.lowerBound
-        let attendeeIndex = html.range(of: "참석자")!.lowerBound
-        let summaryIndex = html.range(of: "회의 요약")!.lowerBound
-        let decisionIndex = html.range(of: "주요 결정사항")!.lowerBound
-        let actionIndex = html.range(of: "액션 아이템")!.lowerBound
-        let discussionIndex = html.range(of: "논의 내용")!.lowerBound
-        let riskIndex = html.range(of: "리스크 및 미해결 질문")!.lowerBound
+        let dateIndex = try #require(html.range(of: "날짜")?.lowerBound)
+        let attendeeIndex = try #require(html.range(of: "참석자")?.lowerBound)
+        let summaryIndex = try #require(html.range(of: "회의 요약")?.lowerBound)
+        let decisionIndex = try #require(html.range(of: "주요 결정사항")?.lowerBound)
+        let actionIndex = try #require(html.range(of: "액션 아이템")?.lowerBound)
+        let discussionIndex = try #require(html.range(of: "논의 내용")?.lowerBound)
+        let riskIndex = try #require(html.range(of: "리스크 및 미해결 질문")?.lowerBound)
 
         #expect(dateIndex < attendeeIndex)
         #expect(attendeeIndex < summaryIndex)

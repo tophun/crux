@@ -35,7 +35,9 @@ public final class SystemAudioCapture: NSObject, SCStreamOutput, @unchecked Send
 
     /// 화면 기록 권한을 요청한다. 시스템 대화상자를 띄울 수 있으므로 온보딩·설정에서만 부른다.
     public static func requestPermission() async -> CapturePermissionState {
-        if CGPreflightScreenCaptureAccess() { return .granted }
+        if CGPreflightScreenCaptureAccess() {
+            return .granted
+        }
         return CGRequestScreenCaptureAccess() ? .granted : .denied
     }
 
@@ -116,11 +118,19 @@ public final class SystemAudioCapture: NSObject, SCStreamOutput, @unchecked Send
     }
 
     public func pause() {
-        lock.withLock { if state == .recording { state = .paused } }
+        lock.withLock {
+            if state == .recording {
+                state = .paused
+            }
+        }
     }
 
     public func resume() {
-        lock.withLock { if state == .paused { state = .recording } }
+        lock.withLock {
+            if state == .paused {
+                state = .recording
+            }
+        }
     }
 
     public func stop() async throws -> AudioFileInfo? {

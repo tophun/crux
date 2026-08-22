@@ -31,7 +31,9 @@ public struct KoreanTextPolisher: Sendable {
                 : matches
             for match in reportable {
                 guard let matched = match.substring(at: 0, in: text) else { continue }
-                if Self.isProtected(matched) { continue }
+                if Self.isProtected(matched) {
+                    continue
+                }
                 spans.append(
                     KoreanTellSpan(
                         ruleId: rule.id,
@@ -119,8 +121,12 @@ public enum ChangeRate {
     }
 
     static func levenshtein(_ lhs: [Character], _ rhs: [Character]) -> Int {
-        if lhs.isEmpty { return rhs.count }
-        if rhs.isEmpty { return lhs.count }
+        if lhs.isEmpty {
+            return rhs.count
+        }
+        if rhs.isEmpty {
+            return lhs.count
+        }
         var previous = Array(0 ... rhs.count)
         var current = [Int](repeating: 0, count: rhs.count + 1)
         for i in 1 ... lhs.count {
@@ -139,7 +145,9 @@ public enum ChangeRate {
 public enum ContentAnchor {
     public struct Report: Sendable {
         public var missing: [String]
-        public var isPreserved: Bool { missing.isEmpty }
+        public var isPreserved: Bool {
+            missing.isEmpty
+        }
     }
 
     /// 원문에서 반드시 살아남아야 하는 토큰을 뽑는다.
@@ -149,19 +157,25 @@ public enum ContentAnchor {
         // 숫자 + 단위 (85%, 3월 12일, 300만 원, 20%)
         if let regex = try? NSRegularExpression(pattern: "\\d+(?:[.,]\\d+)?", options: []) {
             for match in regex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text)) {
-                if let value = match.substring(at: 0, in: text) { result.insert(value) }
+                if let value = match.substring(at: 0, in: text) {
+                    result.insert(value)
+                }
             }
         }
         // 영문 토큰 (제품명·약어)
         if let regex = try? NSRegularExpression(pattern: "[A-Za-z][A-Za-z0-9_.+-]{1,}", options: []) {
             for match in regex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text)) {
-                if let value = match.substring(at: 0, in: text) { result.insert(value) }
+                if let value = match.substring(at: 0, in: text) {
+                    result.insert(value)
+                }
             }
         }
         // 큰따옴표 안 직접 인용
         if let regex = try? NSRegularExpression(pattern: "[\"\u{201C}]([^\"\u{201D}]{2,})[\"\u{201D}]", options: []) {
             for match in regex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text)) {
-                if let value = match.substring(at: 1, in: text) { result.insert(value) }
+                if let value = match.substring(at: 1, in: text) {
+                    result.insert(value)
+                }
             }
         }
         return result.sorted()

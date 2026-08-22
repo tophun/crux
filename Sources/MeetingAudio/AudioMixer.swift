@@ -135,12 +135,16 @@ private final class Locked: @unchecked Sendable {
     private let lock = NSLock()
     private var value: Bool
 
-    init(_ value: Bool) { self.value = value }
+    init(_ value: Bool) {
+        self.value = value
+    }
 
     /// 아직 표시되지 않았으면 표시하고 true를 돌려준다.
     func set() -> Bool {
         lock.withLock {
-            if value { return false }
+            if value {
+                return false
+            }
             value = true
             return true
         }

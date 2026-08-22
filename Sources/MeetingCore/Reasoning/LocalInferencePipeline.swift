@@ -213,7 +213,9 @@ public struct LocalInferencePipeline: Sendable {
 
         facts = facts.map { fact in
             let (updated, reason) = DueDateGrounding.apply(to: fact, segments: segments)
-            if let reason { problems.append("[마감일] \(reason)") }
+            if let reason {
+                problems.append("[마감일] \(reason)")
+            }
             return updated
         }
 
@@ -301,7 +303,9 @@ public struct LocalInferencePipeline: Sendable {
             finalPassUsedThinking: finalDecision.mode == .thinking,
             jsonRepairCount: repairCount
         )
-        if note.title.isEmpty { note.title = titleHint }
+        if note.title.isEmpty {
+            note.title = titleHint
+        }
 
         return Output(note: note, facts: facts, relevance: relevance, problems: problems)
     }

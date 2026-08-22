@@ -88,7 +88,11 @@ public struct FactReviewParser: Sendable {
             let shortId = entry["segment", "segmentId", "id"].stringValue
             let quote = entry["quote", "text", "인용"].stringValue
             let (resolved, reason) = validator.resolve(shortId: shortId, quote: quote, in: window)
-            if let resolved { refreshed.append(resolved) } else if let reason { problems.append(reason) }
+            if let resolved {
+                refreshed.append(resolved)
+            } else if let reason {
+                problems.append(reason)
+            }
         }
         if !refreshed.isEmpty {
             fact.evidence = validator.dedupe(refreshed)

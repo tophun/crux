@@ -1,7 +1,6 @@
 import Foundation
-import Testing
-
 @testable import MeetingCore
+import Testing
 
 /// 산출물 편집이 근거를 잃지 않는지 확인한다.
 ///

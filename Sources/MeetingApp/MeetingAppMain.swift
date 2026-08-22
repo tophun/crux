@@ -158,7 +158,9 @@ struct LiveCapsuleApp: App {
                 // 녹음·처리 결과를 회의 목록과 상세 화면에 즉시 반영한다.
                 coordinator.onMeetingsChanged = { meetingId in
                     state.reload()
-                    if let meetingId { state.selectedMeetingId = meetingId }
+                    if let meetingId {
+                        state.selectedMeetingId = meetingId
+                    }
                     state.loadDetail()
                 }
                 await coordinator.refreshPermissions()

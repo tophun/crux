@@ -231,7 +231,9 @@ public final class MeetingSessionCoordinator {
     public func startMeeting() async {
         lastError = nil
         let event = machine.activeEvent
-        if let event { try? calendarRepository.markNotified(eventId: event.id, at: Date()) }
+        if let event {
+            try? calendarRepository.markNotified(eventId: event.id, at: Date())
+        }
 
         let meetingId = UUID()
         let storage = MeetingStorage.forMeeting(id: meetingId)
@@ -246,7 +248,9 @@ public final class MeetingSessionCoordinator {
 
         do {
             try repository.save(meeting)
-            if let event { try calendarRepository.link(meetingId: meetingId, eventId: event.id) }
+            if let event {
+                try calendarRepository.link(meetingId: meetingId, eventId: event.id)
+            }
             try await capture.start(meetingId: meetingId, storage: storage)
             activeMeetingId = meetingId
             capsule = machine.apply(.userStartedMeeting)
@@ -254,7 +258,9 @@ public final class MeetingSessionCoordinator {
             log?("녹음 시작: \(meeting.title)")
             onMeetingsChanged?(meetingId)
             let problems = await capture.problems
-            if !problems.isEmpty { detailMessage = problems.joined(separator: "\n") }
+            if !problems.isEmpty {
+                detailMessage = problems.joined(separator: "\n")
+            }
         } catch {
             lastError = error.localizedDescription
             capsule = machine.apply(.failed(message: error.localizedDescription))
@@ -305,7 +311,9 @@ public final class MeetingSessionCoordinator {
             if let mixed = tracks.first(where: { $0.kind == .mixed }) ?? tracks.first {
                 var meeting = try repository.meeting(id: meetingId)
                 meeting?.endedAt = Date()
-                if let meeting { try repository.save(meeting) }
+                if let meeting {
+                    try repository.save(meeting)
+                }
                 log?("녹음 종료: \(String(format: "%.1f", mixed.duration))초")
             }
 

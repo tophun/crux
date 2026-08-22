@@ -97,7 +97,9 @@ public struct TranscriptSegmenter: Sendable {
             for ending in endings {
                 if let range = remainder.range(of: ending) {
                     let candidate = range.upperBound
-                    if cut == nil || candidate < cut! { cut = candidate }
+                    if cut == nil || candidate < cut! {
+                        cut = candidate
+                    }
                 }
             }
             guard let cut, cut < remainder.endIndex else {

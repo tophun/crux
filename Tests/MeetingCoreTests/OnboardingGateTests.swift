@@ -1,6 +1,5 @@
-import Testing
-
 @testable import MeetingCore
+import Testing
 
 @Suite("첫 실행 안내")
 struct OnboardingGateTests {

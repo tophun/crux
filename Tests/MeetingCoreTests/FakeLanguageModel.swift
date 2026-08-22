@@ -40,10 +40,17 @@ actor FakeLanguageModel: LocalLanguageModel {
         return responder(call, index)
     }
 
-    func load() async throws { loadCount += 1 }
-    func unload() async { unloadCount += 1 }
+    func load() async throws {
+        loadCount += 1
+    }
 
-    func callLog() -> [Call] { calls }
+    func unload() async {
+        unloadCount += 1
+    }
+
+    func callLog() -> [Call] {
+        calls
+    }
 }
 
 enum FakeResponses {

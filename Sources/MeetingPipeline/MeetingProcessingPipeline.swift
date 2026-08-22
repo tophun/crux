@@ -370,7 +370,9 @@ public actor MeetingProcessingPipeline {
     /// 원본이 남아 있는데 재처리가 막히는 것을 방지한다.
     public static func resolveAudioFile(for track: AudioTrack, meetingId: UUID) -> AudioTrack {
         let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: track.fileURL.path) { return track }
+        if fileManager.fileExists(atPath: track.fileURL.path) {
+            return track
+        }
 
         let storage = MeetingStorage.forMeeting(id: meetingId)
         let candidates = [

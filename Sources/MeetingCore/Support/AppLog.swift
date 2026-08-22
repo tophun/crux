@@ -29,7 +29,9 @@ public struct AppLog: Sendable {
 
     public func write(_ category: Category, _ message: String) {
         let line = "\(Self.timestamp()) [\(category.rawValue)] \(message)\n"
-        if alsoPrint { print(line, terminator: "") }
+        if alsoPrint {
+            print(line, terminator: "")
+        }
         let url = fileURL
         queue.async {
             let manager = FileManager.default

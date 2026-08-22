@@ -16,8 +16,12 @@ public struct EventAttendee: Hashable, Sendable, Codable {
 
     /// 사람이 읽을 표시 이름. 이름이 없으면 이메일 로컬파트를 쓴다.
     public var displayName: String {
-        if let name, !name.isEmpty { return name }
-        if let email, let local = email.split(separator: "@").first { return String(local) }
+        if let name, !name.isEmpty {
+            return name
+        }
+        if let email, let local = email.split(separator: "@").first {
+            return String(local)
+        }
         return email ?? "알 수 없는 참석자"
     }
 }
@@ -88,12 +92,16 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
         alarmOffsets.filter { $0 < 0 }.map { -$0 }.max()
     }
 
-    public var duration: TimeInterval { max(0, endDate.timeIntervalSince(startDate)) }
+    public var duration: TimeInterval {
+        max(0, endDate.timeIntervalSince(startDate))
+    }
 
     /// 회의록 참석자 표기. 주최자를 먼저 두고 캘린더에 있는 사람만 넣는다.
     public var attendeeDisplayNames: [String] {
         let ordered = attendees.sorted { lhs, rhs in
-            if lhs.isOrganizer != rhs.isOrganizer { return lhs.isOrganizer }
+            if lhs.isOrganizer != rhs.isOrganizer {
+                return lhs.isOrganizer
+            }
             return lhs.displayName < rhs.displayName
         }
         var seen: Set<String> = []

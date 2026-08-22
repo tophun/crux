@@ -116,7 +116,9 @@ public enum MeetingNoteExporter {
 
     /// 화면·파일에 쓸 최종 문서. 사용자 프롬프트로 구성한 문서가 있으면 그것을 쓴다.
     public static func document(_ note: MeetingNote, meeting: Meeting? = nil, attendees: [String] = []) -> String {
-        if let custom = note.customDocument, !custom.isEmpty { return custom }
+        if let custom = note.customDocument, !custom.isEmpty {
+            return custom
+        }
         return markdown(note, meeting: meeting, attendees: attendees)
     }
 

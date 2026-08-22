@@ -59,5 +59,7 @@ public struct MeetingSkillTrace: Hashable, Sendable, Codable {
         runs.first { $0.skill == skill }
     }
 
-    public var allSucceeded: Bool { runs.allSatisfy(\.succeeded) }
+    public var allSucceeded: Bool {
+        runs.allSatisfy(\.succeeded)
+    }
 }

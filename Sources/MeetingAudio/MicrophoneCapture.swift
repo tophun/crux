@@ -49,7 +49,9 @@ public actor MicrophoneCapture {
     }
 
     public static func requestPermission() async -> CapturePermissionState {
-        if permission() == .granted { return .granted }
+        if permission() == .granted {
+            return .granted
+        }
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
         return granted ? .granted : .denied
     }
@@ -151,9 +153,13 @@ public actor MicrophoneCapture {
     }
 
     private func cleanup() {
-        if engine.isRunning { engine.stop() }
+        if engine.isRunning {
+            engine.stop()
+        }
         engine.inputNode.removeTap(onBus: 0)
-        if let observer { NotificationCenter.default.removeObserver(observer) }
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
         observer = nil
         file = nil
         isWriting = false

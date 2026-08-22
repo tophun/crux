@@ -69,7 +69,9 @@ public struct AudioSegment: Identifiable, Hashable, Sendable, Codable {
         self.fileURL = fileURL
     }
 
-    public var duration: TimeInterval { max(0, endTime - startTime) }
+    public var duration: TimeInterval {
+        max(0, endTime - startTime)
+    }
 }
 
 public extension AudioTrack {
@@ -77,7 +79,9 @@ public extension AudioTrack {
     static func preferredForPlayback(_ tracks: [AudioTrack]) -> AudioTrack? {
         let order: [AudioTrackKind] = [.mixed, .microphone, .system]
         for kind in order {
-            if let track = tracks.first(where: { $0.kind == kind }) { return track }
+            if let track = tracks.first(where: { $0.kind == kind }) {
+                return track
+            }
         }
         return tracks.first
     }

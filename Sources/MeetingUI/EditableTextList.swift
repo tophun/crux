@@ -107,7 +107,9 @@ struct EditableTextList: View {
 
     private func beginEditing() {
         drafts = items.enumerated().map { Draft(text: $0.element.text, originalIndex: $0.offset) }
-        if drafts.isEmpty { drafts = [Draft(text: "", originalIndex: nil)] }
+        if drafts.isEmpty {
+            drafts = [Draft(text: "", originalIndex: nil)]
+        }
         isEditing = true
     }
 }

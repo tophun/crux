@@ -24,7 +24,9 @@ public struct TranscriptDigestBuilder: Sendable {
             let label = labels[segment.id] ?? .uncertain
             guard label.isIncludedInNote else { continue }
             var text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if text.isEmpty { continue }
+            if text.isEmpty {
+                continue
+            }
             if label == .condense, text.count > condensedLimit {
                 text = String(text.prefix(condensedLimit)) + "…"
             }

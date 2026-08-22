@@ -8,7 +8,9 @@ public enum CalendarAuthorizationStatus: String, Sendable, CaseIterable {
     /// 쓰기 전용 권한 — 일정을 읽을 수 없다
     case writeOnly
 
-    public var canReadEvents: Bool { self == .authorized }
+    public var canReadEvents: Bool {
+        self == .authorized
+    }
 
     public var displayName: String {
         switch self {
@@ -42,7 +44,9 @@ public enum ConferenceLinkExtractor {
     /// 여러 후보 문자열에서 첫 회의 링크를 찾는다.
     public static func extract(from candidates: [String?]) -> URL? {
         for candidate in candidates.compactMap(\.self) {
-            if let url = extract(from: candidate) { return url }
+            if let url = extract(from: candidate) {
+                return url
+            }
         }
         return nil
     }
@@ -54,7 +58,9 @@ public enum ConferenceLinkExtractor {
             guard let raw = match.substring(at: 0, in: text) else { continue }
             let trimmed = raw.trimmingCharacters(in: CharacterSet(charactersIn: ".,)]>"))
             guard let url = URL(string: trimmed), let host = url.host?.lowercased() else { continue }
-            if hosts.contains(where: { host.contains($0) }) { return url }
+            if hosts.contains(where: { host.contains($0) }) {
+                return url
+            }
         }
         return nil
     }

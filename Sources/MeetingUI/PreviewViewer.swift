@@ -47,7 +47,9 @@ public final class PreviewViewerModel {
 
     public func refreshFindings() {
         let updated = revalidate(bundle)
-        if !updated.isEmpty || !findings.isEmpty { findings = updated }
+        if !updated.isEmpty || !findings.isEmpty {
+            findings = updated
+        }
     }
 
     public func publish() {
@@ -91,7 +93,10 @@ public struct PreviewViewerView: View {
 
     enum Tab: String, CaseIterable, Identifiable {
         case note, issues, evidence
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
+
         var title: String {
             switch self {
             case .note: "회의록"
@@ -404,7 +409,6 @@ public struct PreviewViewerView: View {
         .padding()
     }
 
-    @ViewBuilder
     private func labeled(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.headline)

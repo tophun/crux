@@ -91,8 +91,19 @@ public struct EvidenceBundle: Hashable, Sendable, Codable {
 
 /// 내부 contentId 생성 규칙. 게시물에는 포함되지 않는다.
 public enum ContentId {
-    public static func decision(_ index: Int) -> String { "D\(index + 1)" }
-    public static func actionItem(_ index: Int) -> String { "A\(index + 1)" }
-    public static func risk(_ index: Int) -> String { "R\(index + 1)" }
-    public static func openQuestion(_ index: Int) -> String { "Q\(index + 1)" }
+    public static func decision(_ index: Int) -> String {
+        "D\(index + 1)"
+    }
+
+    public static func actionItem(_ index: Int) -> String {
+        "A\(index + 1)"
+    }
+
+    public static func risk(_ index: Int) -> String {
+        "R\(index + 1)"
+    }
+
+    public static func openQuestion(_ index: Int) -> String {
+        "Q\(index + 1)"
+    }
 }
