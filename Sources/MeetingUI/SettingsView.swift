@@ -37,7 +37,9 @@ public struct SettingsView: View {
         case audio
         case privacy
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var title: String {
             switch self {
@@ -199,49 +201,47 @@ private struct NotePane: View {
     @State private var languageModel = ModelPreferenceStore.languageModel
 
     var body: some View {
-        Group {
-            Section {
-                TextEditor(text: $documentPrompt)
-                    .font(.body)
-                    .scrollContentBackground(.hidden)
-                    .frame(minHeight: 110)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 4)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(Color(nsColor: .separatorColor))
-                    )
-                    .onChange(of: documentPrompt) { _, newValue in
-                        DocumentPromptStore.prompt = newValue
-                    }
-            } header: {
-                Text("문서 구성 프롬프트")
-            } footer: {
-                Text("비워 두면 기본 구성(날짜·참여자·요약·논의·Action Item)을 씁니다. 입력하면 검증된 내용만으로 문서를 이 지시대로 다시 구성하며, 없는 사실은 만들지 않습니다. 다음 생성부터 적용됩니다.")
-            }
-            Section {
-                ModelPicker(
-                    title: "음성 인식",
-                    choices: TranscriptionModelCatalog.all,
-                    selection: $transcriptionModel
+        Section {
+            TextEditor(text: $documentPrompt)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 110)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 4)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(Color(nsColor: .separatorColor))
                 )
-                .onChange(of: transcriptionModel) { _, newValue in
-                    ModelPreferenceStore.transcriptionModel = newValue
+                .onChange(of: documentPrompt) { _, newValue in
+                    DocumentPromptStore.prompt = newValue
                 }
-                ModelPicker(
-                    title: "회의록 생성",
-                    choices: LanguageModelCatalog.all,
-                    selection: $languageModel
-                )
-                .onChange(of: languageModel) { _, newValue in
-                    ModelPreferenceStore.languageModel = newValue
-                }
-            } header: {
-                Text("모델")
-            } footer: {
-                Text("바꾼 모델은 다음 처리부터 쓰입니다. 처음 쓰는 모델은 실행 중에 내려받으므로 그만큼 오래 걸립니다. 모델 추론은 모두 이 기기에서 실행되며, 네트워크는 내려받을 때만 씁니다.")
+        } header: {
+            Text("문서 구성 프롬프트")
+        } footer: {
+            Text("비워 두면 기본 구성(날짜·참여자·요약·논의·Action Item)을 씁니다. 입력하면 검증된 내용만으로 문서를 이 지시대로 다시 구성하며, 없는 사실은 만들지 않습니다. 다음 생성부터 적용됩니다.")
+        }
+        Section {
+            ModelPicker(
+                title: "음성 인식",
+                choices: TranscriptionModelCatalog.all,
+                selection: $transcriptionModel
+            )
+            .onChange(of: transcriptionModel) { _, newValue in
+                ModelPreferenceStore.transcriptionModel = newValue
             }
+            ModelPicker(
+                title: "회의록 생성",
+                choices: LanguageModelCatalog.all,
+                selection: $languageModel
+            )
+            .onChange(of: languageModel) { _, newValue in
+                ModelPreferenceStore.languageModel = newValue
+            }
+        } header: {
+            Text("모델")
+        } footer: {
+            Text("바꾼 모델은 다음 처리부터 쓰입니다. 처음 쓰는 모델은 실행 중에 내려받으므로 그만큼 오래 걸립니다. 모델 추론은 모두 이 기기에서 실행되며, 네트워크는 내려받을 때만 씁니다.")
         }
     }
 }
@@ -298,16 +298,14 @@ private struct PrivacyPane: View {
     let modelDirectory: URL
 
     var body: some View {
-        Group {
-            Section("개인정보") {
-                Label("회의 오디오·전사문·회의록은 이 기기에만 저장됩니다", systemImage: "lock.laptopcomputer")
-                Label("전체 녹취록과 음성 파일은 외부로 전송하지 않습니다", systemImage: "network.slash")
-                Label("네트워크는 모델 다운로드에만 사용합니다", systemImage: "arrow.down.circle")
-            }
-            Section("저장 위치") {
-                PathRow(title: "데이터베이스", url: databaseURL)
-                PathRow(title: "모델", url: modelDirectory)
-            }
+        Section("개인정보") {
+            Label("회의 오디오·전사문·회의록은 이 기기에만 저장됩니다", systemImage: "lock.laptopcomputer")
+            Label("전체 녹취록과 음성 파일은 외부로 전송하지 않습니다", systemImage: "network.slash")
+            Label("네트워크는 모델 다운로드에만 사용합니다", systemImage: "arrow.down.circle")
+        }
+        Section("저장 위치") {
+            PathRow(title: "데이터베이스", url: databaseURL)
+            PathRow(title: "모델", url: modelDirectory)
         }
     }
 }
@@ -321,7 +319,9 @@ private struct ModelPicker: View {
     let choices: [ModelChoice]
     @Binding var selection: String
 
-    private var current: ModelChoice? { choices.first { $0.id == selection } }
+    private var current: ModelChoice? {
+        choices.first { $0.id == selection }
+    }
 
     var body: some View {
         Picker(selection: $selection) {

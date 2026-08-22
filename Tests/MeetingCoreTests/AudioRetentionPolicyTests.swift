@@ -1,7 +1,6 @@
 import Foundation
-import Testing
-
 @testable import MeetingCore
+import Testing
 
 @Suite("오디오 보관 정책")
 struct AudioRetentionPolicyTests {

@@ -228,5 +228,7 @@ public struct PublishBundle: Hashable, Sendable, Codable {
         self.projectKey = projectKey
     }
 
-    public var includedIssues: [JiraIssueDraft] { issues.filter(\.include) }
+    public var includedIssues: [JiraIssueDraft] {
+        issues.filter(\.include)
+    }
 }

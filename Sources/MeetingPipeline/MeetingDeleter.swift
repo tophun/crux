@@ -59,13 +59,17 @@ public struct MeetingDeleter: Sendable {
             let evidenceURL = evidenceStore.url(for: meeting)
             if fileManager.fileExists(atPath: evidenceURL.path) {
                 freed += Self.size(of: evidenceURL, fileManager: fileManager)
-                if trash(evidenceURL) { trashed += 1 }
+                if trash(evidenceURL) {
+                    trashed += 1
+                }
             }
 
             // 3. 회의 디렉터리 전체 (raw/, mixed/, exports/)
             if fileManager.fileExists(atPath: storageRoot.path) {
                 freed += Self.size(of: storageRoot, fileManager: fileManager)
-                if trash(storageRoot) { trashed += 1 }
+                if trash(storageRoot) {
+                    trashed += 1
+                }
             }
         }
 
@@ -94,7 +98,9 @@ public struct MeetingDeleter: Sendable {
     static func isInside(_ url: URL, root: URL) -> Bool {
         let target = url.standardizedFileURL.path
         var rootPath = root.standardizedFileURL.path
-        if !rootPath.hasSuffix("/") { rootPath += "/" }
+        if !rootPath.hasSuffix("/") {
+            rootPath += "/"
+        }
         return target.hasPrefix(rootPath)
     }
 

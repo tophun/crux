@@ -1,7 +1,6 @@
 import Foundation
-import Testing
-
 @testable import MeetingCore
+import Testing
 
 @Suite("회의 감지 제외 사유")
 struct DetectionExclusionTests {

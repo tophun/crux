@@ -22,7 +22,9 @@ public final class AudioPlaybackController {
 
     public init() {}
 
-    public var isLoaded: Bool { player != nil }
+    public var isLoaded: Bool {
+        player != nil
+    }
 
     /// 회의의 트랙 목록을 받아 재생 준비를 한다. 파일이 없으면 이유를 남긴다.
     public func prepare(tracks: [AudioTrack]) {

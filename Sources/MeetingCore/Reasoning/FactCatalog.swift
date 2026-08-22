@@ -11,7 +11,9 @@ public struct FactCatalog: Sendable {
         }
     }
 
-    public func facts(_ kind: MeetingFact.Kind) -> [MeetingFact] { ordered[kind] ?? [] }
+    public func facts(_ kind: MeetingFact.Kind) -> [MeetingFact] {
+        ordered[kind] ?? []
+    }
 
     /// 1부터 시작하는 번호로 후보를 찾는다.
     public func fact(_ kind: MeetingFact.Kind, number: Int) -> MeetingFact? {
@@ -34,11 +36,21 @@ public struct FactCatalog: Sendable {
         guard !list.isEmpty else { return "없음" }
         return list.enumerated().map { index, fact in
             var line = "\(index + 1). \(fact.content)"
-            if let decisionKind = fact.decisionKind { line += " [상태: \(decisionKind.rawValue)]" }
-            if let assignee = fact.assignee { line += " [담당: \(assignee)]" }
-            if let dueDate = fact.dueDate { line += " [마감: \(dueDate)]" }
-            if let note = fact.dueDateNote { line += " [일정 표현: \(note)]" }
-            if let severity = fact.severity, severity != .unknown { line += " [심각도: \(severity.rawValue)]" }
+            if let decisionKind = fact.decisionKind {
+                line += " [상태: \(decisionKind.rawValue)]"
+            }
+            if let assignee = fact.assignee {
+                line += " [담당: \(assignee)]"
+            }
+            if let dueDate = fact.dueDate {
+                line += " [마감: \(dueDate)]"
+            }
+            if let note = fact.dueDateNote {
+                line += " [일정 표현: \(note)]"
+            }
+            if let severity = fact.severity, severity != .unknown {
+                line += " [심각도: \(severity.rawValue)]"
+            }
             if !fact.evidence.isEmpty {
                 let stamps = fact.evidence.map { TimeFormat.stamp($0.startTime) }
                 line += " [근거 시각: \(stamps.joined(separator: ", "))]"

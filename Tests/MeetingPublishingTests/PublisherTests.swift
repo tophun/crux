@@ -18,11 +18,11 @@ struct AtlassianCredentialsTests {
     }
 
     @Test("Basic 인증 헤더를 만든다")
-    func buildsBasicHeader() {
+    func buildsBasicHeader() throws {
         let credentials = AtlassianCredentials(site: "team.atlassian.net", email: "a@b.c", apiToken: "t")
         #expect(credentials.authorizationHeader.hasPrefix("Basic "))
         let encoded = credentials.authorizationHeader.replacingOccurrences(of: "Basic ", with: "")
-        let decoded = String(decoding: Data(base64Encoded: encoded)!, as: UTF8.self)
+        let decoded = try String(decoding: #require(Data(base64Encoded: encoded)), as: UTF8.self)
         #expect(decoded == "a@b.c:t")
     }
 

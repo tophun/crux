@@ -126,7 +126,9 @@ public enum LiveCapsuleState: Equatable, Sendable {
         }
     }
 
-    public var isVisible: Bool { self != .hidden }
+    public var isVisible: Bool {
+        self != .hidden
+    }
 
     /// 클릭하면 상세 패널로 확장할 수 있는 상태인지
     public var isExpandable: Bool {
@@ -138,7 +140,9 @@ public enum LiveCapsuleState: Equatable, Sendable {
 
     /// 녹음 중임을 명확히 알려야 하는 상태 (§11 개인정보 UX)
     public var showsRecordingIndicator: Bool {
-        if case .recording = self { return true }
+        if case .recording = self {
+            return true
+        }
         return false
     }
 
@@ -236,7 +240,9 @@ public struct LiveCapsuleMachine: Sendable {
             state = .failed(message: message)
 
         case .dismissed:
-            if let id = activeEvent?.id { dismissedEventIds.insert(id) }
+            if let id = activeEvent?.id {
+                dismissedEventIds.insert(id)
+            }
             activeEvent = nil
             state = .hidden
 

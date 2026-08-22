@@ -43,7 +43,9 @@ public enum PublishRedaction {
                 guard quote.count >= 12 else { continue }
                 // 회의록 항목 본문 자체가 원문 문장과 같은 경우가 있다(모델이 발언을 그대로 옮긴 경우).
                 // 사용자가 검토·승인한 항목 본문에 이미 포함된 문장은 "전사문 유출"이 아니다.
-                if normalizedContent.contains(normalize(quote)) { continue }
+                if normalizedContent.contains(normalize(quote)) {
+                    continue
+                }
                 if text.contains(quote) {
                     violations.append(Violation(kind: .evidenceQuote, detail: String(quote.prefix(30))))
                 }

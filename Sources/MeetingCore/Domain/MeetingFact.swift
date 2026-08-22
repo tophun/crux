@@ -78,7 +78,9 @@ public enum RelevanceLabel: String, Codable, Sendable, CaseIterable {
     case uncertain = "UNCERTAIN"
 
     /// 회의록 생성 입력에 포함되는지 여부. EXCLUDE만 빠진다.
-    public var isIncludedInNote: Bool { self != .exclude }
+    public var isIncludedInNote: Bool {
+        self != .exclude
+    }
 }
 
 /// 세그먼트 단위 사담 판정 결과.

@@ -221,7 +221,9 @@ public final class OnboardingWindowController {
 
     public init() {}
 
-    public var isVisible: Bool { window?.isVisible == true }
+    public var isVisible: Bool {
+        window?.isVisible == true
+    }
 
     public func show(coordinator: MeetingSessionCoordinator, onFinish: @escaping () -> Void) {
         if let window {

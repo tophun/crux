@@ -96,10 +96,18 @@ public struct MeetingDetectionPolicy: Sendable {
 
     /// 이 일정을 뺀다면 그 이유. 대상이면 nil.
     public func exclusionReason(for event: CalendarEvent) -> ExclusionReason? {
-        if configuration.excludeAllDay, event.isAllDay { return .allDay }
-        if configuration.excludeCanceled, event.status == .canceled { return .canceled }
-        if event.attendees.count < configuration.minimumAttendees { return .tooFewAttendees }
-        if event.duration <= 0 { return .zeroDuration }
+        if configuration.excludeAllDay, event.isAllDay {
+            return .allDay
+        }
+        if configuration.excludeCanceled, event.status == .canceled {
+            return .canceled
+        }
+        if event.attendees.count < configuration.minimumAttendees {
+            return .tooFewAttendees
+        }
+        if event.duration <= 0 {
+            return .zeroDuration
+        }
         return nil
     }
 

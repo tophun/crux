@@ -15,15 +15,29 @@ permissions:
 jobs:
   # ── 린트: 스타일·컨벤션 위반 차단 ─────────────────────────────────────────
   # 규칙은 저장소의 .swiftlint.yml / .swiftformat / Tests/.swiftlint.yml 에서 관리한다.
-  # Swift 6.2 문법 파싱을 위해 macOS 러너 + brew 설치본을 사용한다.
+  # 로컬과 동일한 린터 버전을 보장하기 위해 brew 대신 릴리스 바이너리를 고정 설치한다.
   lint:
     name: Lint (SwiftLint · SwiftFormat)
     runs-on: macos-26
+    env:
+      SWIFTLINT_VERSION: 0.65.1
+      SWIFTFORMAT_VERSION: 0.62.1
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install linters
-        run: brew install swiftlint swiftformat
+      - name: Install SwiftFormat (pinned)
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/swiftformat.zip" \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
+          unzip -qo "$RUNNER_TEMP/swiftformat.zip" -d /usr/local/bin
+
+      - name: Install SwiftLint (pinned)
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/swiftlint.zip" \
+            "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/SwiftLintBinary.artifactbundle.zip"
+          unzip -qo "$RUNNER_TEMP/swiftlint.zip" -d "$RUNNER_TEMP/swiftlint-dist"
+          cp "$RUNNER_TEMP/swiftlint-dist/SwiftLintBinary.artifactbundle/macos/swiftlint" /usr/local/bin/
+          chmod +x /usr/local/bin/swiftlint
 
       - name: SwiftFormat (포맷 검사)
         run: swiftformat --lint .

@@ -64,7 +64,9 @@ public struct FactDeduplicator: Sendable {
         for fact in ordered {
             for item in fact.evidence {
                 let key = item.segmentId + "|" + item.quote
-                if seen.insert(key).inserted { evidence.append(item) }
+                if seen.insert(key).inserted {
+                    evidence.append(item)
+                }
             }
         }
         result.evidence = evidence.sorted { $0.startTime < $1.startTime }
@@ -107,7 +109,9 @@ public struct FactDeduplicator: Sendable {
     static func chronological(_ lhs: MeetingFact, _ rhs: MeetingFact) -> Bool {
         let left = lhs.evidence.map(\.startTime).min() ?? TimeInterval(lhs.windowIndex) * 1000
         let right = rhs.evidence.map(\.startTime).min() ?? TimeInterval(rhs.windowIndex) * 1000
-        if left == right { return lhs.windowIndex < rhs.windowIndex }
+        if left == right {
+            return lhs.windowIndex < rhs.windowIndex
+        }
         return left < right
     }
 }

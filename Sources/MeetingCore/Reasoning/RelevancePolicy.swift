@@ -88,10 +88,18 @@ public struct RelevancePolicy: Sendable {
         let isFiller = Self.fillerOnly.contains(normalized) || (normalized.count <= 3 && matchedStrong.isEmpty)
 
         var reasons: [String] = []
-        if !matchedStrong.isEmpty { reasons.append("업무 신호: \(matchedStrong.prefix(3).joined(separator: ","))") }
-        if !matchedWeak.isEmpty { reasons.append("시간·수량 표현: \(matchedWeak.prefix(2).joined(separator: ","))") }
-        if !matchedChatter.isEmpty { reasons.append("사담 신호: \(matchedChatter.prefix(3).joined(separator: ","))") }
-        if hasNumber { reasons.append("수치 포함") }
+        if !matchedStrong.isEmpty {
+            reasons.append("업무 신호: \(matchedStrong.prefix(3).joined(separator: ","))")
+        }
+        if !matchedWeak.isEmpty {
+            reasons.append("시간·수량 표현: \(matchedWeak.prefix(2).joined(separator: ","))")
+        }
+        if !matchedChatter.isEmpty {
+            reasons.append("사담 신호: \(matchedChatter.prefix(3).joined(separator: ","))")
+        }
+        if hasNumber {
+            reasons.append("수치 포함")
+        }
 
         let hasStrong = !matchedStrong.isEmpty
         let hasChatter = !matchedChatter.isEmpty

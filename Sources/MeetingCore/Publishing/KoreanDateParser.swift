@@ -95,7 +95,9 @@ public enum KoreanDateParser {
         let referenceYear = calendar.component(.year, from: reference)
         guard let candidate = date(year: referenceYear, month: month, day: day, reference: reference, calendar: calendar)
         else { return nil }
-        if candidate >= calendar.startOfDay(for: reference) { return candidate }
+        if candidate >= calendar.startOfDay(for: reference) {
+            return candidate
+        }
         return date(year: referenceYear + 1, month: month, day: day, reference: reference, calendar: calendar)
     }
 }

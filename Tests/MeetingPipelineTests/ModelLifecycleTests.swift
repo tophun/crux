@@ -32,7 +32,7 @@ struct ModelLifecycleTests {
         let unloadIndex = snapshot.events.firstIndex(of: "transcription.unload")
         let loadIndex = snapshot.events.firstIndex(of: "language.load")
         #expect(unloadIndex != nil && loadIndex != nil)
-        #expect(unloadIndex! < loadIndex!)
+        #expect(try #require(unloadIndex) < loadIndex!)
     }
 
     @Test("같은 모델을 반복 사용하면 다시 로드하지 않는다")

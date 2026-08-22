@@ -86,8 +86,12 @@ public struct KoreanMeetingEditor: Sendable {
         let spans = fields.flatMap { polisher.detect(in: $0.value) }
         let s1Count = spans.count(where: { $0.severity == .s1 })
 
-        if totalCharacters < 120 || spans.isEmpty { return .conservative }
-        if s1Count >= 3 || spans.count >= 8 { return .strict }
+        if totalCharacters < 120 || spans.isEmpty {
+            return .conservative
+        }
+        if s1Count >= 3 || spans.count >= 8 {
+            return .strict
+        }
         return .standard
     }
 

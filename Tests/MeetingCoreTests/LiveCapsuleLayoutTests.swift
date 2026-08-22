@@ -1,7 +1,6 @@
 import Foundation
-import Testing
-
 @testable import MeetingCore
+import Testing
 
 @Suite("캡슐 좌우 배치")
 struct LiveCapsuleLayoutTests {

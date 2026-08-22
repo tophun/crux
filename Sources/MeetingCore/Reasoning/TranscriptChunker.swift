@@ -14,9 +14,17 @@ public struct TranscriptWindow: Hashable, Sendable {
         self.contextSegments = contextSegments
     }
 
-    public var startTime: TimeInterval { segments.first?.startTime ?? 0 }
-    public var endTime: TimeInterval { segments.last?.endTime ?? 0 }
-    public var duration: TimeInterval { max(0, endTime - startTime) }
+    public var startTime: TimeInterval {
+        segments.first?.startTime ?? 0
+    }
+
+    public var endTime: TimeInterval {
+        segments.last?.endTime ?? 0
+    }
+
+    public var duration: TimeInterval {
+        max(0, endTime - startTime)
+    }
 
     public func segment(forShortId shortId: String) -> TranscriptSegment? {
         let normalized = shortId.trimmingCharacters(in: .whitespaces).uppercased()

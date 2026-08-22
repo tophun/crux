@@ -27,7 +27,9 @@ public final class EventKitCalendarProvider: CalendarProvider, @unchecked Sendab
     }
 
     public func requestAccess() async throws -> Bool {
-        if authorizationStatus() == .authorized { return true }
+        if authorizationStatus() == .authorized {
+            return true
+        }
         return try await store.requestFullAccessToEvents()
     }
 

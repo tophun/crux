@@ -123,7 +123,9 @@ public enum JSONExtractor {
         ]
         for (from, to) in smartQuotes where result.contains(from) {
             result = result.replacingOccurrences(of: from, with: to)
-            if !fixes.contains("smart-quotes") { fixes.append("smart-quotes") }
+            if !fixes.contains("smart-quotes") {
+                fixes.append("smart-quotes")
+            }
         }
 
         if let stripped = removeLineComments(result), stripped != result {
@@ -229,7 +231,9 @@ public enum JSONExtractor {
             }
             output.append(character)
         }
-        if pendingComma { output.append(",") }
+        if pendingComma {
+            output.append(",")
+        }
         return output
     }
 
@@ -240,14 +244,22 @@ public enum JSONExtractor {
         var escaped = false
 
         for character in text {
-            if escaped { escaped = false; continue }
-            if character == "\\" && inString { escaped = true; continue }
-            if character == "\"" { inString.toggle(); continue }
+            if escaped {
+                escaped = false; continue
+            }
+            if character == "\\" && inString {
+                escaped = true; continue
+            }
+            if character == "\"" {
+                inString.toggle(); continue
+            }
             guard !inString else { continue }
             if character == "{" || character == "[" {
                 stack.append(character)
             } else if character == "}" || character == "]" {
-                if !stack.isEmpty { stack.removeLast() }
+                if !stack.isEmpty {
+                    stack.removeLast()
+                }
             }
         }
 

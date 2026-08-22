@@ -20,7 +20,9 @@ public enum DecisionDisplay {
     public static func stripped(_ text: String) -> String {
         for kind in DecisionKind.allCases {
             let marker = "[\(kind.displayName)] "
-            if text.hasPrefix(marker) { return String(text.dropFirst(marker.count)) }
+            if text.hasPrefix(marker) {
+                return String(text.dropFirst(marker.count))
+            }
         }
         return text
     }
@@ -120,10 +122,17 @@ public struct ActionItem: Identifiable, Hashable, Sendable, Codable {
         self.reviewed = reviewed
     }
 
-    public var assigneeDisplay: String { assignee ?? UnresolvedMarker.undetermined }
+    public var assigneeDisplay: String {
+        assignee ?? UnresolvedMarker.undetermined
+    }
+
     public var dueDateDisplay: String {
-        if let dueDate { return dueDate }
-        if let dueDateNote { return "\(dueDateNote) (\(UnresolvedMarker.needsConfirmation))" }
+        if let dueDate {
+            return dueDate
+        }
+        if let dueDateNote {
+            return "\(dueDateNote) (\(UnresolvedMarker.needsConfirmation))"
+        }
         return UnresolvedMarker.undetermined
     }
 }

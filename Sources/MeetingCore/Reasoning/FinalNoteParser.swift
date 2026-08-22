@@ -32,8 +32,12 @@ public struct FinalNoteParser: Sendable {
             else { continue }
             let kindText = item["kind", "status", "상태"].stringValue?.lowercased() ?? ""
             var decisionKind = source.decisionKind ?? .proposed
-            if kindText.contains("decid") || kindText.contains("결정") { decisionKind = .decided }
-            if kindText.contains("propos") || kindText.contains("제안") { decisionKind = .proposed }
+            if kindText.contains("decid") || kindText.contains("결정") {
+                decisionKind = .decided
+            }
+            if kindText.contains("propos") || kindText.contains("제안") {
+                decisionKind = .proposed
+            }
             // 근거가 없으면 결정으로 확정하지 않는다.
             let evidence = source.evidence
             if evidence.isEmpty, decisionKind == .decided {
@@ -70,11 +74,19 @@ public struct FinalNoteParser: Sendable {
             }
             let statusText = item["status", "상태"].stringValue?.lowercased() ?? ""
             var status: ActionItemStatus = .proposed
-            if statusText.contains("confirm") || statusText.contains("확정") { status = .confirmed }
-            if statusText.contains("progress") || statusText.contains("진행") { status = .inProgress }
-            if statusText.contains("done") || statusText.contains("완료") { status = .done }
+            if statusText.contains("confirm") || statusText.contains("확정") {
+                status = .confirmed
+            }
+            if statusText.contains("progress") || statusText.contains("진행") {
+                status = .inProgress
+            }
+            if statusText.contains("done") || statusText.contains("완료") {
+                status = .done
+            }
             let evidence = source.evidence
-            if evidence.isEmpty { status = .proposed }
+            if evidence.isEmpty {
+                status = .proposed
+            }
 
             note.actionItems.append(
                 ActionItem(

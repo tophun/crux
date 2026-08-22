@@ -14,7 +14,7 @@ import MeetingCore
 /// 원본 오디오는 데이터베이스에 넣지 않고 이 디렉터리에만 둔다.
 public struct MeetingStorage: Sendable {
     public let root: URL
-    // FileManager는 Sendable이 아니지만 파일 조작에 스레드 안전하게 쓰인다.
+    /// FileManager는 Sendable이 아니지만 파일 조작에 스레드 안전하게 쓰인다.
     private nonisolated(unsafe) let fileManager: FileManager
 
     public init(root: URL, fileManager: FileManager = .default) {
@@ -31,9 +31,17 @@ public struct MeetingStorage: Sendable {
         )
     }
 
-    public var rawDirectory: URL { root.appendingPathComponent("raw", isDirectory: true) }
-    public var mixedDirectory: URL { root.appendingPathComponent("mixed", isDirectory: true) }
-    public var exportsDirectory: URL { root.appendingPathComponent("exports", isDirectory: true) }
+    public var rawDirectory: URL {
+        root.appendingPathComponent("raw", isDirectory: true)
+    }
+
+    public var mixedDirectory: URL {
+        root.appendingPathComponent("mixed", isDirectory: true)
+    }
+
+    public var exportsDirectory: URL {
+        root.appendingPathComponent("exports", isDirectory: true)
+    }
 
     public func url(for kind: AudioTrackKind, extension pathExtension: String) -> URL {
         switch kind {

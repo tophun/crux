@@ -27,7 +27,9 @@ public actor ModelLifecycleCoordinator {
         self.log = log
     }
 
-    public var residentModel: Resident { resident }
+    public var residentModel: Resident {
+        resident
+    }
 
     public func withTranscription<T: Sendable>(
         _ body: sending (any TranscriptionEngine) async throws -> T

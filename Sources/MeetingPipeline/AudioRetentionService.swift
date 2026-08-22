@@ -21,7 +21,9 @@ public struct AudioRetentionService: Sendable {
 
         public static let none = Outcome(trashedFileCount: 0, freedBytes: 0, meetingCount: 0, keptExternalFiles: [])
 
-        public var isEmpty: Bool { trashedFileCount == 0 && keptExternalFiles.isEmpty }
+        public var isEmpty: Bool {
+            trashedFileCount == 0 && keptExternalFiles.isEmpty
+        }
     }
 
     private let repository: MeetingRepository
@@ -68,7 +70,9 @@ public struct AudioRetentionService: Sendable {
             total.trashedFileCount += outcome.trashedFileCount
             total.freedBytes += outcome.freedBytes
             total.keptExternalFiles += outcome.keptExternalFiles
-            if !outcome.isEmpty { total.meetingCount += 1 }
+            if !outcome.isEmpty {
+                total.meetingCount += 1
+            }
         }
         if total.trashedFileCount > 0 {
             logSink?("오디오 정리: 회의 \(total.meetingCount)건, \(ByteFormat.short(total.freedBytes)) 회수")
@@ -101,7 +105,9 @@ public struct AudioRetentionService: Sendable {
                 continue
             }
             freed += MeetingDeleter.size(of: url, fileManager: fileManager)
-            if trash(url) { trashed += 1 }
+            if trash(url) {
+                trashed += 1
+            }
             removedIds.append(track.id)
         }
 
@@ -141,7 +147,7 @@ public struct AudioRetentionService: Sendable {
             return .empty
         }
         var usage = DiskUsage.empty
-        let audioExtensions: Set<String> = ["m4a", "caf", "aiff", "wav", "mp3", "aac"]
+        let audioExtensions: Set = ["m4a", "caf", "aiff", "wav", "mp3", "aac"]
         while let url = enumerator.nextObject() as? URL {
             guard audioExtensions.contains(url.pathExtension.lowercased()) else { continue }
             let bytes = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)

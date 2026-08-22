@@ -36,10 +36,14 @@ public struct TranscriptSegment: Identifiable, Hashable, Sendable, Codable {
         self.sourceTrack = sourceTrack
     }
 
-    public var duration: TimeInterval { max(0, endTime - startTime) }
+    public var duration: TimeInterval {
+        max(0, endTime - startTime)
+    }
 
     /// 프롬프트와 LLM 응답에서 사용하는 짧은 식별자. UUID는 토큰 낭비와 오탈자 위험이 커서 쓰지 않는다.
-    public var shortId: String { "S\(index)" }
+    public var shortId: String {
+        "S\(index)"
+    }
 }
 
 /// 결정사항·액션아이템이 원문에 실제로 존재함을 보이는 근거.

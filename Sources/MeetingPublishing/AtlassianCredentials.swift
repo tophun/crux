@@ -16,7 +16,9 @@ public struct AtlassianCredentials: Sendable {
         self.apiToken = apiToken.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    public var baseURL: URL? { URL(string: "https://\(site)") }
+    public var baseURL: URL? {
+        URL(string: "https://\(site)")
+    }
 
     /// Basic 인증 헤더 값. 이 값을 로그에 남기지 않는다.
     var authorizationHeader: String {
@@ -71,7 +73,9 @@ public struct KeychainCredentialStore: AtlassianCredentialStore {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return nil }
+        if status == errSecItemNotFound {
+            return nil
+        }
         guard status == errSecSuccess,
               let dictionary = item as? [String: Any],
               let data = dictionary[kSecValueData as String] as? Data,
@@ -143,7 +147,9 @@ public struct ChainedCredentialStore: AtlassianCredentialStore {
 
     public func load() throws -> AtlassianCredentials? {
         for store in stores {
-            if let credentials = try? store.load(), credentials != nil { return credentials }
+            if let credentials = try? store.load(), credentials != nil {
+                return credentials
+            }
         }
         return nil
     }

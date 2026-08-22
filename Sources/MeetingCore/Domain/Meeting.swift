@@ -58,7 +58,9 @@ public enum MeetingStatus: String, Codable, Sendable, CaseIterable {
     /// 처리 실패 — 원본과 중간 산출물은 보존되며 재처리 가능
     case failed
 
-    public var isTerminal: Bool { self == .completed || self == .failed }
+    public var isTerminal: Bool {
+        self == .completed || self == .failed
+    }
 
     public var displayName: String {
         switch self {

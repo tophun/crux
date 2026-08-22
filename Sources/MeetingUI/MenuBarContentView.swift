@@ -22,14 +22,12 @@ public struct MenuBarContentView: View {
     }
 
     public var body: some View {
-        Group {
-            Text(statusLine)
-            Divider()
-            recordingControls
-            Divider()
-            Button("\(AppIdentity.productName) 열기", action: openWindow)
-            SettingsLink { Text("설정…") }
-        }
+        Text(statusLine)
+        Divider()
+        recordingControls
+        Divider()
+        Button("\(AppIdentity.productName) 열기", action: openWindow)
+        SettingsLink { Text("설정…") }
     }
 
     /// 녹음 중이면 종료, 아니면 시작. 두 가지만 둔다.
@@ -56,7 +54,9 @@ public struct MenuBarContentView: View {
             let trailing = coordinator.capsule.trailingText.map { " · \($0)" } ?? ""
             return coordinator.capsule.statusText + trailing
         }
-        if state.isProcessing { return "처리 중…" }
+        if state.isProcessing {
+            return "처리 중…"
+        }
         return "대기 중 · 회의 \(state.summaries.count)건"
     }
 }

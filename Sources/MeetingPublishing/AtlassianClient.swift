@@ -33,8 +33,12 @@ public actor AtlassianClient {
         guard let results = response["results"] as? [[String: Any]], let first = results.first else {
             throw PublishError.spaceNotFound(key)
         }
-        if let id = first["id"] as? String { return id }
-        if let id = first["id"] as? Int { return String(id) }
+        if let id = first["id"] as? String {
+            return id
+        }
+        if let id = first["id"] as? Int {
+            return String(id)
+        }
         throw PublishError.invalidResponse("spaceId 없음")
     }
 
@@ -58,7 +62,9 @@ public actor AtlassianClient {
             "title": title,
             "body": ["representation": "storage", "value": storageBody]
         ]
-        if let parentId { payload["parentId"] = parentId }
+        if let parentId {
+            payload["parentId"] = parentId
+        }
 
         let response = try await send(method: "POST", path: "/wiki/api/v2/pages", body: payload)
         return try parsePage(response, fallbackTitle: title)
@@ -130,9 +136,15 @@ public actor AtlassianClient {
             "issuetype": ["name": issueTypeName],
             "description": descriptionADF
         ]
-        if let accountId { fields["assignee"] = ["accountId": accountId] }
-        if let dueDate { fields["duedate"] = dueDate }
-        if let priorityName { fields["priority"] = ["name": priorityName] }
+        if let accountId {
+            fields["assignee"] = ["accountId": accountId]
+        }
+        if let dueDate {
+            fields["duedate"] = dueDate
+        }
+        if let priorityName {
+            fields["priority"] = ["name": priorityName]
+        }
 
         let response = try await send(method: "POST", path: "/rest/api/3/issue", body: ["fields": fields])
         guard let id = response["id"] as? String, let key = response["key"] as? String else {
@@ -190,7 +202,9 @@ public actor AtlassianClient {
         else {
             throw PublishError.missingCredentials("사이트 주소가 올바르지 않습니다: \(credentials.site)")
         }
-        if let query, !query.isEmpty { components.queryItems = query }
+        if let query, !query.isEmpty {
+            components.queryItems = query
+        }
         guard let url = components.url else {
             throw PublishError.missingCredentials("요청 주소를 만들 수 없습니다.")
         }
@@ -227,11 +241,15 @@ public actor AtlassianClient {
         body: [String: Any]? = nil
     ) async throws -> [String: Any] {
         let data = try await perform(request(method: method, path: path, query: query, body: body))
-        if data.isEmpty { return [:] }
+        if data.isEmpty {
+            return [:]
+        }
         guard let object = try? JSONSerialization.jsonObject(with: data) else {
             throw PublishError.invalidResponse(String(decoding: data.prefix(200), as: UTF8.self))
         }
-        if let dictionary = object as? [String: Any] { return dictionary }
+        if let dictionary = object as? [String: Any] {
+            return dictionary
+        }
         return ["value": object]
     }
 

@@ -92,7 +92,9 @@ public actor MeetingAudioCapture: AudioCaptureService {
     public func pause() async throws {
         guard captureState == .recording else { throw CaptureError.invalidState(String(describing: captureState)) }
         try await microphone.pause()
-        if systemAudioActive { systemAudio.pause() }
+        if systemAudioActive {
+            systemAudio.pause()
+        }
         pausedAt = Date()
         captureState = .paused
     }
@@ -100,8 +102,12 @@ public actor MeetingAudioCapture: AudioCaptureService {
     public func resume() async throws {
         guard captureState == .paused else { throw CaptureError.invalidState(String(describing: captureState)) }
         try await microphone.resume()
-        if systemAudioActive { systemAudio.resume() }
-        if let pausedAt { pausedDuration += Date().timeIntervalSince(pausedAt) }
+        if systemAudioActive {
+            systemAudio.resume()
+        }
+        if let pausedAt {
+            pausedDuration += Date().timeIntervalSince(pausedAt)
+        }
         pausedAt = nil
         captureState = .recording
     }

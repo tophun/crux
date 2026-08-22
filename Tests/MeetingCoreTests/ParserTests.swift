@@ -7,7 +7,9 @@ struct WindowExtractionParserTests {
     let parser = WindowExtractionParser()
     let segments = Fixtures.meetingSegments
 
-    var window: TranscriptWindow { Fixtures.window(segments) }
+    var window: TranscriptWindow {
+        Fixtures.window(segments)
+    }
 
     @Test("결정·액션·리스크·질문과 구간 분류를 추출한다")
     func parsesAllSections() throws {
@@ -38,7 +40,7 @@ struct WindowExtractionParserTests {
         #expect(parsed.facts.count(where: { $0.kind == .openQuestion }) == 1)
         #expect(parsed.facts.count(where: { $0.kind == .topic }) == 1)
 
-        let action = parsed.facts.first { $0.kind == .actionItem }!
+        let action = try #require(parsed.facts.first { $0.kind == .actionItem })
         #expect(action.assignee == "홍길동")
         // 마감일이 모호하면 dueDate는 비우고 표현만 남긴다.
         #expect(action.dueDate == nil)

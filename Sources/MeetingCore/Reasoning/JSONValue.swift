@@ -48,7 +48,9 @@ public enum JSONValue: Sendable, Equatable {
     public subscript(_ keys: String...) -> JSONValue {
         guard case let .object(dictionary) = self else { return .null }
         for key in keys {
-            if let value = dictionary[key] { return value }
+            if let value = dictionary[key] {
+                return value
+            }
             let normalizedKey = JSONValue.normalizeKey(key)
             if let match = dictionary.first(where: { JSONValue.normalizeKey($0.key) == normalizedKey }) {
                 return match.value
@@ -132,14 +134,18 @@ public enum JSONValue: Sendable, Equatable {
     }
 
     public var objectValue: [String: JSONValue]? {
-        if case let .object(dictionary) = self { return dictionary }
+        if case let .object(dictionary) = self {
+            return dictionary
+        }
         return nil
     }
 
     /// 0...1 범위로 정리한 신뢰도. 1보다 큰 값(0~100 스케일)은 100으로 나눈다.
     public var confidenceValue: Double? {
         guard var value = doubleValue else { return nil }
-        if value > 1 { value /= 100 }
+        if value > 1 {
+            value /= 100
+        }
         return min(1, max(0, value))
     }
 }

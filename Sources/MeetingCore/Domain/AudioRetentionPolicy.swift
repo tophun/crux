@@ -74,7 +74,9 @@ public struct AudioRetentionPolicy: Hashable, Sendable, Codable {
     }
 
     public func actionAfterProcessing() -> PostProcessingAction {
-        if retention == .immediate { return .discardAll }
+        if retention == .immediate {
+            return .discardAll
+        }
         return discardRawAfterProcessing ? .discardRaw : .keep
     }
 

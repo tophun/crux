@@ -78,7 +78,7 @@ struct RepositoryTests {
         #expect(loaded?.title == meeting.title)
         #expect(loaded?.status == .recorded)
         #expect(loaded?.storageDirectory.path == harness.directory.path)
-        #expect(Int(loaded!.startedAt.timeIntervalSince1970) == 1_700_000_000)
+        #expect(try Int(#require(loaded?.startedAt.timeIntervalSince1970)) == 1_700_000_000)
     }
 
     @Test("회의록이 근거와 관측값까지 그대로 왕복한다")
@@ -129,13 +129,13 @@ struct RepositoryTests {
         let evidence = Evidence(segmentId: UUID().uuidString, startTime: 8, endTime: 16, quote: "인용")
         try harness.repository.save(note: note(meeting.id, evidence: evidence))
 
-        var item = try harness.repository.note(meetingId: meeting.id)!.actionItems[0]
+        var item = try #require(harness.repository.note(meetingId: meeting.id)?.actionItems[0])
         item.assignee = "김민수"
         item.dueDate = "2026-03-10"
         item.status = .inProgress
         try harness.repository.update(actionItem: item, meetingId: meeting.id)
 
-        let reloaded = try harness.repository.note(meetingId: meeting.id)!.actionItems[0]
+        let reloaded = try #require(harness.repository.note(meetingId: meeting.id)?.actionItems[0])
         #expect(reloaded.assignee == "김민수")
         #expect(reloaded.dueDate == "2026-03-10")
         #expect(reloaded.status == .inProgress)
@@ -179,7 +179,7 @@ struct RepositoryTests {
 
         let all = try harness.repository.summaries()
         #expect(all.count == 2)
-        let target = all.first { $0.meeting.id == first.id }!
+        let target = try #require(all.first { $0.meeting.id == first.id })
         #expect(target.decisionCount == 1)
         #expect(target.actionItemCount == 1)
         #expect(target.riskCount == 1)
