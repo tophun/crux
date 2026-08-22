@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "MeetingPublishing", targets: ["MeetingPublishing"]),
         .library(name: "MeetingCalendar", targets: ["MeetingCalendar"]),
         .library(name: "MeetingUI", targets: ["MeetingUI"]),
+        .executable(name: "meetingctl", targets: ["MeetingCLI"]),
         .executable(name: "MeetingApp", targets: ["MeetingApp"]),
     ],
     dependencies: [
@@ -34,6 +35,7 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-huggingface.git", from: "0.8.1"),
         // SQLite
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
     ],
     targets: [
         // MARK: - 도메인 + 추론 정책 (외부 의존성 없음 → 테스트가 모델 없이 전부 돌아간다)
@@ -111,6 +113,15 @@ let package = Package(
             dependencies: [
                 "MeetingCore", "MeetingUI", "MeetingPipeline", "MeetingPersistence",
                 "MeetingTranscription", "MeetingInference", "MeetingPublishing", "MeetingCalendar",
+            ],
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        .executableTarget(
+            name: "MeetingCLI",
+            dependencies: [
+                "MeetingCore", "MeetingPipeline", "MeetingPersistence",
+                "MeetingTranscription", "MeetingInference", "MeetingPublishing", "MeetingCalendar",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
