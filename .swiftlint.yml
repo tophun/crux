@@ -1,0 +1,77 @@
+# PR Checker용 SwiftLint 설정
+#
+# 전략: 스타일 규칙은 기본값 그대로 엄격 적용(--strict),
+#       코드 구조 메트릭(복잡도·길이)은 현행 코드베이스 최악값 바로 위에 임계치를 두어
+#       "더 나빠지는 것"만 막는 래칫(ratchet)으로 운영한다. 리팩토링 후 임계치를 낮춘다.
+
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - .swiftpm
+  - .xcbuild
+
+opt_in_rules:
+  - explicit_init
+  - redundant_type_annotation
+  - empty_count
+
+disabled_rules:
+  # `String(decoding:as:)`는 무손실(lossy) 디코딩을 위해 의도적으로 사용했다.
+  # failable init으로 바꾸면 잘못된 인코딩 데이터에서 nil 처리 보일러플레이트만 늘어난다.
+  - optional_data_string_conversion
+
+line_length:
+  warning: 160
+  error: 300
+  ignores_comments: true # 한국어 서술형 주석은 길어지는 경향이 있어 검사에서 제외
+
+identifier_name:
+  min_length: 2
+  max_length: 60
+  excluded:
+    - db # GRDB 데이터베이스 핸들
+    - to # 시간 범위 인자
+    - ui
+    - i
+    - j
+    - b
+    - mb
+    - s1
+    - s2
+    - s3
+
+# --- 아래 메트릭은 기술부채 래칫. 새 코드가 현재 최악보다 더 나빠지면 CI 실패 ---
+cyclomatic_complexity:
+  warning: 30 # 현재 최악 29 (FinalNoteParser)
+  error: 40
+
+function_body_length:
+  warning: 185 # 현재 최악 183줄 (LocalInferencePipeline)
+  error: 250
+
+type_body_length:
+  warning: 395 # 현재 최악 390줄 (MeetingSessionCoordinator)
+  error: 460
+
+file_length:
+  warning: 750 # 현재 최악 722줄 (MeetingCTL)
+  error: 1000
+
+large_tuple:
+  warning: 5
+  error: 8
+
+nesting:
+  type_level:
+    warning: 3
+    error: 4
+  function_level:
+    warning: 5
+    error: 6
+
+function_parameter_count:
+  warning: 8
+  error: 10
