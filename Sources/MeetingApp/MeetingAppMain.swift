@@ -258,13 +258,16 @@ struct CruxApp: App {
         NSApp.windows.first?.makeKeyAndOrderFront(nil)
     }
 
-    /// 필수 권한(캘린더·마이크)이 없으면 안내 창을 띄운다.
+    /// 필수 권한(캘린더·마이크)이나 기본 모델이 없으면 안내 창을 띄운다.
+    /// 권한은 승인돼 있어도 모델이 없으면 처리가 실패하므로 함께 본다.
     @MainActor
     private func presentOnboardingIfNeeded() {
         guard !dismissedOnboarding else { return }
         guard OnboardingGate.shouldPresent(
             calendarAuthorized: coordinator.calendarStatus == .authorized,
-            microphoneGranted: coordinator.microphoneStatus == .granted
+            microphoneGranted: coordinator.microphoneStatus == .granted,
+            transcriptionModelInstalled: installs.selectedTranscriptionStatus().isInstalled,
+            languageModelInstalled: installs.selectedLanguageStatus().isInstalled
         ) else { return }
         onboarding.show(coordinator: coordinator, installs: installs) { dismissedOnboarding = true }
     }
