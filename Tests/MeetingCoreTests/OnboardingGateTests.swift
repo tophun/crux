@@ -21,4 +21,32 @@ struct OnboardingGateTests {
         // 시스템 오디오 상태와 무관하게 캘린더·마이크만 본다.
         #expect(!OnboardingGate.shouldPresent(calendarAuthorized: true, microphoneGranted: true))
     }
+
+    @Test("권한이 모두 있어도 기본 모델이 없으면 띄운다")
+    func shownWhenModelMissing() {
+        #expect(
+            OnboardingGate.shouldPresent(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: false,
+                languageModelInstalled: true
+            )
+        )
+        #expect(
+            OnboardingGate.shouldPresent(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: false
+            )
+        )
+        #expect(
+            !OnboardingGate.shouldPresent(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+    }
 }
