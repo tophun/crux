@@ -32,4 +32,30 @@ public enum OnboardingGate {
             + (transcriptionModelInstalled ? 0 : 1)
             + (languageModelInstalled ? 0 : 1)
     }
+
+    /// 안내를 닫고 앱을 쓸 수 있는지. 필수 권한이나 기본 모델이 남아 있으면
+    /// "나중에 하기"로 건너뛰지 않는다. 시스템 오디오는 선택이라 보지 않는다.
+    public static func canDefer(
+        calendarAuthorized: Bool,
+        microphoneGranted: Bool,
+        transcriptionModelInstalled: Bool = true,
+        languageModelInstalled: Bool = true
+    ) -> Bool {
+        remainingRequired(
+            calendarAuthorized: calendarAuthorized,
+            microphoneGranted: microphoneGranted,
+            transcriptionModelInstalled: transcriptionModelInstalled,
+            languageModelInstalled: languageModelInstalled
+        ) == 0
+    }
+
+    /// 녹음·가져오기를 시작할 수 있는지. 캘린더는 감지용이므로 수동 시작에는
+    /// 필요 없고, 마이크와 두 기본 모델이 있어야 처리가 실패하지 않는다.
+    public static func canStartRecording(
+        microphoneGranted: Bool,
+        transcriptionModelInstalled: Bool,
+        languageModelInstalled: Bool
+    ) -> Bool {
+        microphoneGranted && transcriptionModelInstalled && languageModelInstalled
+    }
 }
