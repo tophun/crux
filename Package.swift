@@ -15,8 +15,11 @@ let package = Package(
         .library(name: "MeetingCore", targets: ["MeetingCore"]),
         .library(name: "MeetingPersistence", targets: ["MeetingPersistence"]),
         .library(name: "MeetingAudio", targets: ["MeetingAudio"]),
+        .library(name: "MeetingTranscription", targets: ["MeetingTranscription"]),
     ],
     dependencies: [
+        // 음성 인식 (WhisperKit). 모델 파일 최초 다운로드에만 네트워크를 사용한다.
+        .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", from: "1.1.0"),
         // SQLite
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.0"),
     ],
@@ -39,6 +42,17 @@ let package = Package(
                 .linkedFramework("CoreAudio"),
                 .linkedFramework("ScreenCaptureKit"),
             ]
+        ),
+
+        // MARK: - 무거운 엔진 (프로토콜 뒤에 격리)
+        .target(
+            name: "MeetingTranscription",
+            dependencies: [
+                "MeetingCore",
+                "MeetingAudio",
+                .product(name: "WhisperKit", package: "argmax-oss-swift"),
+            ],
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
 
         // MARK: - 테스트 (무거운 모델 없이 동작)
