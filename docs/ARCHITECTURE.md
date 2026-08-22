@@ -30,7 +30,7 @@ SQLite + Local Files
 | `MeetingTranscription` | WhisperKit | `TranscriptionEngine` 구현 |
 | `MeetingInference` | MLX Swift, swift-transformers | `LocalLanguageModel` 구현 |
 | `MeetingPipeline` | Core/Persistence/Audio/Publishing | 단계 실행, 작업 기록, 모델 수명 관리, 가져오기, 근거 파일, 게시 준비 |
-| `MeetingUI` | Core/Pipeline/Persistence/Publishing/Calendar/Audio | 목록·상세·편집·메뉴바·설정·Live Capsule·Preview Viewer·세션 조정 |
+| `MeetingUI` | Core/Pipeline/Persistence/Publishing/Calendar/Audio | 목록·상세·편집·메뉴바·설정·Crux·Preview Viewer·세션 조정 |
 | `MeetingApp`, `MeetingCLI` | 전부 | 조립 지점 |
 
 **핵심 설계 결정: 무거운 엔진을 프로토콜 뒤로 격리했다.**
@@ -69,7 +69,7 @@ SQLite + Local Files
 ```
 EventKit 일정 + 회의 앱·마이크 사용 감지
   → MeetingDetectionPolicy          종일·취소·참석자 필터, 중복 알림 방지
-  → LiveCapsuleMachine              캡슐 상태 (사용자 확인 대기)
+  → CruxMachine              캡슐 상태 (사용자 확인 대기)
   → MeetingAudioCapture             마이크 + 시스템 오디오, 트랙 분리 저장 + mixed 생성
   → MeetingProcessingPipeline       전사 → 회의록 → 한국어 윤문 → 근거 파일 분리
   → PublishPreparation              PublishBundle + 품질 검증

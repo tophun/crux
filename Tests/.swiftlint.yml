@@ -1,0 +1,4 @@
+# 테스트 코드에서는 JSON 사전 파싱 등을 위한 force cast(`as!`)를 허용한다.
+# (캐스트가 실패하면 어차피 테스트가 실패하므로 안전성 문제가 없다)
+disabled_rules:
+  - force_cast
