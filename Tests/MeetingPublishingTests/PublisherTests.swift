@@ -75,7 +75,7 @@ struct MeetingPublisherGateTests {
         note.actionItems = [
             ActionItem(
                 task: "배포 체크리스트 공유",
-                assignee: "박지훈",
+                assignee: "홍길동",
                 dueDate: "3월 10일",
                 status: .confirmed,
                 evidence: [
@@ -83,7 +83,7 @@ struct MeetingPublisherGateTests {
                         segmentId: UUID().uuidString,
                         startTime: 42,
                         endTime: 47,
-                        quote: "박지훈 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요."
+                        quote: "홍길동 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요."
                     )
                 ],
                 confidence: 0.85

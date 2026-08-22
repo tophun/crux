@@ -74,7 +74,7 @@ struct TranscriptSegmenterTests {
             index: 0,
             startTime: 37,
             endTime: 51,
-            text: "그럼 결제 모듈 배포는 3월 12일 수요일로 확정합니다. 박지훈님이 배포 체크리스트를 작성해서 다음주 월요일까지 공유해주세요. 그리고 QA는 화요일 오전까지 회귀 테스트를 마쳐야 합니다.",
+            text: "그럼 결제 모듈 배포는 3월 12일 수요일로 확정합니다. 홍길동님이 배포 체크리스트를 작성해서 다음주 월요일까지 공유해주세요. 그리고 QA는 화요일 오전까지 회귀 테스트를 마쳐야 합니다.",
             confidence: 0.9
         )
         let result = segmenter.split([long])

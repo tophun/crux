@@ -126,7 +126,7 @@ enum TestScripts {
             ),
             TranscriptSegment(
                 meetingId: meetingId, index: 2, startTime: 16, endTime: 24,
-                text: "박지훈 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요.", confidence: 0.93
+                text: "홍길동 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요.", confidence: 0.93
             ),
         ]
     }
@@ -138,7 +138,7 @@ enum TestScripts {
             {"topics": [{"title": "배포 일정", "summary": "3월 배포"}],
              "decisions": [{"content": "결제 모듈 배포를 3월 12일로 확정", "kind": "decided", "confidence": 0.95,
                "evidence": [{"segment": "S1", "quote": "3월 12일 수요일로 확정합니다"}]}],
-             "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "박지훈", "dueDate": null,
+             "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "홍길동", "dueDate": null,
                "dueDateNote": "다음 주 월요일", "confidence": 0.9,
                "evidence": [{"segment": "S2", "quote": "다음 주 월요일까지 공유해 주세요"}]}],
              "risks": [], "openQuestions": [],
@@ -148,7 +148,7 @@ enum TestScripts {
         }
         if prompt.contains("재검토가 필요한 이유") {
             return """
-            {"verdict": "confirm", "content": "배포 체크리스트 공유", "assignee": "박지훈",
+            {"verdict": "confirm", "content": "배포 체크리스트 공유", "assignee": "홍길동",
              "dueDate": null, "dueDateNote": "다음 주 월요일", "confidence": 0.9,
              "evidence": [{"segment": "S2", "quote": "다음 주 월요일까지 공유해 주세요"}]}
             """
@@ -157,7 +157,7 @@ enum TestScripts {
             return """
             {"title": "결제 모듈 배포 회의", "summary": "배포일을 3월 12일로 확정했다.",
              "decisions": [{"content": "결제 모듈 배포를 3월 12일로 확정", "kind": "decided", "evidenceIndex": 1}],
-             "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "박지훈", "dueDate": null,
+             "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "홍길동", "dueDate": null,
                "status": "confirmed", "evidenceIndex": 1}],
              "openQuestions": [], "risks": [], "topics": [{"title": "배포 일정", "summary": "3월 배포"}]}
             """

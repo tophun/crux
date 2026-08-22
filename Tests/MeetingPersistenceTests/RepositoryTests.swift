@@ -55,7 +55,7 @@ struct RepositoryTests {
         note.actionItems = [
             ActionItem(
                 task: "체크리스트 공유",
-                assignee: "박지훈",
+                assignee: "홍길동",
                 dueDate: nil,
                 dueDateNote: "다음 주 월요일",
                 status: .confirmed,
@@ -101,7 +101,7 @@ struct RepositoryTests {
         #expect(loaded?.decisions[0].evidence.first?.quote == "3월 12일 수요일로 확정합니다")
         #expect(loaded?.decisions[0].evidence.first?.startTime == 8)
         #expect(loaded?.decisions[0].reviewed == true)
-        #expect(loaded?.actionItems[0].assignee == "박지훈")
+        #expect(loaded?.actionItems[0].assignee == "홍길동")
         #expect(loaded?.actionItems[0].dueDate == nil)
         #expect(loaded?.actionItems[0].dueDateNote == "다음 주 월요일")
         #expect(loaded?.risks[0].severity == .high)

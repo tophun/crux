@@ -16,7 +16,7 @@ struct WindowExtractionParserTests {
           "topics": [{"title": "배포 일정", "summary": "3월 배포"}],
           "decisions": [{"content": "배포일을 3월 12일로 확정", "kind": "decided", "confidence": 0.9,
             "evidence": [{"segment": "S2", "quote": "3월 12일 수요일로 확정합니다"}]}],
-          "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "박지훈", "dueDate": null,
+          "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "홍길동", "dueDate": null,
             "dueDateNote": "다음 주 월요일", "confidence": 0.8,
             "evidence": [{"segment": "S3", "quote": "다음 주 월요일까지 공유해 주세요"}]}],
           "risks": [{"content": "서버 용량 한계", "severity": "high", "confidence": 0.7,
@@ -39,7 +39,7 @@ struct WindowExtractionParserTests {
         #expect(parsed.facts.filter { $0.kind == .topic }.count == 1)
 
         let action = parsed.facts.first { $0.kind == .actionItem }!
-        #expect(action.assignee == "박지훈")
+        #expect(action.assignee == "홍길동")
         // 마감일이 모호하면 dueDate는 비우고 표현만 남긴다.
         #expect(action.dueDate == nil)
         #expect(action.dueDateNote == "다음 주 월요일")
@@ -155,7 +155,7 @@ struct FinalNoteParserTests {
             Fixtures.fact(
                 kind: .actionItem,
                 content: "배포 체크리스트 공유",
-                assignee: "박지훈",
+                assignee: "홍길동",
                 dueDateNote: "다음 주 월요일",
                 evidence: [Fixtures.evidence(for: segments[3])],
                 confidence: 0.8
@@ -168,7 +168,7 @@ struct FinalNoteParserTests {
         let raw = """
         {"title": "결제 모듈 배포 회의", "summary": "배포일을 확정했다.",
          "decisions": [{"content": "결제 모듈 배포를 3월 12일로 확정", "kind": "decided", "evidenceIndex": 1}],
-         "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "박지훈", "dueDate": null, "status": "confirmed", "evidenceIndex": 1}]}
+         "actionItems": [{"task": "배포 체크리스트 공유", "assignee": "홍길동", "dueDate": null, "status": "confirmed", "evidenceIndex": 1}]}
         """
         let parsed = try parser.parse(
             raw: raw,
@@ -179,7 +179,7 @@ struct FinalNoteParserTests {
         #expect(parsed.note.decisions.count == 1)
         #expect(parsed.note.decisions[0].kind == .decided)
         #expect(parsed.note.decisions[0].evidence.first?.startTime == segments[2].startTime)
-        #expect(parsed.note.actionItems[0].assignee == "박지훈")
+        #expect(parsed.note.actionItems[0].assignee == "홍길동")
         #expect(parsed.note.actionItems[0].dueDate == nil)
         #expect(parsed.note.actionItems[0].dueDateNote == "다음 주 월요일")
     }
@@ -196,8 +196,8 @@ struct FinalNoteParserTests {
             catalog: catalog(),
             fallbackTitle: "회의"
         )
-        // 후보의 담당자는 박지훈이고 마감일은 없다. 모델이 새로 만든 값은 버린다.
-        #expect(parsed.note.actionItems[0].assignee == "박지훈")
+        // 후보의 담당자는 홍길동이고 마감일은 없다. 모델이 새로 만든 값은 버린다.
+        #expect(parsed.note.actionItems[0].assignee == "홍길동")
         #expect(parsed.note.actionItems[0].dueDate == nil)
         #expect(parsed.problems.contains { $0.contains("마감일 값 무시") })
     }

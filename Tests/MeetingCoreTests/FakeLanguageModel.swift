@@ -60,7 +60,7 @@ enum FakeResponses {
          "evidence": [{"segment": "S6", "quote": "일단 보류하고 다음 주에 다시 논의하겠습니다"}]}
       ],
       "actionItems": [
-        {"task": "배포 체크리스트를 작성해 공유", "assignee": "박지훈", "dueDate": null,
+        {"task": "배포 체크리스트를 작성해 공유", "assignee": "홍길동", "dueDate": null,
          "dueDateNote": "다음 주 월요일", "confidence": 0.85,
          "evidence": [{"segment": "S3", "quote": "배포 체크리스트를 다음 주 월요일까지 공유해 주세요"}]}
       ],
@@ -99,7 +99,7 @@ enum FakeResponses {
         if target.contains("체크리스트") {
             return """
             <think>담당자가 원문에 있고 마감 표현은 모호하다.</think>
-            {"verdict": "confirm", "content": "배포 체크리스트를 작성해 공유", "assignee": "박지훈",
+            {"verdict": "confirm", "content": "배포 체크리스트를 작성해 공유", "assignee": "홍길동",
              "dueDate": null, "dueDateNote": "다음 주 월요일", "confidence": 0.85,
              "evidence": [{"segment": "S3", "quote": "배포 체크리스트를 다음 주 월요일까지 공유해 주세요"}]}
             """
@@ -121,13 +121,13 @@ enum FakeResponses {
     static let finalNote = """
     {
       "title": "결제 모듈 배포 회의",
-      "summary": "결제 모듈 배포일을 3월 12일 수요일로 확정했다. 배포 체크리스트는 박지훈이 다음 주 월요일까지 공유한다. 서버 CPU 사용률이 피크 85%로 배포 후 용량 한계가 우려된다. 증설 비용 집행과 가격 정책은 아직 결정되지 않았다.",
+      "summary": "결제 모듈 배포일을 3월 12일 수요일로 확정했다. 배포 체크리스트는 홍길동이 다음 주 월요일까지 공유한다. 서버 CPU 사용률이 피크 85%로 배포 후 용량 한계가 우려된다. 증설 비용 집행과 가격 정책은 아직 결정되지 않았다.",
       "decisions": [
         {"content": "결제 모듈 배포를 3월 12일 수요일로 확정", "kind": "decided", "evidenceIndex": 1},
         {"content": "증설 비용 집행은 보류하고 다음 주 재논의", "kind": "proposed", "evidenceIndex": 2}
       ],
       "actionItems": [
-        {"task": "배포 체크리스트를 작성해 공유", "assignee": "박지훈", "dueDate": null, "status": "confirmed", "evidenceIndex": 1}
+        {"task": "배포 체크리스트를 작성해 공유", "assignee": "홍길동", "dueDate": null, "status": "confirmed", "evidenceIndex": 1}
       ],
       "openQuestions": [{"question": "가격 정책이 정해지지 않아 사업팀 확인이 필요", "evidenceIndex": 1}],
       "risks": [{"content": "결제 서버 CPU 사용률이 피크 85%로 배포 후 한계 우려", "severity": "high", "evidenceIndex": 1}],

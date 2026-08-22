@@ -101,14 +101,14 @@ struct FactDeduplicatorTests {
         let first = Fixtures.fact(
             kind: .actionItem,
             content: "배포 체크리스트 공유",
-            assignee: "박지훈",
+            assignee: "홍길동",
             dueDate: "3월 10일",
             evidence: [Fixtures.evidence(for: segments[3])]
         )
         let updated = Fixtures.fact(
             kind: .actionItem,
             content: "배포 체크리스트 공유하기",
-            assignee: "박지훈",
+            assignee: "홍길동",
             dueDate: "3월 11일",
             evidence: [Fixtures.evidence(for: segments[6])],
             windowIndex: 1
@@ -169,7 +169,7 @@ struct DueDateGroundingTests {
         let result = DueDateGrounding.check(
             dueDate: "2023-03-07",
             dueDateNote: nil,
-            evidenceTexts: ["박지훈님이 배포 체크리스트를 작성해서 다음주 월요일까지 공유해주세요."]
+            evidenceTexts: ["홍길동님이 배포 체크리스트를 작성해서 다음주 월요일까지 공유해주세요."]
         )
         #expect(result.dueDate == nil)
         #expect(result.demoted)

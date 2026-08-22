@@ -47,7 +47,7 @@ struct LocalInferencePipelineTests {
         // 액션아이템: 담당자는 원문에서 확인된 값, 마감일은 모호하므로 미확정
         #expect(output.note.actionItems.count == 1)
         let action = output.note.actionItems[0]
-        #expect(action.assignee == "박지훈")
+        #expect(action.assignee == "홍길동")
         #expect(action.dueDate == nil)
         #expect(action.dueDateDisplay.contains(UnresolvedMarker.needsConfirmation))
         #expect(action.evidence.first?.startTime == segments[3].startTime)

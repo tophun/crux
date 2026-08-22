@@ -91,7 +91,7 @@ struct ReasoningRouterTests {
         let first = Fixtures.fact(
             kind: .actionItem,
             content: "배포 체크리스트 작성해서 공유",
-            assignee: "박지훈",
+            assignee: "홍길동",
             dueDate: "3월 10일",
             evidence: [Fixtures.evidence(for: segments[3])]
         )

@@ -84,7 +84,7 @@ struct ProcessingPipelineTests {
 
         #expect(result.note.decisions.count == 1)
         #expect(result.note.decisions[0].kind == .decided)
-        #expect(result.note.actionItems[0].assignee == "박지훈")
+        #expect(result.note.actionItems[0].assignee == "홍길동")
         // 근거 타임스탬프가 실제 전사 구간에 연결된다.
         #expect(result.note.actionItems[0].evidence.first?.startTime == 16)
 

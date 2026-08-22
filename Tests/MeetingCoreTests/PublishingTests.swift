@@ -28,10 +28,10 @@ extension Fixtures {
         note.actionItems = [
             ActionItem(
                 task: "배포 체크리스트 작성 및 공유",
-                assignee: "박지훈",
+                assignee: "홍길동",
                 dueDate: "3월 10일",
                 status: .confirmed,
-                evidence: [evidence(for: segments[3], quote: "박지훈 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요.")],
+                evidence: [evidence(for: segments[3], quote: "홍길동 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요.")],
                 confidence: 0.9
             ),
             ActionItem(
@@ -371,7 +371,7 @@ struct PublishRedactionPrecisionTests {
     func stillBlocksTranscriptBeyondContent() {
         let segment = Fixtures.segment(
             0,
-            "박지훈 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요. 그리고 QA는 화요일 오전까지 회귀 테스트를 마쳐야 합니다."
+            "홍길동 님이 배포 체크리스트를 다음 주 월요일까지 공유해 주세요. 그리고 QA는 화요일 오전까지 회귀 테스트를 마쳐야 합니다."
         )
         var note = MeetingNote(meetingId: Fixtures.meetingId, title: "회의", summary: "요약")
         note.actionItems = [

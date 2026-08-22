@@ -23,7 +23,7 @@ struct MarkdownBlockParserTests {
                 Decision(content: "성능 개선 검토", kind: .proposed, evidence: evidence),
             ],
             actionItems: [
-                ActionItem(task: "체크리스트 작성", assignee: "박지훈", dueDate: "2026-03-12", evidence: evidence)
+                ActionItem(task: "체크리스트 작성", assignee: "홍길동", dueDate: "2026-03-12", evidence: evidence)
             ],
             openQuestions: [OpenQuestion(question: "서버 증설 범위", evidence: evidence)],
             risks: [RiskItem(content: "회귀 테스트 시간 부족", evidence: evidence)],
@@ -82,13 +82,13 @@ struct MarkdownBlockParserTests {
         let markdown = """
         | 작업 | 담당자 |
         | --- | --- |
-        | 체크리스트 작성 | 박지훈 |
+        | 체크리스트 작성 | 홍길동 |
         | 배포 준비 | 미확정 |
         """
         #expect(MarkdownBlockParser.parse(markdown) == [
             .table(
                 headers: ["작업", "담당자"],
-                rows: [["체크리스트 작성", "박지훈"], ["배포 준비", "미확정"]]
+                rows: [["체크리스트 작성", "홍길동"], ["배포 준비", "미확정"]]
             )
         ])
     }

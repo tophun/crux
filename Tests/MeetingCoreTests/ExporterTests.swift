@@ -18,7 +18,7 @@ struct MeetingNoteExporterTests {
         note.actionItems = [
             ActionItem(
                 task: "체크리스트 공유",
-                assignee: "박지훈",
+                assignee: "홍길동",
                 dueDate: nil,
                 dueDateNote: "다음 주 월요일",
                 status: .confirmed,
@@ -54,7 +54,7 @@ struct MeetingNoteExporterTests {
 
     @Test("회의록 문서는 날짜·참여자·내용·Action Item 순서로 만들어진다")
     func markdownStructure() {
-        let markdown = MeetingNoteExporter.markdown(sampleNote(), attendees: ["정상훈", "박지훈"])
+        let markdown = MeetingNoteExporter.markdown(sampleNote(), attendees: ["김철수", "홍길동"])
         let order = ["## 날짜", "## 참여자", "## 내용", "### 요약", "### 논의", "## Action Item"]
         var cursor = markdown.startIndex
         for heading in order {
@@ -62,8 +62,8 @@ struct MeetingNoteExporterTests {
             #expect(found != nil, "\(heading)이 순서대로 나와야 한다")
             cursor = found?.upperBound ?? cursor
         }
-        #expect(markdown.contains("- 정상훈"))
-        #expect(markdown.contains("- 박지훈"))
+        #expect(markdown.contains("- 김철수"))
+        #expect(markdown.contains("- 홍길동"))
     }
 
     @Test("참석자를 모르면 지어내지 않고 미확정으로 남긴다")
@@ -78,7 +78,7 @@ struct MeetingNoteExporterTests {
         #expect(markdown.contains("| 주제 | 내용 |"))
         #expect(markdown.contains("| --- | --- |"))
         #expect(markdown.contains("- [ ] "))
-        #expect(markdown.contains("박지훈"))
+        #expect(markdown.contains("홍길동"))
         #expect(markdown.contains(UnresolvedMarker.undetermined))
     }
 

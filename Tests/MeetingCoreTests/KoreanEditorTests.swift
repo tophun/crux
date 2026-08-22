@@ -118,7 +118,7 @@ struct KoreanMeetingEditorTests {
         note.actionItems = [
             ActionItem(
                 task: "체크리스트 작성에 대해 공유",
-                assignee: "박지훈",
+                assignee: "홍길동",
                 dueDateNote: "다음 주 월요일",
                 status: .proposed,
                 evidence: [Fixtures.evidence(for: segments[3], quote: "다음 주 월요일까지 공유해 주세요")],
@@ -153,7 +153,7 @@ struct KoreanMeetingEditorTests {
 
         #expect(edited.decisions[0].evidence == original.decisions[0].evidence)
         #expect(edited.actionItems[0].evidence == original.actionItems[0].evidence)
-        #expect(edited.actionItems[0].assignee == "박지훈")
+        #expect(edited.actionItems[0].assignee == "홍길동")
         #expect(edited.actionItems[0].dueDate == original.actionItems[0].dueDate)
         #expect(edited.actionItems[0].dueDateNote == "다음 주 월요일")
         #expect(edited.decisions[0].kind == .decided)

@@ -34,7 +34,7 @@ struct RelevancePolicyTests {
         let cases = [
             "결제 모듈 배포는 3월 12일 수요일로 확정합니다.",
             "서버 시피유 사용률이 85퍼센트까지 올라가서 위험합니다.",
-            "박지훈 님이 체크리스트를 다음 주 월요일까지 공유해 주세요.",
+            "홍길동 님이 체크리스트를 다음 주 월요일까지 공유해 주세요.",
         ]
         for text in cases {
             let heuristic = policy.heuristic(for: Fixtures.segment(0, text))
