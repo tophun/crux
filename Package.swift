@@ -14,6 +14,7 @@ let package = Package(
     products: [
         .library(name: "MeetingCore", targets: ["MeetingCore"]),
         .library(name: "MeetingPersistence", targets: ["MeetingPersistence"]),
+        .library(name: "MeetingAudio", targets: ["MeetingAudio"]),
     ],
     dependencies: [
         // SQLite
@@ -27,6 +28,17 @@ let package = Package(
         .target(
             name: "MeetingPersistence",
             dependencies: ["MeetingCore", .product(name: "GRDB", package: "GRDB.swift")]
+        ),
+
+        // MARK: - 오디오 (Phase 1: 파일 검사/분할, Phase 2: 캡처)
+        .target(
+            name: "MeetingAudio",
+            dependencies: ["MeetingCore"],
+            linkerSettings: [
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("CoreAudio"),
+                .linkedFramework("ScreenCaptureKit"),
+            ]
         ),
 
         // MARK: - 테스트 (무거운 모델 없이 동작)
