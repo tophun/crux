@@ -14,6 +14,7 @@ let package = Package(
     products: [
         .library(name: "MeetingCore", targets: ["MeetingCore"]),
         .library(name: "MeetingPersistence", targets: ["MeetingPersistence"]),
+        .library(name: "MeetingPipeline", targets: ["MeetingPipeline"]),
         .library(name: "MeetingAudio", targets: ["MeetingAudio"]),
         .library(name: "MeetingTranscription", targets: ["MeetingTranscription"]),
         .library(name: "MeetingInference", targets: ["MeetingInference"]),
@@ -86,8 +87,18 @@ let package = Package(
             linkerSettings: [.linkedFramework("EventKit"), .linkedFramework("CoreAudio")]
         ),
 
+        // MARK: - 오케스트레이션
+        .target(
+            name: "MeetingPipeline",
+            dependencies: ["MeetingCore", "MeetingPersistence", "MeetingAudio", "MeetingPublishing"]
+        ),
+
         // MARK: - 테스트 (무거운 모델 없이 동작)
         .testTarget(name: "MeetingCoreTests", dependencies: ["MeetingCore"]),
+        .testTarget(
+            name: "MeetingPipelineTests",
+            dependencies: ["MeetingCore", "MeetingPipeline", "MeetingPersistence"]
+        ),
         .testTarget(
             name: "MeetingPersistenceTests",
             dependencies: ["MeetingCore", "MeetingPersistence"]
