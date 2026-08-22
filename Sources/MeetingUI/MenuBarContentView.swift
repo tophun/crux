@@ -48,13 +48,21 @@ public struct MenuBarContentView: View {
             Button("회의록 시작") {
                 Task { await coordinator.startMeeting() }
             }
-            .disabled(coordinator.microphoneStatus != .granted || !installs.readyForCapture)
+            .disabled(!canStartRecording)
             .help(
-                installs.readyForCapture
+                canStartRecording
                     ? "녹음을 시작합니다"
-                    : "모델을 먼저 내려받으세요 — 설정 → 일반, 또는 앱을 다시 켜면 안내가 열립니다"
+                    : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
             )
         }
+    }
+
+    private var canStartRecording: Bool {
+        OnboardingGate.canStartRecording(
+            microphoneGranted: coordinator.microphoneStatus == .granted,
+            transcriptionModelInstalled: installs.selectedTranscriptionStatus().isInstalled,
+            languageModelInstalled: installs.selectedLanguageStatus().isInstalled
+        )
     }
 
     private var statusLine: String {

@@ -19,7 +19,7 @@ struct CruxApp: App {
     /// 오디오 보관 설정과 사용량
     @State private var storage: AudioStorageModel
     @State private var installs: ModelInstallCenter
-    /// 이번 실행에서 온보딩을 닫았는지. "나중에 하기"를 누르면 다시 띄우지 않는다.
+    /// 이번 실행에서 온보딩을 닫았는지. 필수 항목이 모두 준비된 뒤에만 닫힌다.
     @State private var dismissedOnboarding = false
     private let onboarding = OnboardingWindowController()
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
@@ -141,14 +141,24 @@ struct CruxApp: App {
                                     Task { await coordinator.startMeeting() }
                                 }
                                 .disabled(
-                                    coordinator.microphoneStatus != .granted
+                                    !canStartRecording
                                         || coordinator.capsule.showsRecordingIndicator
                                         || state.isProcessing
+                                )
+                                .help(
+                                    canStartRecording
+                                        ? "녹음을 시작합니다"
+                                        : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
                                 )
                                 Button("불러오기", systemImage: "square.and.arrow.down") {
                                     importAudio()
                                 }
-                                .disabled(state.isProcessing)
+                                .disabled(state.isProcessing || !installs.readyForCapture)
+                                .help(
+                                    installs.readyForCapture
+                                        ? "오디오 파일을 가져와 이 기기에서 처리합니다"
+                                        : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
+                                )
                             } label: {
                                 Label("기록", systemImage: "square.and.pencil")
                             }
@@ -237,6 +247,16 @@ struct CruxApp: App {
                 installs: installs
             )
         }
+    }
+
+    /// 툴바 녹음과 메뉴바 "회의록 시작"이 같은 조건을 쓴다.
+    /// 마이크와 두 기본 모델이 없으면 시작해도 처리가 실패한다.
+    private var canStartRecording: Bool {
+        OnboardingGate.canStartRecording(
+            microphoneGranted: coordinator.microphoneStatus == .granted,
+            transcriptionModelInstalled: installs.selectedTranscriptionStatus().isInstalled,
+            languageModelInstalled: installs.selectedLanguageStatus().isInstalled
+        )
     }
 
     private var menuBarSymbol: String {

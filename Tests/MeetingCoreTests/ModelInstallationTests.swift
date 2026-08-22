@@ -7,17 +7,34 @@ import Testing
 /// 실제 다운로드는 네트워크가 필요해 여기서 보지 않고,
 /// "디스크에 있으면 설치된 것"이라는 판정 규칙만 고정한다.
 struct ModelInstallationTests {
-    @Test("Whisper 변형 폴더가 있고 비어 있지 않으면 설치됨")
+    @Test("WhisperKit이 실제로 쓰는 Hub 경로에 파일이 있으면 설치됨")
     func whisperInstalled() throws {
         let base = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("crux-test-\(UUID().uuidString)", isDirectory: true)
-        let variant = base.appendingPathComponent("openai_whisper-large-v3-v20240930_turbo", isDirectory: true)
-        try FileManager.default.createDirectory(at: variant, withIntermediateDirectories: true)
+        let variant = "openai_whisper-large-v3-v20240930_turbo"
+        // WhisperKit `HubApi.localRepoLocation`과 같은 위치.
+        // `<base>/<variant>`가 아니라 `<base>/models/argmaxinc/whisperkit-coreml/<variant>`.
+        let hubVariant = base
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent("argmaxinc", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent(variant, isDirectory: true)
+        try FileManager.default.createDirectory(at: hubVariant, withIntermediateDirectories: true)
 
-        #expect(!ModelStoreLayout.isWhisperVariantInstalled(base: base, variant: "openai_whisper-large-v3-v20240930_turbo"))
+        #expect(!ModelStoreLayout.isWhisperVariantInstalled(base: base, variant: variant))
 
-        try Data("weights".utf8).write(to: variant.appendingPathComponent("model.bin"))
-        #expect(ModelStoreLayout.isWhisperVariantInstalled(base: base, variant: "openai_whisper-large-v3-v20240930_turbo"))
+        try Data("weights".utf8).write(to: hubVariant.appendingPathComponent("config.json"))
+        #expect(ModelStoreLayout.isWhisperVariantInstalled(base: base, variant: variant))
+        #expect(
+            ModelStoreLayout.whisperVariantDirectory(base: base, variant: variant).path
+                == hubVariant.path
+        )
+
+        // 예전 평탄 경로는 설치로 보지 않는다. WhisperKit은 여기에 쓰지 않는다.
+        let flat = base.appendingPathComponent(variant, isDirectory: true)
+        try FileManager.default.createDirectory(at: flat, withIntermediateDirectories: true)
+        try Data("stale".utf8).write(to: flat.appendingPathComponent("model.bin"))
+        #expect(ModelStoreLayout.whisperVariantDirectory(base: base, variant: variant).path != flat.path)
     }
 
     @Test("MLX 스냅숏 리비전이 있으면 설치됨")

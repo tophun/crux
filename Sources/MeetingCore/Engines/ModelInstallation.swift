@@ -27,9 +27,14 @@ public enum ModelInstallError: Error, LocalizedError, Sendable {
 /// 엔진이 실제로 읽는 경로와 같은 규칙이므로, 여기서 "설치됨"이라고 판정하면
 /// 엔진도 네트워크 없이 그 모델을 로드할 수 있다.
 public enum ModelStoreLayout {
-    /// WhisperKit은 `<base>/<변형 이름>/…` 폴더 구조로 저장한다.
+    /// WhisperKit `HubApi.localRepoLocation`과 같은 경로.
+    /// `<base>/models/argmaxinc/whisperkit-coreml/<변형 이름>/…`
     public static func whisperVariantDirectory(base: URL, variant: String) -> URL {
-        base.appendingPathComponent(variant, isDirectory: true)
+        base
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent("argmaxinc", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent(variant, isDirectory: true)
     }
 
     /// 변형 폴더가 존재하고 그 안에 파일이 하나 이상 있으면 설치된 것으로 본다.

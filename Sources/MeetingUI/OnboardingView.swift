@@ -6,8 +6,8 @@ import SwiftUI
 /// 첫 실행 안내(§11).
 ///
 /// 권한이 없으면 기능이 조용히 죽는다 — 캘린더가 없으면 회의를 감지하지 못하고,
-/// 마이크가 없으면 녹음 자체가 안 된다. 그래서 앱을 켤 때 무엇이 필요한지 먼저 보여 주고
-/// 여기서 권한을 받는다. 자동으로 녹음을 시작하지는 않는다.
+/// 마이크가 없으면 녹음 자체가 안 된다. 모델이 없으면 전사·회의록 생성이 실패한다.
+/// 앱을 켤 때 필수 항목을 받고, 남아 있으면 안내를 닫거나 녹음을 시작하지 않는다.
 public struct OnboardingView: View {
     @Bindable var coordinator: MeetingSessionCoordinator
     @Bindable var installs: ModelInstallCenter
@@ -138,10 +138,9 @@ public struct OnboardingView: View {
                     .foregroundStyle(.green)
             }
             Spacer()
-            Button("나중에 하기", action: onFinish)
-            Button("시작하기", action: onFinish)
+            Button("시작하기", action: finishIfReady)
                 .buttonStyle(.borderedProminent)
-                .disabled(remaining > 0)
+                .disabled(!canDefer)
         }
         .padding(20)
     }
@@ -154,6 +153,21 @@ public struct OnboardingView: View {
             transcriptionModelInstalled: installs.selectedTranscriptionStatus().isInstalled,
             languageModelInstalled: installs.selectedLanguageStatus().isInstalled
         )
+    }
+
+    /// 필수 항목이 남아 있으면 안내를 닫지 않는다. "나중에 하기" 우회를 막는다.
+    private var canDefer: Bool {
+        OnboardingGate.canDefer(
+            calendarAuthorized: coordinator.calendarStatus == .authorized,
+            microphoneGranted: coordinator.microphoneStatus == .granted,
+            transcriptionModelInstalled: installs.selectedTranscriptionStatus().isInstalled,
+            languageModelInstalled: installs.selectedLanguageStatus().isInstalled
+        )
+    }
+
+    private func finishIfReady() {
+        guard canDefer else { return }
+        onFinish()
     }
 
     /// 시스템 설정의 해당 항목을 연다. 한 번 거부하면 앱에서 다시 물어볼 수 없기 때문이다.
@@ -355,7 +369,8 @@ public final class OnboardingWindowController {
         )
         let window = NSWindow(contentViewController: hosting)
         window.title = "\(AppIdentity.productName) 시작하기"
-        window.styleMask = [.titled, .closable]
+        // 닫기 버튼으로 필수 모델 설치를 건너뛰지 못하게 한다. 준비되면 시작하기로만 닫는다.
+        window.styleMask = [.titled]
         window.isReleasedWhenClosed = false
         window.center()
         self.window = window
