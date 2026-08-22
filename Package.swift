@@ -16,10 +16,17 @@ let package = Package(
         .library(name: "MeetingPersistence", targets: ["MeetingPersistence"]),
         .library(name: "MeetingAudio", targets: ["MeetingAudio"]),
         .library(name: "MeetingTranscription", targets: ["MeetingTranscription"]),
+        .library(name: "MeetingInference", targets: ["MeetingInference"]),
     ],
     dependencies: [
         // 음성 인식 (WhisperKit). 모델 파일 최초 다운로드에만 네트워크를 사용한다.
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", from: "1.1.0"),
+        // 로컬 LLM 실행 (MLX Swift). MLXLLM/MLXLMCommon/MLXHuggingFace 제공.
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", .upToNextMinor(from: "3.31.4")),
+        // 토크나이저 + 채팅 템플릿(Jinja). Qwen3 `enable_thinking` 템플릿 인자에 필요.
+        .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.3.3"),
+        // HuggingFace Hub 클라이언트 (모델 스냅샷 다운로드 전용)
+        .package(url: "https://github.com/huggingface/swift-huggingface.git", from: "0.8.1"),
         // SQLite
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.0"),
     ],
@@ -51,6 +58,18 @@ let package = Package(
                 "MeetingCore",
                 "MeetingAudio",
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
+            ],
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        .target(
+            name: "MeetingInference",
+            dependencies: [
+                "MeetingCore",
+                .product(name: "MLXLLM", package: "mlx-swift-lm"),
+                .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
+                .product(name: "MLXHuggingFace", package: "mlx-swift-lm"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
+                .product(name: "HuggingFace", package: "swift-huggingface"),
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
