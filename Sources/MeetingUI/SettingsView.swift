@@ -15,6 +15,7 @@ public struct SettingsView: View {
     let modelDirectory: URL
     @Bindable var coordinator: MeetingSessionCoordinator
     @Bindable var storage: AudioStorageModel
+    @Bindable var installs: ModelInstallCenter
 
     @State private var selection: Pane = .general
 
@@ -22,12 +23,14 @@ public struct SettingsView: View {
         databaseURL: URL,
         modelDirectory: URL,
         coordinator: MeetingSessionCoordinator,
-        storage: AudioStorageModel
+        storage: AudioStorageModel,
+        installs: ModelInstallCenter
     ) {
         self.databaseURL = databaseURL
         self.modelDirectory = modelDirectory
         self.coordinator = coordinator
         self.storage = storage
+        self.installs = installs
     }
 
     enum Pane: String, CaseIterable, Identifiable {
@@ -106,7 +109,7 @@ public struct SettingsView: View {
     @ViewBuilder
     private var detailForm: some View {
         switch selection {
-        case .general: NotePane()
+        case .general: NotePane(installs: installs)
         case .detection: DetectionPane()
         case .permissions: PermissionsPane(coordinator: coordinator)
         case .audio: AudioPane(storage: storage)
@@ -196,6 +199,7 @@ private struct DetectionPane: View {
 // MARK: - 일반 (문서 프롬프트 + 모델)
 
 private struct NotePane: View {
+    @Bindable var installs: ModelInstallCenter
     @State private var documentPrompt = DocumentPromptStore.prompt
     @State private var transcriptionModel = ModelPreferenceStore.transcriptionModel
     @State private var languageModel = ModelPreferenceStore.languageModel
@@ -225,23 +229,46 @@ private struct NotePane: View {
             ModelPicker(
                 title: "음성 인식",
                 choices: TranscriptionModelCatalog.all,
+                statusFor: { installs.transcription[$0] ?? .notInstalled },
                 selection: $transcriptionModel
             )
             .onChange(of: transcriptionModel) { _, newValue in
                 ModelPreferenceStore.transcriptionModel = newValue
             }
+            ModelInstallHint(
+                choice: TranscriptionModelCatalog.choice(for: transcriptionModel),
+                status: installs.transcription[transcriptionModel] ?? .notInstalled
+            ) {
+                installs.installTranscription(transcriptionModel)
+            }
+
             ModelPicker(
                 title: "회의록 생성",
                 choices: LanguageModelCatalog.all,
+                statusFor: { installs.language[$0] ?? .notInstalled },
                 selection: $languageModel
             )
             .onChange(of: languageModel) { _, newValue in
                 ModelPreferenceStore.languageModel = newValue
             }
+            ModelInstallHint(
+                choice: LanguageModelCatalog.choice(for: languageModel),
+                status: installs.language[languageModel] ?? .notInstalled
+            ) {
+                installs.installLanguage(languageModel)
+            }
+
+            if let error = installs.lastErrorMessage {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            }
         } header: {
             Text("모델")
         } footer: {
-            Text("바꾼 모델은 다음 처리부터 쓰입니다. 처음 쓰는 모델은 실행 중에 내려받으므로 그만큼 오래 걸립니다. 모델 추론은 모두 이 기기에서 실행되며, 네트워크는 내려받을 때만 씁니다.")
+            Text(
+                "설치되지 않은 모델을 고르면 여기서 내려받게 됩니다. 미리 받지 않은 모델은 처리 중에 자동으로 내려받지만, 그만큼 기다려야 합니다. 모델 추론은 모두 이 기기에서 실행되며, 네트워크는 내려받을 때만 씁니다. 바꾼 모델은 다음 처리부터 쓰입니다."
+            )
         }
     }
 }
@@ -310,13 +337,14 @@ private struct PrivacyPane: View {
     }
 }
 
-/// 모델 고르기 한 줄. 고른 모델의 설명과 내려받을 크기를 아래에 붙인다.
+/// 모델 고르기 한 줄. 고른 모델의 설명과 설치 여부를 아래에 붙인다.
 ///
 /// 이 기기의 메모리로 감당할 수 없는 모델은 고를 수 없게 막되 목록에는 남긴다.
 /// 감추면 왜 없는지 알 수 없고, 그대로 두면 처리 도중에 메모리가 터진다.
 private struct ModelPicker: View {
     let title: String
     let choices: [ModelChoice]
+    let statusFor: (String) -> ModelInstallCenter.Status
     @Binding var selection: String
 
     private var current: ModelChoice? {
@@ -333,21 +361,73 @@ private struct ModelPicker: View {
         } label: {
             Text(title)
             if let current {
-                Text("\(current.detail) 내려받기 \(sizeText(current.downloadSizeGB))")
+                Text("\(current.detail) · \(sizeText(current.downloadSizeGB))")
             }
         }
     }
 
     private func label(for choice: ModelChoice) -> String {
-        choice.fits()
-            ? choice.name
-            : "\(choice.name) — 메모리 \(choice.minimumMemoryGB)GB 이상 필요"
+        var suffix = ""
+        if !choice.fits() {
+            suffix = " — 메모리 \(choice.minimumMemoryGB)GB 이상 필요"
+        } else if statusFor(choice.id) == .notInstalled {
+            suffix = " · 미설치"
+        }
+        return choice.name + suffix
     }
 
     private func sizeText(_ gigabytes: Double) -> String {
         gigabytes < 1
             ? "\(Int((gigabytes * 1000).rounded()))MB"
             : String(format: "%.1fGB", gigabytes)
+    }
+}
+
+/// 고른 모델의 설치 상태 한 줄. 미설치면 내려받기 버튼, 받는 중이면 진행률을 보여 준다.
+private struct ModelInstallHint: View {
+    let choice: ModelChoice?
+    let status: ModelInstallCenter.Status
+    let install: () -> Void
+
+    var body: some View {
+        switch status {
+        case .installed:
+            LabeledContent {
+                Label("설치됨", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.callout)
+            } label: {
+                Text("설치 상태")
+                Text("네트워크 없이 바로 사용할 수 있습니다.")
+            }
+        case .notInstalled:
+            LabeledContent {
+                Button("내려받기…", action: install)
+            } label: {
+                Text("설치되지 않음")
+                Text("지금 내려받지 않으면 처리 중에 자동으로 받습니다. (\(sizeText))")
+            }
+        case let .installing(fraction):
+            LabeledContent {
+                HStack(spacing: 8) {
+                    ProgressView(value: fraction)
+                        .frame(width: 140)
+                    Text("\(Int((fraction * 100).rounded()))%")
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            } label: {
+                Text("내려받는 중")
+                Text("창을 닫아도 계속됩니다. 완료 후 다시 열면 상태가 갱신됩니다.")
+            }
+        }
+    }
+
+    private var sizeText: String {
+        guard let size = choice?.downloadSizeGB else { return "" }
+        return size < 1
+            ? "약 \(Int((size * 1000).rounded()))MB"
+            : String(format: "약 %.1fGB", size)
     }
 }
 

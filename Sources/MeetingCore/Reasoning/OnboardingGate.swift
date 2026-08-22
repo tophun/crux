@@ -11,7 +11,18 @@ public enum OnboardingGate {
     }
 
     /// 아직 받지 못한 필수 권한 수. 안내 화면 아래에 보여 준다.
-    public static func remainingRequired(calendarAuthorized: Bool, microphoneGranted: Bool) -> Int {
-        (calendarAuthorized ? 0 : 1) + (microphoneGranted ? 0 : 1)
+    ///
+    /// 모델도 녹음·회의록 생성의 전제 조건이므로 함께 센다. 기본값은 true라,
+    /// 모델을 세지 않는 기존 부르는 곳은 그대로 동작한다.
+    public static func remainingRequired(
+        calendarAuthorized: Bool,
+        microphoneGranted: Bool,
+        transcriptionModelInstalled: Bool = true,
+        languageModelInstalled: Bool = true
+    ) -> Int {
+        (calendarAuthorized ? 0 : 1)
+            + (microphoneGranted ? 0 : 1)
+            + (transcriptionModelInstalled ? 0 : 1)
+            + (languageModelInstalled ? 0 : 1)
     }
 }
