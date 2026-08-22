@@ -18,6 +18,7 @@ let package = Package(
         .library(name: "MeetingTranscription", targets: ["MeetingTranscription"]),
         .library(name: "MeetingInference", targets: ["MeetingInference"]),
         .library(name: "MeetingPublishing", targets: ["MeetingPublishing"]),
+        .library(name: "MeetingCalendar", targets: ["MeetingCalendar"]),
     ],
     dependencies: [
         // 음성 인식 (WhisperKit). 모델 파일 최초 다운로드에만 네트워크를 사용한다.
@@ -77,6 +78,13 @@ let package = Package(
 
         // MARK: - 외부 게시 (앱에서 유일하게 외부로 HTTP를 보내는 모듈)
         .target(name: "MeetingPublishing", dependencies: ["MeetingCore"]),
+
+        // MARK: - 캘린더 (EventKit)
+        .target(
+            name: "MeetingCalendar",
+            dependencies: ["MeetingCore"],
+            linkerSettings: [.linkedFramework("EventKit"), .linkedFramework("CoreAudio")]
+        ),
 
         // MARK: - 테스트 (무거운 모델 없이 동작)
         .testTarget(name: "MeetingCoreTests", dependencies: ["MeetingCore"]),
