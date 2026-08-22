@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "MeetingPublishing", targets: ["MeetingPublishing"]),
         .library(name: "MeetingCalendar", targets: ["MeetingCalendar"]),
         .library(name: "MeetingUI", targets: ["MeetingUI"]),
+        .executable(name: "MeetingApp", targets: ["MeetingApp"]),
     ],
     dependencies: [
         // 음성 인식 (WhisperKit). 모델 파일 최초 다운로드에만 네트워크를 사용한다.
@@ -100,6 +101,16 @@ let package = Package(
             dependencies: [
                 "MeetingCore", "MeetingPipeline", "MeetingPersistence",
                 "MeetingPublishing", "MeetingCalendar", "MeetingAudio",
+            ],
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+
+        // MARK: - 실행 타깃
+        .executableTarget(
+            name: "MeetingApp",
+            dependencies: [
+                "MeetingCore", "MeetingUI", "MeetingPipeline", "MeetingPersistence",
+                "MeetingTranscription", "MeetingInference", "MeetingPublishing", "MeetingCalendar",
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
