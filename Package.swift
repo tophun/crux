@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "MeetingAudio", targets: ["MeetingAudio"]),
         .library(name: "MeetingTranscription", targets: ["MeetingTranscription"]),
         .library(name: "MeetingInference", targets: ["MeetingInference"]),
+        .library(name: "MeetingPublishing", targets: ["MeetingPublishing"]),
     ],
     dependencies: [
         // 음성 인식 (WhisperKit). 모델 파일 최초 다운로드에만 네트워크를 사용한다.
@@ -74,11 +75,18 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
 
+        // MARK: - 외부 게시 (앱에서 유일하게 외부로 HTTP를 보내는 모듈)
+        .target(name: "MeetingPublishing", dependencies: ["MeetingCore"]),
+
         // MARK: - 테스트 (무거운 모델 없이 동작)
         .testTarget(name: "MeetingCoreTests", dependencies: ["MeetingCore"]),
         .testTarget(
             name: "MeetingPersistenceTests",
             dependencies: ["MeetingCore", "MeetingPersistence"]
+        ),
+        .testTarget(
+            name: "MeetingPublishingTests",
+            dependencies: ["MeetingCore", "MeetingPublishing"]
         ),
     ]
 )
