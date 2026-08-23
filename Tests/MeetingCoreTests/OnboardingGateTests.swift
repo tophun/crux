@@ -21,4 +21,112 @@ struct OnboardingGateTests {
         // 시스템 오디오 상태와 무관하게 캘린더·마이크만 본다.
         #expect(!OnboardingGate.shouldPresent(calendarAuthorized: true, microphoneGranted: true))
     }
+
+    @Test("권한이 모두 있어도 기본 모델이 없으면 띄운다")
+    func shownWhenModelMissing() {
+        #expect(
+            OnboardingGate.shouldPresent(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: false,
+                languageModelInstalled: true
+            )
+        )
+        #expect(
+            OnboardingGate.shouldPresent(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: false
+            )
+        )
+        #expect(
+            !OnboardingGate.shouldPresent(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+    }
+
+    @Test("필수 모델이 없으면 나중에 하기를 허용하지 않는다")
+    func cannotDeferWhenRequiredModelsMissing() {
+        #expect(
+            !OnboardingGate.canDefer(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: false,
+                languageModelInstalled: true
+            )
+        )
+        #expect(
+            !OnboardingGate.canDefer(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: false
+            )
+        )
+        #expect(
+            OnboardingGate.canDefer(
+                calendarAuthorized: true,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+    }
+
+    @Test("필수 권한이 남아 있어도 나중에 하기를 허용하지 않는다")
+    func cannotDeferWhenRequiredPermissionMissing() {
+        #expect(
+            !OnboardingGate.canDefer(
+                calendarAuthorized: false,
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+        #expect(
+            !OnboardingGate.canDefer(
+                calendarAuthorized: true,
+                microphoneGranted: false,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+    }
+
+    @Test("마이크나 필수 모델이 없으면 녹음을 시작할 수 없다")
+    func cannotStartRecordingWithoutMicOrModels() {
+        #expect(
+            !OnboardingGate.canStartRecording(
+                microphoneGranted: true,
+                transcriptionModelInstalled: false,
+                languageModelInstalled: true
+            )
+        )
+        #expect(
+            !OnboardingGate.canStartRecording(
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: false
+            )
+        )
+        #expect(
+            !OnboardingGate.canStartRecording(
+                microphoneGranted: false,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+        #expect(
+            OnboardingGate.canStartRecording(
+                microphoneGranted: true,
+                transcriptionModelInstalled: true,
+                languageModelInstalled: true
+            )
+        )
+    }
 }
