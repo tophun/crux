@@ -19,6 +19,10 @@ public final class CruxWindowController {
     /// 확장 여부를 여기서 바꾸고 `fittingSize`(이상적인 크기)를 다시 물어야 창이 커질 수 있다.
     private var isHovering = false
     private var isPinned = false
+    /// 창을 다시 그린 직후 hover-off를 무시하는 마감 시각.
+    private var ignoreLeaveUntil: Date?
+    /// 실제 이탈인지 다시 확인하는 접기 예약.
+    private var collapseWorkItem: DispatchWorkItem?
     /// 다시 그릴 때 필요한 마지막 입력값.
     private var render: (() -> Void)?
 
@@ -110,20 +114,67 @@ public final class CruxWindowController {
     }
 
     public func hide() {
+        cancelCollapseCheck()
         panel?.orderOut(nil)
     }
 
     public func close() {
+        cancelCollapseCheck()
         panel?.close()
         panel = nil
         hosting = nil
     }
 
     private func setHovering(_ hovering: Bool) {
+        if hovering {
+            cancelCollapseCheck()
+            applyHover(true)
+            return
+        }
+
+        // 창을 다시 그리면 onHover(false)가 바로 온다. 즉시 접지 않고 포인터 위치로 확인한다.
+        scheduleCollapseCheck(now: Date())
+    }
+
+    private func applyHover(_ hovering: Bool) {
         guard isHovering != hovering else { return }
         isHovering = hovering
+        ignoreLeaveUntil = CapsuleHoverGate.ignoreDeadline(after: Date())
         render?()
         resize(animated: true)
+    }
+
+    private func scheduleCollapseCheck(now: Date) {
+        cancelCollapseCheck()
+        let delay = CapsuleHoverGate.collapseCheckDelay(now: now, ignoreLeaveUntil: ignoreLeaveUntil)
+        let work = DispatchWorkItem { [weak self] in
+            self?.applyScheduledCollapse()
+        }
+        collapseWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    private func applyScheduledCollapse() {
+        switch CapsuleHoverGate.collapseCheckResult(
+            now: Date(),
+            ignoreLeaveUntil: ignoreLeaveUntil,
+            mouseInWindow: isMouseInPanel()
+        ) {
+        case .reschedule:
+            scheduleCollapseCheck(now: Date())
+        case .collapse:
+            applyHover(false)
+        }
+    }
+
+    private func cancelCollapseCheck() {
+        collapseWorkItem?.cancel()
+        collapseWorkItem = nil
+    }
+
+    private func isMouseInPanel() -> Bool {
+        guard let panel else { return false }
+        return panel.frame.contains(NSEvent.mouseLocation)
     }
 
     private func togglePin() {
