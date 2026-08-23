@@ -3,6 +3,8 @@
 .swiftpm/
 *.xcuserstate
 DerivedData/
+.DS_Store
+dist/
 
 # 픽스처 오디오는 스크립트로 재생성한다
 Fixtures/*.aiff
