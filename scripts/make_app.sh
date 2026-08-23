@@ -14,7 +14,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG="${CONFIG:-Debug}"
-BINARY="$ROOT/.xcbuild/Build/Products/$CONFIG/MeetingApp"
+BINARY="$ROOT/.xcbuild/Build/Products/$CONFIG/Crux"
 # 실행 파일·번들 디렉터리 이름(공백 없음)과 사용자에게 보이는 이름을 분리한다.
 APP_NAME="${APP_NAME:-Crux}"
 DISPLAY_NAME="${DISPLAY_NAME:-Crux}"
@@ -23,8 +23,8 @@ BUNDLE_ID="${BUNDLE_ID:-local.crux.app}"
 APP_DIR="$ROOT/.xcbuild/$APP_NAME.app"
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
-  echo "MeetingApp 빌드 중… (Metal 셰이더 때문에 첫 빌드는 오래 걸린다)"
-  xcodebuild -scheme MeetingApp -destination 'platform=OS X,arch=arm64' \
+  echo "Crux 빌드 중… (Metal 셰이더 때문에 첫 빌드는 오래 걸린다)"
+  xcodebuild -scheme Crux -destination 'platform=OS X,arch=arm64' \
     -derivedDataPath "$ROOT/.xcbuild" -configuration "$CONFIG" \
     -skipMacroValidation build >"$ROOT/.xcbuild/build.log" 2>&1 || {
     echo "빌드 실패. 로그: $ROOT/.xcbuild/build.log" >&2
@@ -142,6 +142,6 @@ echo "생성: $APP_DIR"
 echo "실행: open \"$APP_DIR\""
 echo ""
 echo "권한 안내"
-echo "- 마이크: 첫 녹음 시 요청됩니다."
+echo "- 마이크: 온보딩 또는 설정에서 권한을 허용하세요."
 echo "- 캘린더: 설정 화면의 '캘린더 권한 요청'을 누르세요."
 echo "- 시스템 오디오: 시스템 설정 → 개인정보 보호 및 보안 → 화면 및 시스템 오디오 기록에서 이 앱을 허용하세요."
