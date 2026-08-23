@@ -5,8 +5,8 @@
 # 실행 파일이 아니라 .app 번들로 실행해야 한다.
 #
 # 사용법:
-#   ./Scripts/make_app.sh              # 빌드하고 번들까지 만든다
-#   SKIP_BUILD=1 ./Scripts/make_app.sh # 이미 빌드했을 때 포장만 한다
+#   ./scripts/make_app.sh              # 빌드하고 번들까지 만든다
+#   SKIP_BUILD=1 ./scripts/make_app.sh # 이미 빌드했을 때 포장만 한다
 #
 # swift build로는 MLX의 Metal 셰이더를 컴파일할 수 없어 xcodebuild를 쓴다.
 # -skipMacroValidation은 mlx-swift-lm 매크로 신뢰 확인을 건너뛰기 위한 것이다.
@@ -97,17 +97,46 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 PLIST
 
 # 권한(TCC)은 서명 신원 기준으로 기억된다. ad-hoc 서명은 빌드마다 바뀌어
-# 매번 권한을 다시 물으므로, 가능하면 안정적인 개발 인증서로 서명한다.
-IDENTITY="${CODESIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null \
-  | grep -o '"Apple Development: [^"]*"' | head -1 | tr -d '"')}"
-if [ -n "$IDENTITY" ]; then
-  codesign --force --deep --sign "$IDENTITY" "$APP_DIR" >/dev/null 2>&1 \
-    && echo "서명: $IDENTITY (권한 승인 유지됨)" \
-    || echo "경고: '$IDENTITY' 서명 실패. ad-hoc으로 대체합니다." >&2
-fi
-codesign --verify "$APP_DIR" >/dev/null 2>&1 || codesign --force --deep --sign - "$APP_DIR" >/dev/null 2>&1 || {
-  echo "경고: 코드 서명에 실패했습니다. 권한 요청이 매번 다시 뜰 수 있습니다." >&2
+# 매번 권한을 다시 물으므로, 개인 Apple Development 인증서로 서명한다.
+#
+# 키체인에 회사 팀 인증서가 먼저 있으면 `head -1`이 그걸 고른다.
+# 개인 인증서는 이름에 Apple ID 이메일이 들어 있으므로 그 항목을 고른다.
+# 다른 인증서가 필요하면 CODESIGN_IDENTITY로 지정한다. ad-hoc은 `-`.
+list_apple_development_identities() {
+  security find-identity -v -p codesigning 2>/dev/null \
+    | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p'
 }
+
+resolve_codesign_identity() {
+  if [ -n "${CODESIGN_IDENTITY:-}" ]; then
+    printf '%s\n' "$CODESIGN_IDENTITY"
+    return 0
+  fi
+  local personal
+  personal="$(list_apple_development_identities | grep '@' | head -1 || true)"
+  if [ -n "$personal" ]; then
+    printf '%s\n' "$personal"
+    return 0
+  fi
+  return 1
+}
+
+if ! IDENTITY="$(resolve_codesign_identity)"; then
+  echo "개인 Apple Development 인증서를 찾지 못했습니다." >&2
+  echo "키체인에 개인 개발자 인증서를 넣거나 CODESIGN_IDENTITY로 지정하세요." >&2
+  security find-identity -v -p codesigning >&2 || true
+  exit 1
+fi
+
+if [ "$IDENTITY" = "-" ]; then
+  codesign --force --deep --sign - "$APP_DIR"
+  echo "서명: ad-hoc (권한 승인이 빌드마다 초기화됩니다)"
+else
+  codesign --force --deep --sign "$IDENTITY" "$APP_DIR"
+  codesign --verify --strict "$APP_DIR"
+  echo "서명: $IDENTITY"
+  codesign -dv --verbose=2 "$APP_DIR" 2>&1 | grep '^Authority=' | head -1
+fi
 
 echo "생성: $APP_DIR"
 echo "실행: open \"$APP_DIR\""

@@ -61,7 +61,7 @@ xcodebuild -scheme MeetingApp -destination 'platform=OS X,arch=arm64' \
   -derivedDataPath .xcbuild -configuration Debug -skipMacroValidation build
 
 # 3) 앱 번들 생성 (캘린더·마이크·화면 기록 권한은 번들에서만 받을 수 있다)
-./Scripts/make_app.sh
+make app
 open .xcbuild/Crux.app
 
 # 산출물
@@ -69,8 +69,14 @@ open .xcbuild/Crux.app
 .xcbuild/Crux.app
 ```
 
-`make_app.sh`는 Info.plist(권한 사용 설명), mlx Metal 셰이더(`Contents/MacOS/mlx.metallib`), ad-hoc 코드 서명을
-함께 넣는다. 번들 식별자는 기본 `local.crux.app`이며 Developer ID를 쓰게 되면 `BUNDLE_ID` 환경 변수로 바꾼다.
+`make_app.sh`는 Info.plist(권한 사용 설명), mlx Metal 셰이더(`Contents/MacOS/mlx.metallib`),
+개인 Apple Development 코드 서명을 함께 넣는다. 키체인에 회사 팀 인증서가 있어도
+이름에 이메일이 있는 개인 인증서를 고른다. 다른 인증서는 `CODESIGN_IDENTITY`로 지정한다.
+번들 식별자는 기본 `local.crux.app`이며 Developer ID를 쓰게 되면 `BUNDLE_ID` 환경 변수로 바꾼다.
+
+```sh
+make dmg   # 서명된 Crux.app + Applications 바로가기가 들어 있는 DMG
+```
 
 `-skipMacroValidation`은 `mlx-swift-lm`의 매크로(`MLXHuggingFaceMacros`) 신뢰 확인을 건너뛰기 위한 것이다.
 Xcode GUI에서는 첫 빌드 때 매크로 신뢰를 한 번 눌러주면 된다.
@@ -266,7 +272,9 @@ Sources/
   MeetingUI/            SwiftUI 화면 + Crux + Preview Viewer
   MeetingApp/           앱 조립 지점 (메뉴바 + 창 + 캡슐 + 설정)
   MeetingCLI/           meetingctl 헤드리스 하네스
-Scripts/make_app.sh    앱 번들 생성 (권한 사용 설명 + ad-hoc 서명)
+Makefile               make app / make dmg
+scripts/make_app.sh    앱 번들 생성 (권한 사용 설명 + 개인 개발자 서명)
+scripts/make_dmg.sh    서명된 앱을 DMG로 포장
 Tests/                  161개 테스트 (모델 없이 실행)
 Fixtures/               한국어 회의 음성 픽스처 생성 스크립트와 원본 텍스트
 docs/                   설계·계획·Skill·개인정보·평가 문서
