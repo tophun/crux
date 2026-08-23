@@ -175,7 +175,7 @@ $ meetingctl run --audio Fixtures/sample-meeting-ko.aiff --title "결제 모듈 
 
 ### 검증하지 못한 것
 
-- **GUI 화면 렌더링.** `xcodebuild -scheme MeetingApp` 빌드 성공, 실제 회의록이 들어 있는 데이터베이스로
+- **GUI 화면 렌더링.** `xcodebuild -scheme Crux` 빌드 성공, 실제 회의록이 들어 있는 데이터베이스로
   앱을 실행해 프로세스가 정상 유지되는 것(크래시·오류 로그 없음, DB 열기 성공)까지는 확인했다.
   다만 터미널에 화면 기록 권한이 없어 `screencapture`가 검은 화면만 반환했고, 목록·상세 탭이 실제로 어떻게
   보이는지는 눈으로 확인하지 못했다. 앱을 직접 실행해 확인이 필요하다.
