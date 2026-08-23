@@ -30,7 +30,6 @@
 | `ml-explore/mlx-swift` | 0.31.4 | `MLX.GPU.set(cacheLimit:)`, `clearCache()`, `activeMemory`/`peakMemory` |
 | `huggingface/swift-transformers` | 1.3.3 | `Tokenizers.AutoTokenizer` + Jinja 템플릿. `MLXHuggingFace`의 `#huggingFaceTokenizerLoader()` 매크로가 이 어댑터를 생성 |
 | `huggingface/swift-huggingface` | 0.8.1 | `HubClient(cache: HubCache(cacheDirectory:))`. 모델 스냅샷 다운로드 전용 |
-| `groue/GRDB.swift` | 7.11.1 | 마이그레이션, `FetchableRecord`/`PersistableRecord` |
 
 모델 저장소도 확인했다.
 
@@ -62,7 +61,7 @@
 | 1. 패키지·모듈 골격 | `Package.swift`, 9개 모듈 | 완료 |
 | 2. 도메인 모델 | `Meeting`…`ProcessingJob` | 완료 |
 | 3. 추론 정책 | 청커, 라우터, 사담 정책, 근거 검증, 중복 통합, 프롬프트, 파서 3종, 파이프라인 | 완료 |
-| 4. 저장소 | GRDB 스키마·마이그레이션·저장소 2종 | 완료 |
+| 4. 저장소 | SwiftData `@Model` 스키마·레거시 SQLite 마이그레이션·저장소 | 완료 |
 | 5. 엔진 | WhisperKit 엔진, Qwen3 MLX 엔진 | 완료 |
 | 6. 오케스트레이션 | 모델 수명 관리, 처리 파이프라인, 가져오기 | 완료 |
 | 7. UI | 목록·상세 7탭·액션아이템 편집·메뉴바·설정 | 완료 |

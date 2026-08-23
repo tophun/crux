@@ -14,7 +14,8 @@ macOS용 온디바이스 AI 회의록 앱입니다.
 
 | 기능 | 상태 |
 | --- | --- |
-| 로컬 오디오 가져오기 → 전사 → 회의록 생성 → SQLite 저장 | 구현 및 자동 테스트 완료 |
+| 로컬 오디오 가져오기 → 전사 → 회의록 생성 → SwiftData 저장 | 구현 및 자동 테스트 완료 |
+| 기존 `meetings.sqlite` → SwiftData 마이그레이션 | 구현 및 자동 테스트 완료 |
 | 마이크 녹음, 시스템 오디오 캡처, 일시정지·재개, 트랙 합성 | 구현됨. 실제 권한 흐름은 별도 확인 필요 |
 | EventKit 캘린더 감지와 회의 앱 감지 | 구현됨. 기본은 자동 녹음이 아닌 사용자 확인 |
 | SwiftUI 회의 목록·상세·전사문·메뉴바·Crux 캡슐 | 구현됨 |
@@ -34,6 +35,8 @@ Metal Toolchain이 없다면 한 번 설치합니다.
 
 ```sh
 xcodebuild -downloadComponent MetalToolchain
+swift build
+swift test
 ```
 
 첫 실행 전에 모델을 내려받을 네트워크가 필요합니다. 모델을 미리 설치한 뒤에는 오프라인으로 처리할 수 있습니다.
@@ -72,6 +75,21 @@ DMG가 필요하면 다음을 실행합니다.
 ```sh
 make dmg
 ```
+
+## 저장소 및 기존 SQLite 마이그레이션
+
+회의 데이터는 `MeetingPersistence`의 SwiftData 모델과 `ModelContext`로 저장합니다. GRDB는 더 이상 사용하지
+않습니다. 오디오 바이트는 저장하지 않고 파일 경로와 메타데이터만 보관합니다.
+
+기존 버전의 `meetings.sqlite`를 사용 중이라면 앱이 처음 열릴 때 다음 순서로 옮깁니다.
+
+1. 기존 SQLite 파일을 읽기 전용으로 엽니다.
+2. 전체 저장소 데이터를 임시 SwiftData 저장소에 저장합니다.
+3. 모든 저장이 성공하면 `<이름>.swiftdata`로 이동합니다.
+
+마이그레이션이 중간에 실패하면 `ModelContext` 변경을 롤백하고 임시 저장소를 삭제합니다. 원본
+`meetings.sqlite`는 덮어쓰거나 삭제하지 않으므로 다음 실행에서 재시도하거나 복구용으로 보관할 수 있습니다.
+마이그레이션이 끝난 뒤에는 `.swiftdata` 저장소를 직접 사용하며, 기존 SQLite 파일은 백업으로 남습니다.
 
 ## 모델
 
@@ -187,9 +205,9 @@ Confluence와 Jira 게시물에는 전체 전사문·오디오·근거 전용 �
 
 | 데이터 | 위치 및 처리 |
 | --- | --- |
-| 회의·전사문·회의록·캘린더 메타데이터 | 로컬 SQLite와 회의별 디렉터리 |
-| 오디오 | 회의별 디렉터리. SQLite에는 경로와 메타데이터만 저장 |
-| 근거 타임스탬프·원문 인용 | 로컬 `{meetingId}.evidence.json`과 SQLite 회의록 항목의 `evidenceJSON` |
+| 회의·전사문·회의록·캘린더 메타데이터 | 로컬 SwiftData와 회의별 디렉터리 |
+| 오디오 | 회의별 디렉터리. SwiftData에는 경로와 메타데이터만 저장 |
+| 근거 타임스탬프·원문 인용 | 로컬 `{meetingId}.evidence.json`과 SwiftData 회의록 항목의 `evidenceJSON` |
 | Atlassian API 토큰 | macOS Keychain |
 
 오디오 보관 기간은 `immediate`, `days7`, `days30`, `days90`, `forever` 중에서 선택할 수 있습니다. 기본값은 30일이며, 오디오가 삭제되어도 전사문·회의록·근거는 남습니다. 처리에 실패한 회의의 오디오는 자동으로 삭제하지 않습니다.
@@ -207,7 +225,7 @@ Confluence와 Jira 게시물에는 전체 전사문·오디오·근거 전용 �
 Package.swift
 Sources/
   MeetingCore/          도메인 모델·추론 정책·한국어 윤문·게시 초안
-  MeetingPersistence/   GRDB 기반 SQLite 저장소
+  MeetingPersistence/   SwiftData 저장소 및 기존 SQLite 마이그레이션
   MeetingAudio/         오디오 가져오기·캡처·믹싱
   MeetingCalendar/      EventKit·회의 앱 감지
   MeetingTranscription/ WhisperKit 전사

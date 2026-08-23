@@ -15,7 +15,7 @@ LocalInferencePipeline       MeetingCore.LocalInferencePipeline + MeetingTranscr
         ↓
 MeetingRepository            MeetingPersistence
         ↓
-SQLite + Local Files
+SwiftData + Local Files
 ```
 
 모듈 이름에 제품명을 넣지 않았다. 제품명이 확정되면 `AppIdentity.productName`만 바꾸면 된다.
@@ -23,7 +23,7 @@ SQLite + Local Files
 | 모듈 | 의존성 | 책임 |
 | --- | --- | --- |
 | `MeetingCore` | 없음 | 도메인 모델, 추론 정책(청킹·라우팅·사담 분류·근거 검증·중복 통합·프롬프트·파서), 내보내기 |
-| `MeetingPersistence` | GRDB | 스키마, 마이그레이션, 회의/전사/회의록/작업 저장소 |
+| `MeetingPersistence` | SwiftData | `@Model` 스키마, 기존 SQLite 마이그레이션, 회의/전사/회의록/작업 저장소 |
 | `MeetingAudio` | AVFoundation, ScreenCaptureKit, CoreAudio | 마이크·시스템 오디오 캡처, 트랙 믹싱, 파일 검사, 회의별 파일 배치 |
 | `MeetingCalendar` | EventKit, AppKit, CoreAudio | 캘린더 일정 읽기, 회의 앱·마이크 사용 감지 |
 | `MeetingPublishing` | Foundation (URLSession) | Atlassian 게시. **앱에서 유일하게 외부로 HTTP를 보내는 모듈** |
@@ -153,14 +153,24 @@ await coordinator.releaseAll()
 
 ## 저장소
 
-SQLite 테이블: `meeting`, `audioTrack`, `transcriptSegment`, `meetingNote`, `decision`, `actionItem`,
-`openQuestion`, `riskItem`, `topic`, `processingJob`.
+SwiftData 모델: `MeetingModel`, `AudioTrackModel`, `TranscriptSegmentModel`, `NoteModel`, `DecisionModel`,
+`ActionItemModel`, `OpenQuestionModel`, `RiskItemModel`, `TopicModel`, `ProcessingJobModel`,
+`CalendarEventModel`, `NotifiedEventModel`, `PublishRecordModel`.
 
-- 근거 배열은 각 항목의 `evidenceJSON` 컬럼에 넣는다.
-- 회의 삭제 시 외래 키 `cascade`로 연결 데이터가 함께 지워진다.
+- 근거 배열과 생성 관측값은 기존 형식과 호환되는 JSON 문자열로 저장한다.
+- 오디오 바이트는 저장하지 않고 파일 경로와 메타데이터만 저장한다.
+- 회의 삭제 시 `MeetingRepository`가 연결 모델을 명시적으로 삭제한다.
 - `processingJob`은 `(meetingId, stage)`가 유일하다. 앱 시작 시 `markRunningJobsInterrupted()`로
   실행 중이던 작업을 중단 상태로 바꿔 재처리 대상으로 만든다.
-- 검색은 전사문·액션아이템·결정사항·회의록 제목/요약에 대한 `LIKE` 질의다. FTS5는 필요해지면 도입한다.
+- 검색은 전사문·액션아이템·결정사항·회의록 제목/요약을 메모리에서 검색한다. 데이터 규모가 커지면
+  SwiftData predicate 또는 별도 검색 인덱스를 도입한다.
+
+### 기존 SQLite 마이그레이션
+
+기존 `meetings.sqlite`는 삭제하거나 덮어쓰지 않고 옆의 `<이름>.swiftdata`로 가져온다. 전체 테이블을
+읽기 전용 SQLite 연결로 읽어 임시 SwiftData 저장소에 먼저 저장하고, 모든 저장이 성공한 경우에만
+최종 경로로 이동한다. 변환 중 오류가 나면 `ModelContext.rollback()`으로 현재 작업을 되돌리고
+임시 저장소를 삭제한다. 원본 SQLite는 보존되므로 다음 실행에서 재시도하거나 복구용으로 사용할 수 있다.
 
 ## 재처리 (§17: 데이터 유실보다 재처리 우선)
 

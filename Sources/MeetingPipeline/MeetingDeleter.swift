@@ -8,7 +8,7 @@ import MeetingPersistence
 /// 안전 규칙
 /// - 파일은 **휴지통으로 보낸다**. 실수로 지워도 되돌릴 수 있게 한다.
 /// - 회의 저장 디렉터리 **안에 있는 파일만** 지운다. 사용자가 가져온 원본 파일(복사하지 않고 참조만 한 경우)은 건드리지 않는다.
-/// - 데이터베이스 행은 외래 키 cascade로 함께 사라진다.
+/// - 회의와 연결된 SwiftData 모델 행은 저장소가 함께 지운다.
 public struct MeetingDeleter: Sendable {
     public struct Summary: Hashable, Sendable {
         public var meetingTitle: String
@@ -73,7 +73,7 @@ public struct MeetingDeleter: Sendable {
             }
         }
 
-        // 4. 데이터베이스 (transcript·note·decision·actionItem·job 등은 cascade로 함께 삭제)
+        // 4. 데이터베이스 (transcript·note·decision·actionItem·job 등 연결 모델 포함)
         try repository.delete(meetingId: meetingId)
 
         return Summary(
