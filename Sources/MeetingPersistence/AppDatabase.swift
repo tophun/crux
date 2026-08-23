@@ -216,7 +216,9 @@ private final class LegacySQLiteReader {
     }
 
     deinit {
-        if let connection { sqlite3_close(connection) }
+        if let connection {
+            sqlite3_close(connection)
+        }
     }
 
     func tableExists(_ table: String) throws -> Bool {
@@ -253,7 +255,9 @@ private final class LegacySQLiteReader {
         var result: [LegacySQLiteRow] = []
         while true {
             let stepResult = sqlite3_step(statement)
-            if stepResult == SQLITE_DONE { break }
+            if stepResult == SQLITE_DONE {
+                break
+            }
             guard stepResult == SQLITE_ROW else {
                 throw LegacySQLiteError.queryFailed(Self.message(for: connection))
             }
@@ -287,16 +291,22 @@ private enum LegacySQLiteDateParser {
 
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = iso.date(from: value) { return date }
+        if let date = iso.date(from: value) {
+            return date
+        }
         iso.formatOptions = [.withInternetDateTime]
-        if let date = iso.date(from: value) { return date }
+        if let date = iso.date(from: value) {
+            return date
+        }
 
         for format in ["yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss.SSS", "yyyy-MM-dd HH:mm:ss"] {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "en_US_POSIX")
             formatter.timeZone = TimeZone(secondsFromGMT: 0)
             formatter.dateFormat = format
-            if let date = formatter.date(from: value) { return date }
+            if let date = formatter.date(from: value) {
+                return date
+            }
         }
         throw LegacySQLiteError.invalidDate(value)
     }
