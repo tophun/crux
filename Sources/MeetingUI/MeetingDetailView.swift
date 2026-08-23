@@ -29,8 +29,10 @@ public struct MeetingDetailView: View {
                     // 버튼·입력 칸은 자기 탭을 먼저 가져가므로 이 처리에 영향을 받지 않는다.
                     NSApp.keyWindow?.makeFirstResponder(nil)
                 }
-            } else {
+            } else if MeetingSplitEmptyPolicy.showsDetailPlaceholder(hasDetail: false) {
                 ContentUnavailableView("회의를 선택하세요", systemImage: "doc.text")
+            } else {
+                Color.clear
             }
         }
         .deleteConfirmation(state: state)

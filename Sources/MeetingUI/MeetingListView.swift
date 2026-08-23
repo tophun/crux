@@ -10,32 +10,36 @@ public struct MeetingListView: View {
     }
 
     public var body: some View {
-        List(selection: Binding(
-            get: { state.selectedMeetingId },
-            set: { state.selectedMeetingId = $0 }
-        )) {
-            if state.summaries.isEmpty {
+        Group {
+            if MeetingSplitEmptyPolicy.showsListPlaceholder(meetingCount: state.summaries.count) {
                 ContentUnavailableView(
                     "회의가 없습니다",
                     systemImage: "waveform",
                     description: Text("오디오 파일을 가져오면 이 기기에서 전사와 회의록 생성이 진행됩니다.")
                 )
-            }
-            ForEach(state.summaries) { summary in
-                MeetingRow(summary: summary)
-                    .tag(summary.id)
-                    .contextMenu {
-                        Button("회의록 열기") { state.selectedMeetingId = summary.id }
-                        Divider()
-                        Button("회의 삭제…", role: .destructive) {
-                            state.requestDelete(meetingId: summary.id)
-                        }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(selection: Binding(
+                    get: { state.selectedMeetingId },
+                    set: { state.selectedMeetingId = $0 }
+                )) {
+                    ForEach(state.summaries) { summary in
+                        MeetingRow(summary: summary)
+                            .tag(summary.id)
+                            .contextMenu {
+                                Button("회의록 열기") { state.selectedMeetingId = summary.id }
+                                Divider()
+                                Button("회의 삭제…", role: .destructive) {
+                                    state.requestDelete(meetingId: summary.id)
+                                }
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button("삭제", role: .destructive) {
+                                    state.requestDelete(meetingId: summary.id)
+                                }
+                            }
                     }
-                    .swipeActions(edge: .trailing) {
-                        Button("삭제", role: .destructive) {
-                            state.requestDelete(meetingId: summary.id)
-                        }
-                    }
+                }
             }
         }
         .deleteConfirmation(state: state)
