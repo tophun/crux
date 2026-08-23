@@ -143,7 +143,7 @@ $ swift build && swift test
 | `swift build` | 성공 |
 | `xcodebuild -scheme MeetingApp` | 성공 |
 | `xcodebuild -scheme meetingctl` | 성공 |
-| `Scripts/make_app.sh` | 성공. ad-hoc 서명, 번들 식별자 `local.meetingnotes.app`, 권한 사용 설명 3종 포함 |
+| `scripts/make_app.sh` | 성공. ad-hoc 서명, 번들 식별자 `local.meetingnotes.app`, 권한 사용 설명 3종 포함 |
 | 앱 번들 실행 | 프로세스 정상 유지, 오류 로그 없음 |
 | CLI `calendar` | 번들이 아니므로 캘린더 권한 거부 — 그 사실을 사용자에게 알리고 종료(설계 의도대로 동작) |
 | CLI `preview` (실제 회의록) | 성공. Confluence 본문 순서(날짜·참석자 우선), Jira 초안 2건, 근거는 로컬 목록에만 표시, 게시 본문에 타임스탬프 0건 |

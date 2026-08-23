@@ -5,7 +5,7 @@
 // 제품명은 Crux로 확정되었다. 모듈 이름에는 제품명을 넣지 않고 기능 이름만 사용한다.
 // 제품명·번들 이름이 바뀌는 곳:
 //   1. Sources/MeetingCore/Support/AppIdentity.swift 의 `productName` / `bundleName`
-//   2. Scripts/make_app.sh 의 APP_NAME / DISPLAY_NAME / BUNDLE_ID
+//   2. scripts/make_app.sh 의 APP_NAME / DISPLAY_NAME / BUNDLE_ID
 import PackageDescription
 
 let package = Package(
