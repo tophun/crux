@@ -16,9 +16,10 @@ jobs:
   # ── 린트: 스타일·컨벤션 위반 차단 ─────────────────────────────────────────
   # 규칙은 저장소의 .swiftlint.yml / .swiftformat / Tests/.swiftlint.yml 에서 관리한다.
   # 로컬과 동일한 린터 버전을 보장하기 위해 brew 대신 릴리스 바이너리를 고정 설치한다.
+  # macOS 러너는 분당 10배라 PR마다 돌리지 않는다. 린트는 소스만 보므로 Linux 바이너리면 충분하다.
   lint:
     name: Lint (SwiftLint · SwiftFormat)
-    runs-on: macos-26
+    runs-on: ubuntu-latest
     env:
       SWIFTLINT_VERSION: 0.65.1
       SWIFTFORMAT_VERSION: 0.62.1
@@ -28,16 +29,16 @@ jobs:
       - name: Install SwiftFormat (pinned)
         run: |
           curl -fsSLo "$RUNNER_TEMP/swiftformat.zip" \
-            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
-          unzip -qo "$RUNNER_TEMP/swiftformat.zip" -d /usr/local/bin
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"
+          unzip -qo "$RUNNER_TEMP/swiftformat.zip" -d "$RUNNER_TEMP/swiftformat-dist"
+          install -m 0755 "$RUNNER_TEMP/swiftformat-dist/swiftformat_linux" /usr/local/bin/swiftformat
 
       - name: Install SwiftLint (pinned)
         run: |
           curl -fsSLo "$RUNNER_TEMP/swiftlint.zip" \
-            "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/SwiftLintBinary.artifactbundle.zip"
+            "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_amd64.zip"
           unzip -qo "$RUNNER_TEMP/swiftlint.zip" -d "$RUNNER_TEMP/swiftlint-dist"
-          cp "$RUNNER_TEMP/swiftlint-dist/SwiftLintBinary.artifactbundle/macos/swiftlint" /usr/local/bin/
-          chmod +x /usr/local/bin/swiftlint
+          install -m 0755 "$RUNNER_TEMP/swiftlint-dist/swiftlint-static" /usr/local/bin/swiftlint
 
       - name: SwiftFormat (포맷 검사)
         run: swiftformat --lint .
