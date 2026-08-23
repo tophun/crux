@@ -24,7 +24,7 @@ struct MeetingCTL: AsyncParsableCommand {
 }
 
 struct CommonOptions: ParsableArguments {
-    @Option(name: .long, help: "SQLite 파일 경로 (기본: 앱 데이터 디렉터리)")
+    @Option(name: .long, help: "기존 SQLite 파일 경로 또는 SwiftData 저장소 경로 (기본: 앱 데이터 디렉터리)")
     var db: String?
 
     @Option(name: .long, help: "WhisperKit 모델 이름")

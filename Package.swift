@@ -33,18 +33,17 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.3.3"),
         // HuggingFace Hub 클라이언트 (모델 스냅샷 다운로드 전용)
         .package(url: "https://github.com/huggingface/swift-huggingface.git", from: "0.8.1"),
-        // SQLite
-        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
     ],
     targets: [
+        .systemLibrary(name: "CSQLite", path: "Sources/CSQLite"),
         // MARK: - 도메인 + 추론 정책 (외부 의존성 없음 → 테스트가 모델 없이 전부 돌아간다)
         .target(name: "MeetingCore"),
 
         // MARK: - 저장소
         .target(
             name: "MeetingPersistence",
-            dependencies: ["MeetingCore", .product(name: "GRDB", package: "GRDB.swift")]
+            dependencies: ["MeetingCore", "CSQLite"]
         ),
 
         // MARK: - 오디오 (Phase 1: 파일 검사/분할, Phase 2: 캡처)
@@ -134,7 +133,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MeetingPersistenceTests",
-            dependencies: ["MeetingCore", "MeetingPersistence"]
+            dependencies: ["MeetingCore", "MeetingPersistence", "CSQLite"]
         ),
         .testTarget(
             name: "MeetingPublishingTests",

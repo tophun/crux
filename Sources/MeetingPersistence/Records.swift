@@ -1,34 +1,27 @@
 import Foundation
-import GRDB
 import MeetingCore
+import SwiftData
 
-// 도메인 타입을 그대로 저장하지 않고 레코드로 매핑한다.
-// URL·UUID·중첩 배열의 저장 형식을 스키마에서 명시적으로 통제하기 위함이다.
+// SwiftData 모델은 도메인 타입과 분리한다. UUID·URL·열거형·중첩 배열은
+// 기존 SQLite 스키마와 호환되는 문자열·숫자·JSON으로 저장한다.
 
 enum JSONColumn {
-    static let encoder: JSONEncoder = {
+    static func encode(_ value: some Encodable) -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return encoder
-    }()
-
-    static let decoder = JSONDecoder()
-
-    static func encode(_ value: some Encodable) -> String {
         guard let data = try? encoder.encode(value) else { return "null" }
         return String(decoding: data, as: UTF8.self)
     }
 
     static func decode<T: Decodable>(_ type: T.Type, from string: String) -> T? {
         guard let data = string.data(using: .utf8) else { return nil }
-        return try? decoder.decode(type, from: data)
+        return try? JSONDecoder().decode(type, from: data)
     }
 }
 
-struct MeetingRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "meeting"
-
-    var id: String
+@Model
+final class MeetingModel {
+    @Attribute(.unique) var id: String
     var title: String
     var startedAt: Date
     var endedAt: Date?
@@ -37,17 +30,44 @@ struct MeetingRecord: Codable, FetchableRecord, PersistableRecord {
     var source: String
     var createdAt: Date
     var updatedAt: Date
+    var calendarEventId: String?
 
-    init(_ meeting: Meeting) {
-        id = meeting.id.uuidString
-        title = meeting.title
-        startedAt = meeting.startedAt
-        endedAt = meeting.endedAt
-        status = meeting.status.rawValue
-        storageDirectory = meeting.storageDirectory.path
-        source = meeting.source.rawValue
-        createdAt = meeting.createdAt
-        updatedAt = meeting.updatedAt
+    init(
+        id: String,
+        title: String,
+        startedAt: Date,
+        endedAt: Date?,
+        status: String,
+        storageDirectory: String,
+        source: String,
+        createdAt: Date,
+        updatedAt: Date,
+        calendarEventId: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.status = status
+        self.storageDirectory = storageDirectory
+        self.source = source
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.calendarEventId = calendarEventId
+    }
+
+    convenience init(_ meeting: Meeting) {
+        self.init(
+            id: meeting.id.uuidString,
+            title: meeting.title,
+            startedAt: meeting.startedAt,
+            endedAt: meeting.endedAt,
+            status: meeting.status.rawValue,
+            storageDirectory: meeting.storageDirectory.path,
+            source: meeting.source.rawValue,
+            createdAt: meeting.createdAt,
+            updatedAt: meeting.updatedAt
+        )
     }
 
     var domain: Meeting? {
@@ -66,10 +86,9 @@ struct MeetingRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct AudioTrackRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "audioTrack"
-
-    var id: String
+@Model
+final class AudioTrackModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var kind: String
     var filePath: String
@@ -79,16 +98,40 @@ struct AudioTrackRecord: Codable, FetchableRecord, PersistableRecord {
     var byteSize: Int64
     var createdAt: Date
 
-    init(_ track: AudioTrack) {
-        id = track.id.uuidString
-        meetingId = track.meetingId.uuidString
-        kind = track.kind.rawValue
-        filePath = track.fileURL.path
-        duration = track.duration
-        sampleRate = track.sampleRate
-        channelCount = track.channelCount
-        byteSize = track.byteSize
-        createdAt = track.createdAt
+    init(
+        id: String,
+        meetingId: String,
+        kind: String,
+        filePath: String,
+        duration: Double,
+        sampleRate: Double,
+        channelCount: Int,
+        byteSize: Int64,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.meetingId = meetingId
+        self.kind = kind
+        self.filePath = filePath
+        self.duration = duration
+        self.sampleRate = sampleRate
+        self.channelCount = channelCount
+        self.byteSize = byteSize
+        self.createdAt = createdAt
+    }
+
+    convenience init(_ track: AudioTrack) {
+        self.init(
+            id: track.id.uuidString,
+            meetingId: track.meetingId.uuidString,
+            kind: track.kind.rawValue,
+            filePath: track.fileURL.path,
+            duration: track.duration,
+            sampleRate: track.sampleRate,
+            channelCount: track.channelCount,
+            byteSize: track.byteSize,
+            createdAt: track.createdAt
+        )
     }
 
     var domain: AudioTrack? {
@@ -107,10 +150,9 @@ struct AudioTrackRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct TranscriptSegmentRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "transcriptSegment"
-
-    var id: String
+@Model
+final class TranscriptSegmentModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var segmentIndex: Int
     var startTime: Double
@@ -122,18 +164,46 @@ struct TranscriptSegmentRecord: Codable, FetchableRecord, PersistableRecord {
     var relevanceLabel: String?
     var relevanceReason: String?
 
-    init(_ segment: TranscriptSegment, relevance: RelevanceDecision? = nil) {
-        id = segment.id.uuidString
-        meetingId = segment.meetingId.uuidString
-        segmentIndex = segment.index
-        startTime = segment.startTime
-        endTime = segment.endTime
-        speakerId = segment.speakerId
-        text = segment.text
-        confidence = segment.confidence
-        sourceTrack = segment.sourceTrack.rawValue
-        relevanceLabel = relevance?.label.rawValue
-        relevanceReason = relevance?.reason
+    init(
+        id: String,
+        meetingId: String,
+        segmentIndex: Int,
+        startTime: Double,
+        endTime: Double,
+        speakerId: String?,
+        text: String,
+        confidence: Double?,
+        sourceTrack: String,
+        relevanceLabel: String?,
+        relevanceReason: String?
+    ) {
+        self.id = id
+        self.meetingId = meetingId
+        self.segmentIndex = segmentIndex
+        self.startTime = startTime
+        self.endTime = endTime
+        self.speakerId = speakerId
+        self.text = text
+        self.confidence = confidence
+        self.sourceTrack = sourceTrack
+        self.relevanceLabel = relevanceLabel
+        self.relevanceReason = relevanceReason
+    }
+
+    convenience init(_ segment: TranscriptSegment, relevance: RelevanceDecision? = nil) {
+        self.init(
+            id: segment.id.uuidString,
+            meetingId: segment.meetingId.uuidString,
+            segmentIndex: segment.index,
+            startTime: segment.startTime,
+            endTime: segment.endTime,
+            speakerId: segment.speakerId,
+            text: segment.text,
+            confidence: segment.confidence,
+            sourceTrack: segment.sourceTrack.rawValue,
+            relevanceLabel: relevance?.label.rawValue,
+            relevanceReason: relevance?.reason
+        )
     }
 
     var domain: TranscriptSegment? {
@@ -158,30 +228,46 @@ struct TranscriptSegmentRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct NoteRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "meetingNote"
-
-    var meetingId: String
+@Model
+final class NoteModel {
+    @Attribute(.unique) var meetingId: String
     var title: String
     var summary: String
     var generatedAt: Date
     var generationJSON: String
     var customDocument: String?
 
-    init(_ note: MeetingNote) {
-        meetingId = note.meetingId.uuidString
-        title = note.title
-        summary = note.summary
-        generatedAt = note.generatedAt
-        generationJSON = JSONColumn.encode(note.generation)
-        customDocument = note.customDocument
+    init(
+        meetingId: String,
+        title: String,
+        summary: String,
+        generatedAt: Date,
+        generationJSON: String,
+        customDocument: String?
+    ) {
+        self.meetingId = meetingId
+        self.title = title
+        self.summary = summary
+        self.generatedAt = generatedAt
+        self.generationJSON = generationJSON
+        self.customDocument = customDocument
+    }
+
+    convenience init(_ note: MeetingNote) {
+        self.init(
+            meetingId: note.meetingId.uuidString,
+            title: note.title,
+            summary: note.summary,
+            generatedAt: note.generatedAt,
+            generationJSON: JSONColumn.encode(note.generation),
+            customDocument: note.customDocument
+        )
     }
 }
 
-struct DecisionRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "decision"
-
-    var id: String
+@Model
+final class DecisionModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var position: Int
     var content: String
@@ -190,15 +276,37 @@ struct DecisionRecord: Codable, FetchableRecord, PersistableRecord {
     var confidence: Double
     var reviewed: Bool
 
-    init(_ decision: Decision, meetingId: UUID, position: Int) {
-        id = decision.id.uuidString
-        self.meetingId = meetingId.uuidString
+    init(
+        id: String,
+        meetingId: String,
+        position: Int,
+        content: String,
+        kind: String,
+        evidenceJSON: String,
+        confidence: Double,
+        reviewed: Bool
+    ) {
+        self.id = id
+        self.meetingId = meetingId
         self.position = position
-        content = decision.content
-        kind = decision.kind.rawValue
-        evidenceJSON = JSONColumn.encode(decision.evidence)
-        confidence = decision.confidence
-        reviewed = decision.reviewed
+        self.content = content
+        self.kind = kind
+        self.evidenceJSON = evidenceJSON
+        self.confidence = confidence
+        self.reviewed = reviewed
+    }
+
+    convenience init(_ decision: Decision, meetingId: UUID, position: Int) {
+        self.init(
+            id: decision.id.uuidString,
+            meetingId: meetingId.uuidString,
+            position: position,
+            content: decision.content,
+            kind: decision.kind.rawValue,
+            evidenceJSON: JSONColumn.encode(decision.evidence),
+            confidence: decision.confidence,
+            reviewed: decision.reviewed
+        )
     }
 
     var domain: Decision? {
@@ -214,10 +322,9 @@ struct DecisionRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct ActionItemRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "actionItem"
-
-    var id: String
+@Model
+final class ActionItemModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var position: Int
     var task: String
@@ -229,18 +336,46 @@ struct ActionItemRecord: Codable, FetchableRecord, PersistableRecord {
     var confidence: Double
     var reviewed: Bool
 
-    init(_ item: ActionItem, meetingId: UUID, position: Int) {
-        id = item.id.uuidString
-        self.meetingId = meetingId.uuidString
+    init(
+        id: String,
+        meetingId: String,
+        position: Int,
+        task: String,
+        assignee: String?,
+        dueDate: String?,
+        dueDateNote: String?,
+        status: String,
+        evidenceJSON: String,
+        confidence: Double,
+        reviewed: Bool
+    ) {
+        self.id = id
+        self.meetingId = meetingId
         self.position = position
-        task = item.task
-        assignee = item.assignee
-        dueDate = item.dueDate
-        dueDateNote = item.dueDateNote
-        status = item.status.rawValue
-        evidenceJSON = JSONColumn.encode(item.evidence)
-        confidence = item.confidence
-        reviewed = item.reviewed
+        self.task = task
+        self.assignee = assignee
+        self.dueDate = dueDate
+        self.dueDateNote = dueDateNote
+        self.status = status
+        self.evidenceJSON = evidenceJSON
+        self.confidence = confidence
+        self.reviewed = reviewed
+    }
+
+    convenience init(_ item: ActionItem, meetingId: UUID, position: Int) {
+        self.init(
+            id: item.id.uuidString,
+            meetingId: meetingId.uuidString,
+            position: position,
+            task: item.task,
+            assignee: item.assignee,
+            dueDate: item.dueDate,
+            dueDateNote: item.dueDateNote,
+            status: item.status.rawValue,
+            evidenceJSON: JSONColumn.encode(item.evidence),
+            confidence: item.confidence,
+            reviewed: item.reviewed
+        )
     }
 
     var domain: ActionItem? {
@@ -259,23 +394,33 @@ struct ActionItemRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct OpenQuestionRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "openQuestion"
-
-    var id: String
+@Model
+final class OpenQuestionModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var position: Int
     var question: String
     var evidenceJSON: String
     var confidence: Double
 
-    init(_ item: OpenQuestion, meetingId: UUID, position: Int) {
-        id = item.id.uuidString
-        self.meetingId = meetingId.uuidString
+    init(id: String, meetingId: String, position: Int, question: String, evidenceJSON: String, confidence: Double) {
+        self.id = id
+        self.meetingId = meetingId
         self.position = position
-        question = item.question
-        evidenceJSON = JSONColumn.encode(item.evidence)
-        confidence = item.confidence
+        self.question = question
+        self.evidenceJSON = evidenceJSON
+        self.confidence = confidence
+    }
+
+    convenience init(_ item: OpenQuestion, meetingId: UUID, position: Int) {
+        self.init(
+            id: item.id.uuidString,
+            meetingId: meetingId.uuidString,
+            position: position,
+            question: item.question,
+            evidenceJSON: JSONColumn.encode(item.evidence),
+            confidence: item.confidence
+        )
     }
 
     var domain: OpenQuestion? {
@@ -289,10 +434,9 @@ struct OpenQuestionRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct RiskItemRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "riskItem"
-
-    var id: String
+@Model
+final class RiskItemModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var position: Int
     var content: String
@@ -300,14 +444,26 @@ struct RiskItemRecord: Codable, FetchableRecord, PersistableRecord {
     var evidenceJSON: String
     var confidence: Double
 
-    init(_ item: RiskItem, meetingId: UUID, position: Int) {
-        id = item.id.uuidString
-        self.meetingId = meetingId.uuidString
+    init(id: String, meetingId: String, position: Int, content: String, severity: String, evidenceJSON: String, confidence: Double) {
+        self.id = id
+        self.meetingId = meetingId
         self.position = position
-        content = item.content
-        severity = item.severity.rawValue
-        evidenceJSON = JSONColumn.encode(item.evidence)
-        confidence = item.confidence
+        self.content = content
+        self.severity = severity
+        self.evidenceJSON = evidenceJSON
+        self.confidence = confidence
+    }
+
+    convenience init(_ item: RiskItem, meetingId: UUID, position: Int) {
+        self.init(
+            id: item.id.uuidString,
+            meetingId: meetingId.uuidString,
+            position: position,
+            content: item.content,
+            severity: item.severity.rawValue,
+            evidenceJSON: JSONColumn.encode(item.evidence),
+            confidence: item.confidence
+        )
     }
 
     var domain: RiskItem? {
@@ -322,10 +478,9 @@ struct RiskItemRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct TopicRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "topic"
-
-    var id: String
+@Model
+final class TopicModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var position: Int
     var title: String
@@ -333,14 +488,26 @@ struct TopicRecord: Codable, FetchableRecord, PersistableRecord {
     var startTime: Double?
     var endTime: Double?
 
-    init(_ topic: Topic, meetingId: UUID, position: Int) {
-        id = topic.id.uuidString
-        self.meetingId = meetingId.uuidString
+    init(id: String, meetingId: String, position: Int, title: String, summary: String, startTime: Double?, endTime: Double?) {
+        self.id = id
+        self.meetingId = meetingId
         self.position = position
-        title = topic.title
-        summary = topic.summary
-        startTime = topic.startTime
-        endTime = topic.endTime
+        self.title = title
+        self.summary = summary
+        self.startTime = startTime
+        self.endTime = endTime
+    }
+
+    convenience init(_ topic: Topic, meetingId: UUID, position: Int) {
+        self.init(
+            id: topic.id.uuidString,
+            meetingId: meetingId.uuidString,
+            position: position,
+            title: topic.title,
+            summary: topic.summary,
+            startTime: topic.startTime,
+            endTime: topic.endTime
+        )
     }
 
     var domain: Topic? {
@@ -349,10 +516,9 @@ struct TopicRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct ProcessingJobRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "processingJob"
-
-    var id: String
+@Model
+final class ProcessingJobModel {
+    @Attribute(.unique) var id: String
     var meetingId: String
     var stage: String
     var state: String
@@ -362,16 +528,40 @@ struct ProcessingJobRecord: Codable, FetchableRecord, PersistableRecord {
     var errorMessage: String?
     var checkpoint: String?
 
-    init(_ job: ProcessingJob) {
-        id = job.id.uuidString
-        meetingId = job.meetingId.uuidString
-        stage = job.stage.rawValue
-        state = job.state.rawValue
-        attempt = job.attempt
-        startedAt = job.startedAt
-        finishedAt = job.finishedAt
-        errorMessage = job.errorMessage
-        checkpoint = job.checkpoint
+    init(
+        id: String,
+        meetingId: String,
+        stage: String,
+        state: String,
+        attempt: Int,
+        startedAt: Date?,
+        finishedAt: Date?,
+        errorMessage: String?,
+        checkpoint: String?
+    ) {
+        self.id = id
+        self.meetingId = meetingId
+        self.stage = stage
+        self.state = state
+        self.attempt = attempt
+        self.startedAt = startedAt
+        self.finishedAt = finishedAt
+        self.errorMessage = errorMessage
+        self.checkpoint = checkpoint
+    }
+
+    convenience init(_ job: ProcessingJob) {
+        self.init(
+            id: job.id.uuidString,
+            meetingId: job.meetingId.uuidString,
+            stage: job.stage.rawValue,
+            state: job.state.rawValue,
+            attempt: job.attempt,
+            startedAt: job.startedAt,
+            finishedAt: job.finishedAt,
+            errorMessage: job.errorMessage,
+            checkpoint: job.checkpoint
+        )
     }
 
     var domain: ProcessingJob? {
@@ -393,12 +583,9 @@ struct ProcessingJobRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-// MARK: - v2: 캘린더 · 게시 기록
-
-struct CalendarEventRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "calendarEvent"
-
-    var id: String
+@Model
+final class CalendarEventModel {
+    @Attribute(.unique) var id: String
     var title: String
     var startDate: Date
     var endDate: Date
@@ -411,19 +598,49 @@ struct CalendarEventRecord: Codable, FetchableRecord, PersistableRecord {
     var calendarTitle: String?
     var updatedAt: Date
 
-    init(_ event: CalendarEvent, updatedAt: Date = Date()) {
-        id = event.id
-        title = event.title
-        startDate = event.startDate
-        endDate = event.endDate
-        isAllDay = event.isAllDay
-        status = event.status.rawValue
-        attendeesJSON = JSONColumn.encode(event.attendees)
-        conferenceURL = event.conferenceURL?.absoluteString
-        location = event.location
-        organizerJSON = event.organizer.map { JSONColumn.encode($0) }
-        calendarTitle = event.calendarTitle
+    init(
+        id: String,
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        status: String,
+        attendeesJSON: String,
+        conferenceURL: String?,
+        location: String?,
+        organizerJSON: String?,
+        calendarTitle: String?,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.title = title
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isAllDay = isAllDay
+        self.status = status
+        self.attendeesJSON = attendeesJSON
+        self.conferenceURL = conferenceURL
+        self.location = location
+        self.organizerJSON = organizerJSON
+        self.calendarTitle = calendarTitle
         self.updatedAt = updatedAt
+    }
+
+    convenience init(_ event: CalendarEvent, updatedAt: Date = Date()) {
+        self.init(
+            id: event.id,
+            title: event.title,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            isAllDay: event.isAllDay,
+            status: event.status.rawValue,
+            attendeesJSON: JSONColumn.encode(event.attendees),
+            conferenceURL: event.conferenceURL?.absoluteString,
+            location: event.location,
+            organizerJSON: event.organizer.map { JSONColumn.encode($0) },
+            calendarTitle: event.calendarTitle,
+            updatedAt: updatedAt
+        )
     }
 
     var domain: CalendarEvent {
@@ -443,89 +660,37 @@ struct CalendarEventRecord: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-struct NotifiedEventRecord: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "notifiedEvent"
-
-    var eventId: String
+@Model
+final class NotifiedEventModel {
+    @Attribute(.unique) var eventId: String
     var notifiedAt: Date
-}
 
-/// 게시 결과. `contentId`↔외부 식별자 연결은 로컬에만 존재한다.
-public struct PublishRecord: Identifiable, Hashable, Sendable, Codable {
-    public enum Target: String, Sendable, Codable {
-        case confluence
-        case jira
-    }
-
-    public var id: UUID
-    public var meetingId: UUID
-    /// 회의록 항목의 내부 식별자 (페이지 게시는 nil)
-    public var contentId: String?
-    public var target: Target
-    /// Confluence pageId 또는 Jira issue id
-    public var externalId: String
-    /// Jira 이슈 키 (예: PROJ-123)
-    public var externalKey: String?
-    public var url: String
-    public var publishedAt: Date
-
-    public init(
-        id: UUID = UUID(),
-        meetingId: UUID,
-        contentId: String? = nil,
-        target: Target,
-        externalId: String,
-        externalKey: String? = nil,
-        url: String,
-        publishedAt: Date = Date()
-    ) {
-        self.id = id
-        self.meetingId = meetingId
-        self.contentId = contentId
-        self.target = target
-        self.externalId = externalId
-        self.externalKey = externalKey
-        self.url = url
-        self.publishedAt = publishedAt
+    init(eventId: String, notifiedAt: Date) {
+        self.eventId = eventId
+        self.notifiedAt = notifiedAt
     }
 }
 
-struct PublishRecordRow: Codable, FetchableRecord, PersistableRecord {
-    static let databaseTableName = "publishRecord"
+enum PersistenceSchema {
+    static let schema = Schema([
+        MeetingModel.self,
+        AudioTrackModel.self,
+        TranscriptSegmentModel.self,
+        NoteModel.self,
+        DecisionModel.self,
+        ActionItemModel.self,
+        OpenQuestionModel.self,
+        RiskItemModel.self,
+        TopicModel.self,
+        ProcessingJobModel.self,
+        CalendarEventModel.self,
+        NotifiedEventModel.self,
+        PublishRecordModel.self
+    ])
+}
 
-    var id: String
-    var meetingId: String
-    var contentId: String?
-    var target: String
-    var externalId: String
-    var externalKey: String?
-    var url: String
-    var publishedAt: Date
-
-    init(_ record: PublishRecord) {
-        id = record.id.uuidString
-        meetingId = record.meetingId.uuidString
-        contentId = record.contentId
-        target = record.target.rawValue
-        externalId = record.externalId
-        externalKey = record.externalKey
-        url = record.url
-        publishedAt = record.publishedAt
-    }
-
-    var domain: PublishRecord? {
-        guard let uuid = UUID(uuidString: id),
-              let meeting = UUID(uuidString: meetingId),
-              let target = PublishRecord.Target(rawValue: target) else { return nil }
-        return PublishRecord(
-            id: uuid,
-            meetingId: meeting,
-            contentId: contentId,
-            target: target,
-            externalId: externalId,
-            externalKey: externalKey,
-            url: url,
-            publishedAt: publishedAt
-        )
+extension ModelContext {
+    func all<Model: PersistentModel>(_: Model.Type) throws -> [Model] {
+        try fetch(FetchDescriptor<Model>())
     }
 }
