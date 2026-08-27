@@ -22,6 +22,11 @@ public final class MeetingSessionCoordinator {
     public private(set) var microphoneStatus: CapturePermissionState = .notDetermined
     public private(set) var systemAudioStatus: CapturePermissionState = .notDetermined
     public private(set) var activeMeetingId: UUID?
+    /// 녹음 중인 회의 제목. 노치 펼침 헤더에 쓴다.
+    public private(set) var activeMeetingTitle: String?
+    /// 녹음 중 노치에서 남긴 메모. 회의 저장 폴더의 memos.json과 같은 내용이다.
+    public private(set) var memos: [MeetingMemo] = []
+    private var memoStore: MeetingMemoStore?
 
     /// 회의 목록이 바뀌었을 때 알린다. 앱이 회의 목록·상세 화면을 새로 고치는 데 쓴다.
     /// (녹음 시작, 처리 완료, 처리 실패 시점)
@@ -60,6 +65,9 @@ public final class MeetingSessionCoordinator {
     private var tickTask: Task<Void, Never>?
     /// 진행 중인 회의록 생성을 취소하는 손잡이. 캡슐의 취소 버튼이 부른다.
     private var processingCancel: (() -> Void)?
+    /// 사용자가 캡슐에서 취소를 눌렀는지. 파이프라인이 `CancellationError`가 아닌
+    /// 다른 오류(네트워크 취소 등)로 끝나도 실패로 보여 주지 않기 위해 따로 기억한다.
+    private var processingCancelRequested = false
 
     public init(
         calendarProvider: any CalendarProvider,
@@ -265,6 +273,9 @@ public final class MeetingSessionCoordinator {
             }
             try await capture.start(meetingId: meetingId, storage: storage)
             activeMeetingId = meetingId
+            activeMeetingTitle = meeting.title
+            memoStore = MeetingMemoStore(storageDirectory: storage.root)
+            memos = []
             capsule = machine.apply(.userStartedMeeting)
             startTicking()
             log?("녹음 시작: \(meeting.title)")
@@ -307,6 +318,8 @@ public final class MeetingSessionCoordinator {
             return
         }
         activeMeetingId = nil
+        activeMeetingTitle = nil
+        memoStore = nil
         capsule = machine.apply(.recordingStopped)
         log?("녹음 종료 요청: \(meetingId)")
 
@@ -345,7 +358,11 @@ public final class MeetingSessionCoordinator {
                     detailMessage = Self.stageChecklist(current: update.stage)
                 }
             } }
-            processingCancel = { task.cancel() }
+            processingCancelRequested = false
+            processingCancel = { [weak self] in
+                self?.processingCancelRequested = true
+                task.cancel()
+            }
             defer { processingCancel = nil }
             let result = try await task.value
             detailMessage = nil
@@ -355,7 +372,9 @@ public final class MeetingSessionCoordinator {
             log?("회의록 생성 완료: 결정 \(result.note.decisions.count)건, 액션 \(result.note.actionItems.count)건")
             preparePreview(meetingId: meetingId)
             onMeetingsChanged?(meetingId)
-        } catch is CancellationError {
+        } catch where error is CancellationError || processingCancelRequested {
+            // 사용자가 직접 취소한 경우다. 오류가 아니므로 실패 메시지를 띄우지 않는다.
+            processingCancelRequested = false
             detailMessage = nil
             try? repository.updateStatus(.recorded, meetingId: meetingId)
             capsule = machine.apply(.reset)
@@ -371,13 +390,28 @@ public final class MeetingSessionCoordinator {
         }
     }
 
+    /// 녹음 중 메모를 남긴다. 빈 문자열은 무시하고, 녹음 경과 시각을 함께 기록한다.
+    public func addMemo(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let memoStore else { return }
+        var elapsed: TimeInterval = 0
+        if case let .recording(seconds, _) = capsule { elapsed = seconds }
+        let memo = MeetingMemo(elapsed: elapsed, text: trimmed)
+        do {
+            memos = try memoStore.append(memo)
+        } catch {
+            lastError = error.localizedDescription
+            log?("메모 저장 실패: \(error.localizedDescription)")
+        }
+    }
+
     /// 회의록 생성을 취소한다. 캡슐의 취소 버튼에서 부른다.
     public func cancelProcessing() {
         processingCancel?()
     }
 
     /// 파이프라인 단계 체크리스트 문구. 캡슐 상세에 보여 준다.
-    static func stageChecklist(current: ProcessingStage) -> String {
+    public static func stageChecklist(current: ProcessingStage) -> String {
         let all = ProcessingStage.allCases
         guard let currentIndex = all.firstIndex(of: current) else { return current.displayName }
         return all.enumerated().map { index, stage in
@@ -400,6 +434,8 @@ public final class MeetingSessionCoordinator {
             return
         }
         activeMeetingId = nil
+        activeMeetingTitle = nil
+        memoStore = nil
         _ = try? await capture.stop()
         if let meeting = try? repository.meeting(id: meetingId) {
             try? FileManager.default.trashItem(at: meeting.storageDirectory, resultingItemURL: nil)
