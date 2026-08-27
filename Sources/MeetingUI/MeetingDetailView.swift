@@ -47,7 +47,6 @@ public struct MeetingDetailView: View {
                 titleView: AnyView(TitleField(state: state, detail: detail))
             )
             .padding(.vertical, 2)
-            AudioTrackPicker(playback: state.playback)
 
             if state.isProcessing {
                 HStack(spacing: 10) {
@@ -60,10 +59,9 @@ public struct MeetingDetailView: View {
                 }
             }
 
+            // 전역 상태 문구(삭제·저장 등)는 여기 두지 않는다. 다른 회의를 열어도 남아 문맥이 어긋난다.
             if let message = state.errorMessage {
                 Text(message).font(.caption).foregroundStyle(.red)
-            } else if let message = state.statusMessage {
-                Text(message).font(.caption).foregroundStyle(.secondary)
             }
         }
         .padding()
@@ -122,7 +120,15 @@ public struct MeetingDetailView: View {
     private func content(_ detail: MeetingDetail) -> some View {
         switch state.detailTab {
         case .preview:
-            MarkdownPreviewTab(state: state, detail: detail)
+            VStack(alignment: .leading, spacing: 0) {
+                if !detail.memos.isEmpty {
+                    MemoListView(memos: detail.memos) { elapsed in
+                        state.playback.seek(to: elapsed)
+                    }
+                    Divider()
+                }
+                MarkdownPreviewTab(state: state, detail: detail)
+            }
         case .transcript:
             TranscriptTab(state: state, detail: detail)
         }
@@ -607,5 +613,30 @@ public struct ToolbarSearchField: View {
         .padding(.vertical, 5)
         .frame(width: 260)
         .background(Color(nsColor: .quaternarySystemFill), in: Capsule())
+    }
+}
+
+/// 녹음 중 남긴 메모 목록. 시각을 누르면 그 위치부터 재생한다.
+struct MemoListView: View {
+    let memos: [MeetingMemo]
+    let onSeek: (TimeInterval) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("회의 중 메모 · \(memos.count)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            ForEach(memos) { memo in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Button(memo.elapsedLabel) { onSeek(memo.elapsed) }
+                        .buttonStyle(.plain)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.tint)
+                    Text(memo.text).font(.callout)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

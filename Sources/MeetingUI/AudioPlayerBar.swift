@@ -120,27 +120,3 @@ private struct SkipButton: View {
         .foregroundStyle(.secondary)
     }
 }
-
-/// 트랙이 여러 개일 때만 쓰는 선택기. 보통은 합성본 하나뿐이라 숨는다.
-struct AudioTrackPicker: View {
-    @Bindable var playback: AudioPlaybackController
-
-    var body: some View {
-        if playback.availableTracks.count > 1 {
-            Picker("", selection: Binding(
-                get: { playback.track?.id ?? playback.availableTracks[0].id },
-                set: { id in
-                    if let track = playback.availableTracks.first(where: { $0.id == id }) {
-                        playback.select(track: track)
-                    }
-                }
-            )) {
-                ForEach(playback.availableTracks) { track in
-                    Text(track.displayName).tag(track.id)
-                }
-            }
-            .labelsHidden()
-            .frame(width: 130)
-        }
-    }
-}
