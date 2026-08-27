@@ -31,11 +31,44 @@ public struct NotchMetrics: Equatable, Sendable {
         hasNotch ? max(notchHeight, 32) : 30
     }
 
+    /// 접힌 섬의 한쪽 날개. 문구 길이와 무관한 고정값이다.
+    public static let compactWing: CGFloat = 96
+    /// 펼친 섬의 한쪽 날개. 좌우가 항상 같다.
+    public static let expandedWing: CGFloat = 144
+
+    /// 접힌 섬 너비. 하드웨어 노치를 덮는 한 덩어리이고, 내용이 바뀌어도 변하지 않는다.
+    public var compactWidth: CGFloat {
+        hasNotch ? notchWidth + 2 * Self.compactWing : 280
+    }
+
+    /// 펼친 섬 너비. 노치 중심 기준으로 좌우가 같이 늘어나는 한 가지 크기만 쓴다.
+    public var expandedWidth: CGFloat {
+        hasNotch ? max(notchWidth + 2 * Self.expandedWing, 420) : 400
+    }
+
+    public func islandWidth(expanded: Bool) -> CGFloat {
+        expanded ? expandedWidth : compactWidth
+    }
+
     /// 창 원점(좌하단 기준). 화면 최상단에 붙이고 노치 중심에 맞춘다.
+    ///
+    /// `y`는 반올림하지 않는다. 반올림하면 접힐 때 화면 상단과 1px 틈이 생긴다.
     public func windowOrigin(for size: CGSize) -> CGPoint {
         CGPoint(
             x: (notchCenterX - size.width / 2).rounded(),
-            y: (screenFrame.maxY - size.height).rounded()
+            y: screenFrame.maxY - size.height
+        )
+    }
+
+    /// 상단을 고정한 채로 크기를 바꿀 때 쓰는 프레임.
+    /// 접힘·펼침 애니메이션에서 검은 캡슐이 노치에서 떨어지지 않게 한다.
+    public func windowFrame(for size: CGSize, keepingTopOf current: CGRect? = nil) -> CGRect {
+        let top = current?.maxY ?? screenFrame.maxY
+        return CGRect(
+            x: (notchCenterX - size.width / 2).rounded(),
+            y: top - size.height,
+            width: size.width,
+            height: size.height
         )
     }
 
