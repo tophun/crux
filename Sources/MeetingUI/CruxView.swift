@@ -282,51 +282,64 @@ public struct CruxView: View {
 
     // MARK: 녹음 중 펼침
 
-    /// 헤더(타일·제목·경과·파형) → 메모 입력 → 컨트롤. 참고한 미디어 플레이어 구조에서
-    /// 진행 바 대신 메모 칸을 둔다. 회의는 끝나는 시각보다 "지금 적어 둘 것"이 중요하다.
+    /// 상단 띠(노치 양옆 날개: 타일 · 파형) → 제목·경과 → 메모 입력 → 컨트롤.
+    ///
+    /// 상단 띠 높이는 접힌 캡슐과 같다. 이 띠의 가운데는 **하드웨어 노치가 실제로 가리는 영역**이라
+    /// 글자를 두면 실기에서 잘려 보인다. 그래서 상단 띠에는 날개 아이콘만 두고 제목은 그 아래에 놓는다.
     private func recordingExpanded(seconds: Int, paused: Bool) -> some View {
         let title = meetingTitle ?? (paused ? "녹음 일시정지" : "녹음 중")
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+        return VStack(alignment: .leading, spacing: 0) {
+            // 상단 띠: 노치 좌우 날개
+            HStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(LinearGradient(
                         colors: [MeetingTint.color(for: title), MeetingTint.color(for: title).opacity(0.5)],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 22, height: 22)
                     .overlay {
                         Image(systemName: "person.2.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 10, weight: .semibold))
                     }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .bold))
-                        .lineLimit(1)
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(paused ? Color.orange : Color.red)
-                            .frame(width: 6, height: 6)
-                        Text(Self.clock(seconds))
-                            .font(.system(size: 11, weight: .medium))
-                            .monospacedDigit()
-                            .foregroundStyle(.white.opacity(0.7))
-                        if !memos.isEmpty {
-                            Text("· 메모 \(memos.count)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Color.clear.frame(width: metrics.hasNotch ? metrics.notchWidth : 10)
+                Group {
+                    if paused {
+                        Image(systemName: "pause.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.orange)
+                    } else {
+                        // 실제 입력 레벨이 연결되기 전까지는 흉내 낸 파형이다.
+                        LevelWaveform(barCount: 6, color: Color(red: 0.55, green: 0.62, blue: 1.0))
                     }
                 }
-                Spacer(minLength: 8)
-                if paused {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.orange)
-                } else {
-                    // 실제 입력 레벨이 연결되기 전까지는 흉내 낸 파형이다.
-                    LevelWaveform(barCount: 6, color: Color(red: 0.55, green: 0.62, blue: 1.0))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .frame(height: barHeight)
+
+            // 제목·경과: 노치 아래
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 13, weight: .bold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(paused ? Color.orange : Color.red)
+                        .frame(width: 6, height: 6)
+                    Text(Self.clock(seconds))
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.white.opacity(0.7))
+                    if !memos.isEmpty {
+                        Text("· 메모 \(memos.count)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
                 }
             }
+            .padding(.top, 6)
+            .padding(.bottom, 10)
 
             memoComposer
 
@@ -336,9 +349,9 @@ public struct CruxView: View {
                 Spacer()
                 controlButton("macwindow", size: 14, help: "앱 열기", action: onOpenPreview)
             }
+            .padding(.top, 8)
         }
         .padding(.horizontal, 18)
-        .padding(.top, 14)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
     }

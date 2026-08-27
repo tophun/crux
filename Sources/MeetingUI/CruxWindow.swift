@@ -92,10 +92,24 @@ public final class CruxWindowController {
             self.model = model
 
             let hostingView = NSHostingView(rootView: AnyView(CruxShelfRoot(model: model)))
+            // 창 크기는 우리가 정한다. `.preferredContentSize`가 들어가면 NSHostingView가
+            // windowDidLayout에서 스스로 창을 리사이즈하려 들고, 그게 레이아웃 패스 안에서
+            // setNeedsUpdateConstraints 예외(SIGABRT)로 터진다 — 녹음 종료 시 크래시의 원인.
+            // `.intrinsicContentSize`만 남겨 fittingSize 보고는 유지하고 창 주도권은 뺏는다.
+            hostingView.sizingOptions = [.intrinsicContentSize]
             hostingView.translatesAutoresizingMaskIntoConstraints = true
+            hostingView.autoresizingMask = [.width, .height]
             hostingView.wantsLayer = true
             hostingView.layer?.masksToBounds = true
             hosting = hostingView
+
+            // 호스팅 뷰를 contentView로 직접 쓰지 않고 평범한 컨테이너 아래에 둔다.
+            // contentView인 NSHostingView는 창 크기와 결합되어 위와 같은 충돌을 일으킨다.
+            let container = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: metrics.collapsedHeight))
+            container.wantsLayer = true
+            container.autoresizesSubviews = true
+            hostingView.frame = container.bounds
+            container.addSubview(hostingView)
 
             let panel = KeyablePanel(
                 contentRect: NSRect(x: 0, y: 0, width: 420, height: metrics.collapsedHeight),
@@ -115,7 +129,7 @@ public final class CruxWindowController {
             // 활성 앱이 아니어도 마우스 오버를 받아야 캡슐이 커진다.
             panel.acceptsMouseMovedEvents = true
             panel.ignoresMouseEvents = false
-            panel.contentView = hostingView
+            panel.contentView = container
             self.panel = panel
             installOutsideClickMonitor()
         }
