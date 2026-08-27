@@ -10,3 +10,7 @@ dist/
 Fixtures/*.aiff
 Fixtures/*.m4a
 Fixtures/*.wav
+
+# 로컬 비밀값(OAuth client secret, 서명 인증서 이름 등)
+.secrets/
+.vscode/
