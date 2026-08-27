@@ -29,13 +29,12 @@ public struct CruxView: View {
     let onAddMemo: (String) -> Void
     /// 메모 입력 칸의 포커스 변화. 입력 중에는 창이 접히지 않아야 한다.
     let onMemoFocusChange: (Bool) -> Void
-    /// 검은 셸프의 실제 렌더 크기. 창이 매 프레임 이 값을 따라가 애니메이션과 완전히 동기화된다.
+    /// 검은 셸프의 실제 렌더 크기. 창은 애니메이션 중에는 건드리지 않고, 크기 변화가 멎어
+    /// 정착했을 때 이 값으로 한 번만 자신을 맞춘다.
     let onContentSizeChange: (CGSize) -> Void
 
     @State private var memoDraft = ""
     @FocusState private var memoFocused: Bool
-    /// 접힘↔펼침에서 같은 요소가 순간이동 없이 이동(morph)하도록 잇는다.
-    @Namespace private var morph
 
     public init(
         state: CruxState,
@@ -162,13 +161,22 @@ public struct CruxView: View {
 
     public var body: some View {
         capsuleShape
-            // 셸프의 실제 크기를 매 프레임 창에 알려 준다. 창은 이 값을 따라가므로
-            // 창 프레임을 따로 애니메이션하지 않아도 내용과 완전히 같이 움직인다.
+            // 셸프의 실제 크기를 창에 알려 준다. 창은 스프링이 정착한 뒤 이 값으로 한 번 맞춘다.
             .onGeometryChange(for: CGSize.self, of: { $0.size }, action: onContentSizeChange)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .foregroundStyle(.white)
             .onHover { hovering in onHoverChange(hovering) }
             .onTapGesture { onTogglePin() }
+    }
+
+    /// 접힘↔펼침에서 내용을 갈아 끼우는 전환. 나가는 내용은 셸프가 줄기 전에 빨리 사라져야
+    /// 접힌 바 안에 글자 고스트가 남지 않고, 들어오는 내용은 셸프가 어느 정도 자란 뒤 나타나야
+    /// 옛 요소와 겹쳐 보이지 않는다. 다이나믹 아일랜드가 쓰는 비대칭 페이드다.
+    private static var contentSwap: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.animation(.easeIn(duration: 0.18).delay(0.08)),
+            removal: .opacity.animation(.easeOut(duration: 0.10))
+        )
     }
 
     /// 검은 노치 셸프 하나. 접힘·펼침을 한 덩어리로 스프링 변형한다.
@@ -177,11 +185,15 @@ public struct CruxView: View {
             if isEnlarged, case let .recording(seconds, paused) = state {
                 // 녹음 중 펼침은 바+상세 대신 미디어 플레이어형 3단 구조를 쓴다.
                 recordingExpanded(seconds: Int(seconds), paused: paused)
+                    .transition(Self.contentSwap)
             } else {
-                capsuleBar
-                if showsDetail {
-                    detail
+                VStack(spacing: 0) {
+                    capsuleBar
+                    if showsDetail {
+                        detail
+                    }
                 }
+                .transition(Self.contentSwap)
             }
         }
         // 위 모서리가 바깥으로 흘러내리는 만큼 내용은 안쪽으로 들인다.
@@ -294,7 +306,6 @@ public struct CruxView: View {
                         Circle()
                             .fill(paused ? Color.orange : Color.red)
                             .frame(width: 6, height: 6)
-                            .matchedGeometryEffect(id: "rec.dot", in: morph)
                         Text(Self.clock(seconds))
                             .font(.system(size: 11, weight: .medium))
                             .monospacedDigit()
@@ -314,7 +325,6 @@ public struct CruxView: View {
                 } else {
                     // 실제 입력 레벨이 연결되기 전까지는 흉내 낸 파형이다.
                     LevelWaveform(barCount: 6, color: Color(red: 0.55, green: 0.62, blue: 1.0))
-                        .matchedGeometryEffect(id: "rec.wave", in: morph)
                 }
             }
 
@@ -416,7 +426,6 @@ public struct CruxView: View {
             Circle()
                 .fill(paused ? Color.orange : Color.red)
                 .frame(width: 8, height: 8)
-                .matchedGeometryEffect(id: "rec.dot", in: morph)
                 .modifier(PulseModifier(active: !paused))
         default:
             meetingTile
@@ -433,7 +442,6 @@ public struct CruxView: View {
             } else {
                 // 실제 입력 레벨이 연결되기 전까지는 흉내 낸 파형이다.
                 LevelWaveform(barCount: 5, color: Color(red: 0.55, green: 0.62, blue: 1.0))
-                    .matchedGeometryEffect(id: "rec.wave", in: morph)
             }
         case let .generating(fraction, _):
             ProgressRing(fraction: fraction)

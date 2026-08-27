@@ -11,6 +11,8 @@ import SwiftUI
 public final class CruxWindowController {
     private var panel: NSPanel?
     private var hosting: NSHostingView<AnyView>?
+    /// 루트 뷰가 읽는 상태. 값을 바꾸면 SwiftUI가 정상 업데이트로 반영한다.
+    private var model: CruxShelfModel?
     private var metrics: NotchMetrics?
     private var lastKindId: String?
     /// 셸프 표시 상태. 뷰가 아니라 창이 들고 있어야 새 크기를 계산할 수 있다.
@@ -29,8 +31,10 @@ public final class CruxWindowController {
     private var render: (() -> Void)?
     private var snapshotCounter = 0
     private var eventMonitors: [Any] = []
-    /// 접히는 동안 셸프 크기를 창이 따라가는 중인지. 펼칠 때는 false(창을 즉시 최종 크기로).
-    private var followsContentSize = false
+    /// 전환 스프링이 정착하기를 기다리는 중인지. 정착 시 창을 정확한 크기로 한 번 맞춘다.
+    private var awaitingSettle = false
+    private var settleWork: DispatchWorkItem?
+    private var lastContentSize: CGSize?
     /// 개발용 자동 토글 타이머. `CRUX_DEMO_TOGGLE=1`일 때만 돈다.
     private var demoToggleTimer: Timer?
 
@@ -70,47 +74,24 @@ public final class CruxWindowController {
             expansionMode = .pinned
         }
 
-        render = { [weak self] in
-            guard let self else { return }
-            let view = AnyView(
-                CruxView(
-                    state: state,
-                    detailMessage: detailMessage,
-                    meetingTitle: meetingTitle,
-                    memos: memos,
-                    metrics: metrics,
-                    expansionMode: expansionMode,
-                    onAddMemo: onAddMemo,
-                    onMemoFocusChange: { [weak self] focused in
-                        self?.setMemoEditing(focused)
-                    },
-                    onContentSizeChange: { [weak self] size in
-                        self?.followContentSize(size)
-                    },
-                    onHoverChange: { [weak self] hovering in
-                        self?.setHovering(hovering)
-                    },
-                    onTogglePin: { [weak self] in
-                        self?.togglePin()
-                    },
-                    onCollapse: { [weak self] in
-                        self?.collapseShelf(animated: true)
-                    },
-                    onPrimaryAction: onPrimaryAction,
-                    onDismiss: onDismiss,
-                    onOpenPreview: onOpenPreview,
-                    onTogglePause: onTogglePause,
-                    onStop: onStop,
-                    onCancelProcessing: onCancelProcessing
-                )
+        // 루트 뷰는 한 번만 만든다. 이후에는 모델 값만 바꾼다.
+        // `rootView`를 매번 새 값으로 대입하면 SwiftUI가 애니메이션 트랜잭션 없이 즉시 갈아 끼워
+        // 접힘/펼침 스프링이 전혀 돌지 않는다(영상 프레임으로 확인). 모델 변경은 정상적인
+        // SwiftUI 업데이트라 `withAnimation`이 그대로 실린다.
+        if hosting == nil {
+            let model = CruxShelfModel(
+                state: state,
+                metrics: metrics,
+                expansionMode: expansionMode
             )
-            hosting?.rootView = view
-        }
+            model.onMemoFocusChange = { [weak self] focused in self?.setMemoEditing(focused) }
+            model.onContentSizeChange = { [weak self] size in self?.followContentSize(size) }
+            model.onHoverChange = { [weak self] hovering in self?.setHovering(hovering) }
+            model.onTogglePin = { [weak self] in self?.togglePin() }
+            model.onCollapse = { [weak self] in self?.collapseShelf(animated: true) }
+            self.model = model
 
-        if hosting != nil {
-            render?()
-        } else {
-            let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+            let hostingView = NSHostingView(rootView: AnyView(CruxShelfRoot(model: model)))
             hostingView.translatesAutoresizingMaskIntoConstraints = true
             hostingView.wantsLayer = true
             hostingView.layer?.masksToBounds = true
@@ -137,10 +118,31 @@ public final class CruxWindowController {
             panel.contentView = hostingView
             self.panel = panel
             installOutsideClickMonitor()
-            render?()
         }
 
-        resize(animated: false)
+        render = { [weak self] in
+            guard let self, let model = self.model else { return }
+            model.state = state
+            model.detailMessage = detailMessage
+            model.meetingTitle = meetingTitle
+            model.memos = memos
+            model.metrics = metrics
+            model.onAddMemo = onAddMemo
+            model.onPrimaryAction = onPrimaryAction
+            model.onDismiss = onDismiss
+            model.onOpenPreview = onOpenPreview
+            model.onTogglePause = onTogglePause
+            model.onStop = onStop
+            model.onCancelProcessing = onCancelProcessing
+            // 접힘/펼침만 스프링으로. 나머지 값 변화는 즉시 반영한다.
+            if model.expansionMode != self.expansionMode {
+                withAnimation(CruxAnimation.swiftUI) {
+                    model.expansionMode = self.expansionMode
+                }
+            }
+        }
+
+        transition(animated: false)
         panel?.orderFrontRegardless()
         debugSnapshot(tag: "shown")
         startDemoToggleIfNeeded()
@@ -169,6 +171,7 @@ public final class CruxWindowController {
         panel?.close()
         panel = nil
         hosting = nil
+        model = nil
     }
 
     /// 메모를 입력하는 동안은 포인터가 나가도 접지 않는다. 입력이 끝나면 다시 호버 규칙을 따른다.
@@ -177,8 +180,7 @@ public final class CruxWindowController {
             cancelCollapseCheck()
             if expansionMode != .pinned {
                 expansionMode = .pinned
-                render?()
-                resize(animated: true)
+                transition(animated: true)
             }
             panel?.makeKey()
         } else if expansionMode == .pinned, !isMouseInPanel() {
@@ -205,8 +207,7 @@ public final class CruxWindowController {
         guard expansionMode != nextMode else { return }
         expansionMode = nextMode
         ignoreLeaveUntil = CapsuleHoverGate.ignoreDeadline(after: Date())
-        render?()
-        resize(animated: true)
+        transition(animated: true)
         debugSnapshot(tag: hovering ? "hover" : "leave")
     }
 
@@ -247,8 +248,7 @@ public final class CruxWindowController {
         cancelCollapseCheck()
         expansionMode = CapsuleHoverGate.mode(afterPinToggle: expansionMode)
         ignoreLeaveUntil = CapsuleHoverGate.ignoreDeadline(after: Date())
-        render?()
-        resize(animated: true)
+        transition(animated: true)
         debugSnapshot(tag: expansionMode.isPinned ? "pinned" : "unpinned")
     }
 
@@ -259,8 +259,7 @@ public final class CruxWindowController {
         cancelCollapseCheck()
         expansionMode = .collapsed
         ignoreLeaveUntil = nil
-        render?()
-        resize(animated: animated)
+        transition(animated: animated)
         debugSnapshot(tag: "collapse")
     }
 
@@ -317,38 +316,56 @@ public final class CruxWindowController {
 
     /// 지금 내용에 맞는 크기로 창을 맞춘다.
     ///
-    /// 접힘/펼침 전환. 창 크기는 두 방향을 다르게 다뤄야 자연스럽다.
+    /// 접힘/펼침 전환. 원칙은 하나다 — **창 프레임은 애니메이션이 도는 동안 절대 바뀌지 않는다.**
+    /// 창(윈도우 서버)과 SwiftUI 스프링(렌더러)은 프레임 단위로 동기화할 수 없어서,
+    /// 애니메이션 중에 창을 건드리면 반드시 어긋난 프레임(배경 비침·요소 이탈)이 생긴다.
     ///
-    /// - 펼침: 최종 크기로 창을 **즉시** 키운다. 창이 먼저 커져 있으면 안에서 스프링으로
-    ///   자라나는 검은 셸프가 잘리지 않는다.
-    /// - 접힘: 창을 미리 줄이지 않는다. 대신 셸프가 스프링으로 줄어드는 실제 크기를
-    ///   `followContentSize`로 매 프레임 받아 창이 그대로 따라간다. 창이 항상 내용보다
-    ///   크거나 같아 배경이 비치지 않고, 지연 스냅도 없다.
-    private func resize(animated: Bool) {
+    /// - 펼침: 창을 **먼저** 넉넉한 최대 프레임으로 키운 뒤 렌더한다. 스프링은 이미 커진 창 안에서만 돈다.
+    /// - 접힘: 렌더로 스프링을 시작하고 창은 큰 채로 둔다. 셸프가 접힘 높이로 정착하면 그때 한 번 스냅한다.
+    private func transition(animated: Bool) {
         guard let hosting else { return }
         if !animated {
-            followsContentSize = false
+            awaitingSettle = false
+            render?()
             hosting.layoutSubtreeIfNeeded()
             setWindowSize(hosting.fittingSize)
             return
         }
+        settleWork?.cancel()
         if expansionMode.isExpanded {
-            followsContentSize = false
-            hosting.layoutSubtreeIfNeeded()
-            setWindowSize(hosting.fittingSize) // 최종 펼침 크기로 즉시
+            // 순서가 핵심: 창 확대 → 렌더. 반대로 하면 셸프가 32pt 창 안에서 자라다 창이 점프한다.
+            awaitingSettle = true
+            setWindowSize(maxContentSize)
+            render?()
         } else {
-            followsContentSize = true // 셸프가 줄어드는 걸 창이 따라간다
+            awaitingSettle = true
+            render?()
         }
     }
 
-    /// 셸프의 실제 렌더 크기를 창에 반영한다. 접히는 동안에만 창을 따라 줄인다.
-    private func followContentSize(_ size: CGSize) {
-        guard followsContentSize else { return }
+    /// 스프링이 도는 동안 셸프가 어떤 크기까지 커져도 잘리지 않을 넉넉한 창 크기.
+    /// 투명이라 커도 보이지 않는다. 정확할 필요 없이 최대치만 넘으면 된다.
+    private var maxContentSize: CGSize {
         let metrics = metrics ?? NotchMetrics.from(screen: Self.activeScreen())
-        setWindowSize(size)
-        if size.height <= metrics.collapsedHeight + 0.5 {
-            followsContentSize = false
+        return CGSize(width: metrics.expandedWidth, height: 260)
+    }
+
+    /// 셸프의 실제 렌더 크기가 정착했을 때 창을 정확한 크기로 한 번 맞춘다.
+    ///
+    /// 이 콜백은 SwiftUI 레이아웃 도중 불린다. 여기서 `layoutSubtreeIfNeeded`나 `fittingSize`를
+    /// 동기로 부르면 진행 중인 애니메이션 트랜잭션이 강제 완료돼 스프링이 사라진다(즉시 전환).
+    /// 그래서 hosting view를 전혀 건드리지 않고, 크기 변화가 잠깐 멎으면 그때 창만 맞춘다.
+    private func followContentSize(_ size: CGSize) {
+        lastContentSize = size
+        guard awaitingSettle else { return }
+        settleWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.awaitingSettle, let size = self.lastContentSize else { return }
+            self.awaitingSettle = false
+            self.setWindowSize(size)
         }
+        settleWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
     }
 
     /// 화면 최상단·노치 중심에 맞춰 창 크기를 정한다. 상단은 항상 화면 맨 위에 고정한다.
@@ -356,7 +373,7 @@ public final class CruxWindowController {
         guard let panel else { return }
         let metrics = metrics ?? NotchMetrics.from(screen: Self.activeScreen())
         var size = contentSize
-        size.width = metrics.islandWidth(expanded: expansionMode.isExpanded)
+        size.width = max(size.width, metrics.islandWidth(expanded: expansionMode.isExpanded))
         size.height = max(ceil(size.height), metrics.collapsedHeight)
 
         let frame = metrics.windowFrame(for: size)
@@ -369,7 +386,7 @@ public final class CruxWindowController {
 
     /// 처음 띄울 때 등 애니메이션 없이 위치만 다시 잡을 때 쓴다.
     public func reposition(animated: Bool = false, contentSize _: CGSize? = nil) {
-        resize(animated: animated)
+        transition(animated: animated)
     }
 
     /// 마우스가 있는 화면을 활성 화면으로 본다. 외부 모니터를 쓰는 경우를 위한 처리다.
@@ -386,4 +403,62 @@ public final class CruxWindowController {
 /// `canBecomeKey`가 false면 텍스트 필드가 포커스를 받지 못한다.
 final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
+}
+
+/// 노치 셸프 루트 뷰가 읽는 상태. 창(CruxWindow)이 값을 바꾸고 SwiftUI가 애니메이션한다.
+@MainActor @Observable
+final class CruxShelfModel {
+    var state: CruxState
+    var detailMessage: String?
+    var meetingTitle: String?
+    var memos: [MeetingMemo] = []
+    var metrics: NotchMetrics
+    var expansionMode: CruxExpansionMode
+
+    var onAddMemo: (String) -> Void = { _ in }
+    var onMemoFocusChange: (Bool) -> Void = { _ in }
+    var onContentSizeChange: (CGSize) -> Void = { _ in }
+    var onHoverChange: (Bool) -> Void = { _ in }
+    var onTogglePin: () -> Void = {}
+    var onCollapse: () -> Void = {}
+    var onPrimaryAction: () -> Void = {}
+    var onDismiss: () -> Void = {}
+    var onOpenPreview: () -> Void = {}
+    var onTogglePause: () -> Void = {}
+    var onStop: () -> Void = {}
+    var onCancelProcessing: () -> Void = {}
+
+    init(state: CruxState, metrics: NotchMetrics, expansionMode: CruxExpansionMode) {
+        self.state = state
+        self.metrics = metrics
+        self.expansionMode = expansionMode
+    }
+}
+
+/// 한 번만 만들어지는 루트. 모델이 바뀔 때마다 CruxView를 다시 그린다.
+struct CruxShelfRoot: View {
+    let model: CruxShelfModel
+
+    var body: some View {
+        CruxView(
+            state: model.state,
+            detailMessage: model.detailMessage,
+            meetingTitle: model.meetingTitle,
+            memos: model.memos,
+            metrics: model.metrics,
+            expansionMode: model.expansionMode,
+            onAddMemo: model.onAddMemo,
+            onMemoFocusChange: model.onMemoFocusChange,
+            onContentSizeChange: model.onContentSizeChange,
+            onHoverChange: model.onHoverChange,
+            onTogglePin: model.onTogglePin,
+            onCollapse: model.onCollapse,
+            onPrimaryAction: model.onPrimaryAction,
+            onDismiss: model.onDismiss,
+            onOpenPreview: model.onOpenPreview,
+            onTogglePause: model.onTogglePause,
+            onStop: model.onStop,
+            onCancelProcessing: model.onCancelProcessing
+        )
+    }
 }
