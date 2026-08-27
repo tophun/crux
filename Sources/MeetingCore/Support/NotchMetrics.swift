@@ -54,10 +54,7 @@ public struct NotchMetrics: Equatable, Sendable {
     ///
     /// `y`는 반올림하지 않는다. 반올림하면 접힐 때 화면 상단과 1px 틈이 생긴다.
     public func windowOrigin(for size: CGSize) -> CGPoint {
-        CGPoint(
-            x: (notchCenterX - size.width / 2).rounded(),
-            y: screenFrame.maxY - size.height
-        )
+        windowFrame(for: size).origin
     }
 
     /// 상단을 고정한 채로 크기를 바꿀 때 쓰는 프레임.

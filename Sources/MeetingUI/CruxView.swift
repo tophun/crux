@@ -13,13 +13,14 @@ public struct CruxView: View {
     let meetingTitle: String?
     /// 녹음 중 남긴 메모. 최근 것부터 두 개만 보여 준다.
     let memos: [MeetingMemo]
+    /// 회의록 생성 중 현재 단계. 상세의 단계 체크리스트를 그린다.
+    let processingStage: ProcessingStage?
     let metrics: NotchMetrics
     let expansionMode: CruxExpansionMode
+    /// 상태별 문구·동작 매핑. 한 번만 만들어 두고 본문에서 여러 번 읽는다.
+    let presentation: CruxPresentationModel
     let onHoverChange: (Bool) -> Void
     let onTogglePin: () -> Void
-    /// 셸프만 접는 표시 동작. 회의 상태를 숨기는 `onDismiss`와 분리한다.
-    let onCollapse: () -> Void
-    /// 도메인 상태를 닫는 동작은 호출부가 명시적으로 필요할 때만 사용한다.
     let onPrimaryAction: () -> Void
     let onDismiss: () -> Void
     let onOpenPreview: () -> Void
@@ -41,6 +42,7 @@ public struct CruxView: View {
         detailMessage: String? = nil,
         meetingTitle: String? = nil,
         memos: [MeetingMemo] = [],
+        processingStage: ProcessingStage? = nil,
         metrics: NotchMetrics,
         expansionMode: CruxExpansionMode = .collapsed,
         onAddMemo: @escaping (String) -> Void = { _ in },
@@ -48,7 +50,6 @@ public struct CruxView: View {
         onContentSizeChange: @escaping (CGSize) -> Void = { _ in },
         onHoverChange: @escaping (Bool) -> Void = { _ in },
         onTogglePin: @escaping () -> Void = {},
-        onCollapse: (() -> Void)? = nil,
         onPrimaryAction: @escaping () -> Void,
         onDismiss: @escaping () -> Void,
         onOpenPreview: @escaping () -> Void,
@@ -60,58 +61,21 @@ public struct CruxView: View {
         self.detailMessage = detailMessage
         self.meetingTitle = meetingTitle
         self.memos = memos
+        self.processingStage = processingStage
         self.metrics = metrics
+        self.presentation = CruxPresentationModel(state: state, detailMessage: detailMessage)
         self.onAddMemo = onAddMemo
         self.onMemoFocusChange = onMemoFocusChange
         self.onContentSizeChange = onContentSizeChange
         self.expansionMode = expansionMode
         self.onHoverChange = onHoverChange
         self.onTogglePin = onTogglePin
-        self.onCollapse = onCollapse ?? onDismiss
         self.onPrimaryAction = onPrimaryAction
         self.onDismiss = onDismiss
         self.onOpenPreview = onOpenPreview
         self.onTogglePause = onTogglePause
         self.onStop = onStop
         self.onCancelProcessing = onCancelProcessing
-    }
-
-    /// 이전 호출부와의 호환성을 유지하면서 표시 상태는 하나의 값으로 정규화한다.
-    public init(
-        state: CruxState,
-        detailMessage: String? = nil,
-        metrics: NotchMetrics,
-        isHovering: Bool = false,
-        isPinned: Bool = false,
-        onHoverChange: @escaping (Bool) -> Void = { _ in },
-        onTogglePin: @escaping () -> Void = {},
-        onCollapse: (() -> Void)? = nil,
-        onPrimaryAction: @escaping () -> Void,
-        onDismiss: @escaping () -> Void,
-        onOpenPreview: @escaping () -> Void,
-        onTogglePause: @escaping () -> Void = {},
-        onStop: @escaping () -> Void = {},
-        onCancelProcessing: @escaping () -> Void = {}
-    ) {
-        self.init(
-            state: state,
-            detailMessage: detailMessage,
-            metrics: metrics,
-            expansionMode: .resolve(isHovering: isHovering, isPinned: isPinned),
-            onHoverChange: onHoverChange,
-            onTogglePin: onTogglePin,
-            onCollapse: onCollapse,
-            onPrimaryAction: onPrimaryAction,
-            onDismiss: onDismiss,
-            onOpenPreview: onOpenPreview,
-            onTogglePause: onTogglePause,
-            onStop: onStop,
-            onCancelProcessing: onCancelProcessing
-        )
-    }
-
-    private var presentation: CruxPresentationModel {
-        CruxPresentationModel(state: state, detailMessage: detailMessage)
     }
 
     private var isEnlarged: Bool {
@@ -133,31 +97,18 @@ public struct CruxView: View {
         metrics.islandWidth(expanded: isEnlarged)
     }
 
+    /// 녹음 중에는 텍스트 버튼 대신 아이콘 버튼(일시정지·종료)만 둔다.
     private var showsTextButton: Bool {
-        presentation.primaryAction != nil && !isRecording
+        presentation.primaryAction != nil && !presentation.showsRecordingIndicator
     }
 
-    private var textButtonTitle: String? {
-        presentation.primaryAction?.title
-    }
-
+    /// 상세는 보조 문구가 있을 때만. 진행률이 있는 상태(생성 중)는 항상 문구도 같이 온다.
     private var showsDetail: Bool {
-        isEnlarged && hasDetailCopy
+        isEnlarged && presentation.detailText != nil
     }
 
-    private var hasDetailCopy: Bool {
-        presentation.detailText != nil || presentation.progressFraction != nil
-    }
-
-    private var isGenerating: Bool {
-        if case .generating = state { return true }
-        return false
-    }
-
-    private var isRecording: Bool {
-        if case .recording = state { return true }
-        return false
-    }
+    /// 파형 색. 접힘·펼침 두 곳에서 같은 값을 쓴다.
+    private static let waveformTint = Color(red: 0.55, green: 0.62, blue: 1.0)
 
     public var body: some View {
         capsuleShape
@@ -184,7 +135,7 @@ public struct CruxView: View {
         VStack(spacing: 0) {
             if isEnlarged, case let .recording(seconds, paused) = state {
                 // 녹음 중 펼침은 바+상세 대신 미디어 플레이어형 3단 구조를 쓴다.
-                recordingExpanded(seconds: Int(seconds), paused: paused)
+                recordingExpanded(seconds: seconds, paused: paused)
                     .transition(Self.contentSwap)
             } else {
                 VStack(spacing: 0) {
@@ -257,7 +208,7 @@ public struct CruxView: View {
             HStack(spacing: 6) {
                 // 펼친 상태에서 텍스트 버튼이 있으면 보조 문구는 뺀다. 같은 내용이 아래 상세에 있고,
                 // 둘을 다 두면 날개 폭이 모자라 버튼 제목이 잘린다.
-                if let trailing = presentation.trailingText, !(showsTextButton || isGenerating) {
+                if let trailing = presentation.trailingText, !showsTextButton, presentation.progressFraction == nil {
                     Text(trailing)
                         .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
@@ -286,7 +237,7 @@ public struct CruxView: View {
     ///
     /// 상단 띠 높이는 접힌 캡슐과 같다. 이 띠의 가운데는 **하드웨어 노치가 실제로 가리는 영역**이라
     /// 글자를 두면 실기에서 잘려 보인다. 그래서 상단 띠에는 날개 아이콘만 두고 제목은 그 아래에 놓는다.
-    private func recordingExpanded(seconds: Int, paused: Bool) -> some View {
+    private func recordingExpanded(seconds: TimeInterval, paused: Bool) -> some View {
         let title = meetingTitle ?? (paused ? "녹음 일시정지" : "녹음 중")
         return VStack(alignment: .leading, spacing: 0) {
             // 상단 띠: 노치 좌우 날개
@@ -310,7 +261,7 @@ public struct CruxView: View {
                             .foregroundStyle(.orange)
                     } else {
                         // 실제 입력 레벨이 연결되기 전까지는 흉내 낸 파형이다.
-                        LevelWaveform(barCount: 6, color: Color(red: 0.55, green: 0.62, blue: 1.0))
+                        LevelWaveform(barCount: 6, color: Self.waveformTint)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -327,7 +278,7 @@ public struct CruxView: View {
                     Circle()
                         .fill(paused ? Color.orange : Color.red)
                         .frame(width: 6, height: 6)
-                    Text(Self.clock(seconds))
+                    Text(CruxState.clock(seconds))
                         .font(.system(size: 11, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.white.opacity(0.7))
@@ -425,11 +376,6 @@ public struct CruxView: View {
         .accessibilityLabel(help)
     }
 
-    private static func clock(_ seconds: Int) -> String {
-        let m = seconds / 60, s = seconds % 60
-        return String(format: "%d:%02d", m, s)
-    }
-
     // MARK: 접힌 상태
 
     @ViewBuilder
@@ -454,7 +400,7 @@ public struct CruxView: View {
                     .font(.system(size: 11, weight: .bold))
             } else {
                 // 실제 입력 레벨이 연결되기 전까지는 흉내 낸 파형이다.
-                LevelWaveform(barCount: 5, color: Color(red: 0.55, green: 0.62, blue: 1.0))
+                LevelWaveform(barCount: 5, color: Self.waveformTint)
             }
         case let .generating(fraction, _):
             ProgressRing(fraction: fraction)
@@ -507,10 +453,10 @@ public struct CruxView: View {
 
     @ViewBuilder
     private var trailingControls: some View {
-        if let title = textButtonTitle, showsTextButton {
-            Button(title, action: textButtonAction)
+        if showsTextButton, let action = presentation.primaryAction {
+            Button(action.title, action: textButtonAction)
                 .buttonStyle(CapsuleButtonStyle())
-                .accessibilityLabel(presentation.primaryAction?.accessibilityLabel ?? title)
+                .accessibilityLabel(action.accessibilityLabel)
         }
         switch state {
         case let .recording(_, paused):
@@ -555,16 +501,28 @@ public struct CruxView: View {
 
     @ViewBuilder
     private var detail: some View {
-        if case .generating = state, let progress = presentation.progressFraction {
+        if let progress = presentation.progressFraction {
             generatingDetail(progress: progress)
         } else {
             standardDetail
         }
     }
 
+    /// 단계 체크리스트 한 줄의 상태.
+    private enum StepStatus { case done, current, pending }
+
+    /// 현재 단계를 기준으로 전 단계에 완료/진행/대기 표시를 붙인다. 단계 정보가 없으면 빈 배열.
+    private var processingSteps: [(stage: ProcessingStage, status: StepStatus)] {
+        guard let current = processingStage,
+              let currentIndex = ProcessingStage.allCases.firstIndex(of: current) else { return [] }
+        return ProcessingStage.allCases.enumerated().map { index, stage in
+            (stage, index < currentIndex ? .done : (index == currentIndex ? .current : .pending))
+        }
+    }
+
     /// 회의록 생성 중 상세. 진행률 한 줄과 단계 체크리스트를 보여 준다.
     private func generatingDetail(progress: Double) -> some View {
-        let steps = ProcessingStepLine.parse(presentation.detailText)
+        let steps = processingSteps
         return VStack(alignment: .leading, spacing: 8) {
             Divider().overlay(.white.opacity(0.14))
             HStack(spacing: 8) {
@@ -586,10 +544,10 @@ public struct CruxView: View {
                     .foregroundStyle(.white.opacity(0.8))
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(steps) { step in
+                    ForEach(steps, id: \.stage) { step in
                         HStack(spacing: 7) {
                             stepMarker(step.status)
-                            Text(step.title)
+                            Text(step.stage.displayName)
                                 .font(.system(size: 11, weight: step.status == .current ? .semibold : .regular))
                                 .foregroundStyle(.white.opacity(step.status == .pending ? 0.45 : 0.95))
                         }
@@ -603,7 +561,7 @@ public struct CruxView: View {
     }
 
     @ViewBuilder
-    private func stepMarker(_ status: ProcessingStepLine.Status) -> some View {
+    private func stepMarker(_ status: StepStatus) -> some View {
         switch status {
         case .done:
             Image(systemName: "checkmark.circle.fill")
@@ -629,13 +587,6 @@ public struct CruxView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-            if let progress = presentation.progressFraction {
-                ProgressView(value: progress)
-                    .progressViewStyle(.linear)
-                    .tint(.white)
-                    .accessibilityLabel("회의록 생성 진행률")
-                    .accessibilityValue("\(Int((progress * 100).rounded()))%")
             }
             if let detail = presentation.detailText {
                 Text(detail)
@@ -671,31 +622,6 @@ public struct CruxView: View {
         .buttonStyle(.plain)
         .help(help)
         .accessibilityLabel(help)
-    }
-}
-
-/// 코디네이터가 만든 단계 체크리스트 문구("✓ 오디오 준비\n▸ 음성 인식\n· 사실 추출")를 행으로 푼다.
-struct ProcessingStepLine: Identifiable, Equatable {
-    enum Status { case done, current, pending }
-
-    let id: Int
-    let title: String
-    let status: Status
-
-    static func parse(_ text: String?) -> [ProcessingStepLine] {
-        guard let text else { return [] }
-        let lines = text.split(separator: "\n").map(String.init)
-        var result: [ProcessingStepLine] = []
-        for (index, line) in lines.enumerated() {
-            let status: Status
-            if line.hasPrefix("✓") { status = .done }
-            else if line.hasPrefix("▸") { status = .current }
-            else if line.hasPrefix("·") { status = .pending }
-            else { return [] }
-            let title = line.dropFirst().trimmingCharacters(in: .whitespaces)
-            result.append(ProcessingStepLine(id: index, title: title, status: status))
-        }
-        return result
     }
 }
 
@@ -796,12 +722,8 @@ struct CapsuleButtonStyle: ButtonStyle {
     }
 }
 
-/// 노치 셸프와 창이 함께 쓰는 애니메이션. 셸프는 이 스프링으로 변형되고,
-/// 창은 셸프의 실제 크기를 프레임마다 따라가므로 둘이 완전히 같이 움직인다.
+/// 노치 셸프의 접힘/펼침 스프링. 창은 애니메이션 중 움직이지 않고 정착 후 한 번 맞춘다.
 enum CruxAnimation {
-    /// 스프링 정착까지의 대략적 시간. 스냅샷 대기 등에만 쓴다(애니메이션 자체는 스프링이 구동).
-    static let duration: TimeInterval = 0.6
-
     /// 다이나믹 아일랜드에 가까운 스프링. damping을 높게 둬 과한 반동을 없앤다.
     static var swiftUI: Animation {
         .spring(response: 0.38, dampingFraction: 0.86)

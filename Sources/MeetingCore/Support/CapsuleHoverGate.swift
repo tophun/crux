@@ -45,22 +45,6 @@ public enum CapsuleHoverGate {
         !mouseInWindow
     }
 
-    /// 호버 이벤트를 셸프의 단일 표시 상태로 변환한다.
-    public static func mode(afterHover hovering: Bool, current: CruxExpansionMode) -> CruxExpansionMode {
-        current.handlingHover(hovering)
-    }
-
-    /// 캡슐 본체를 클릭했을 때 고정을 토글한다.
-    public static func mode(afterPinToggle current: CruxExpansionMode) -> CruxExpansionMode {
-        current.togglingPin()
-    }
-
-    /// 외부 클릭이나 상태 종료처럼 명시적으로 닫아야 할 때 쓴다.
-    public static func mode(afterExternalClick current: CruxExpansionMode) -> CruxExpansionMode {
-        guard current != .collapsed else { return .collapsed }
-        return .collapsed
-    }
-
     /// hover-off 확인 결과. 창 안에 있으면 접지 않고 다시 본다.
     ///
     /// SwiftUI는 뷰를 다시 그리면서 leave를 한 번만 보낼 수 있다.

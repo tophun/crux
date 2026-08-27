@@ -348,15 +348,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lastState = state
         lastMemoCount = memos.count
 
-        // 데모 모드의 생성 상태는 실제 파이프라인이 없으므로 단계 체크리스트를 흉내 낸다.
-        let detailMessage = Self.demoCapsuleState != nil && state.kindId == "generating"
-            ? MeetingSessionCoordinator.stageChecklist(current: .extractFacts)
-            : coordinator.detailMessage
+        let isDemo = Self.demoCapsuleState != nil
         capsuleWindow.show(
             state: state,
-            detailMessage: detailMessage,
-            meetingTitle: Self.demoCapsuleState != nil ? "데모 회의" : coordinator.activeMeetingTitle,
+            detailMessage: coordinator.detailMessage,
+            meetingTitle: isDemo ? "데모 회의" : coordinator.activeMeetingTitle,
             memos: memos,
+            // 데모 모드의 생성 상태는 실제 파이프라인이 없으므로 단계 하나를 가정한다.
+            processingStage: isDemo && state.kindId == "generating" ? .extractFacts : coordinator.processingStage,
             onAddMemo: { coordinator.addMemo($0) },
             onPrimaryAction: { [weak self] in self?.handlePrimaryAction(state) },
             onDismiss: {

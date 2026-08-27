@@ -27,6 +27,8 @@ public final class MeetingSessionCoordinator {
     /// 녹음 중 노치에서 남긴 메모. 회의 저장 폴더의 memos.json과 같은 내용이다.
     public private(set) var memos: [MeetingMemo] = []
     private var memoStore: MeetingMemoStore?
+    /// 회의록 생성 중 현재 단계. 캡슐 상세가 단계 체크리스트를 그리는 데 쓴다.
+    public private(set) var processingStage: ProcessingStage?
 
     /// 회의 목록이 바뀌었을 때 알린다. 앱이 회의 목록·상세 화면을 새로 고치는 데 쓴다.
     /// (녹음 시작, 처리 완료, 처리 실패 시점)
@@ -354,8 +356,8 @@ public final class MeetingSessionCoordinator {
                         lastStage = update.stage
                         onMeetingsChanged?(nil)
                     }
-                    // 캡슐 상세에 어떤 단계가 끝났고 무엇이 남았는지 보여 준다.
-                    detailMessage = Self.stageChecklist(current: update.stage)
+                    // 캡슐 상세가 어떤 단계가 끝났고 무엇이 남았는지 그린다.
+                    processingStage = update.stage
                 }
             } }
             processingCancelRequested = false
@@ -366,6 +368,7 @@ public final class MeetingSessionCoordinator {
             defer { processingCancel = nil }
             let result = try await task.value
             detailMessage = nil
+            processingStage = nil
             capsule = machine.apply(
                 .previewReady(meetingId: meetingId, actionItemCount: result.note.actionItems.count)
             )
@@ -374,8 +377,8 @@ public final class MeetingSessionCoordinator {
             onMeetingsChanged?(meetingId)
         } catch where error is CancellationError || processingCancelRequested {
             // 사용자가 직접 취소한 경우다. 오류가 아니므로 실패 메시지를 띄우지 않는다.
-            processingCancelRequested = false
             detailMessage = nil
+            processingStage = nil
             try? repository.updateStatus(.recorded, meetingId: meetingId)
             capsule = machine.apply(.reset)
             log?("회의록 생성 취소: \(meetingId) — 녹음은 보관, 상세 화면에서 다시 생성할 수 있습니다.")
@@ -383,6 +386,7 @@ public final class MeetingSessionCoordinator {
         } catch {
             lastError = error.localizedDescription
             detailMessage = nil
+            processingStage = nil
             log?("녹음 종료·처리 실패: \(error.localizedDescription)")
             try? repository.updateStatus(.failed, meetingId: meetingId)
             capsule = machine.apply(.failed(message: error.localizedDescription))
@@ -397,8 +401,9 @@ public final class MeetingSessionCoordinator {
         var elapsed: TimeInterval = 0
         if case let .recording(seconds, _) = capsule { elapsed = seconds }
         let memo = MeetingMemo(elapsed: elapsed, text: trimmed)
+        memos.append(memo)
         do {
-            memos = try memoStore.append(memo)
+            try memoStore.save(memos)
         } catch {
             lastError = error.localizedDescription
             log?("메모 저장 실패: \(error.localizedDescription)")
@@ -408,16 +413,6 @@ public final class MeetingSessionCoordinator {
     /// 회의록 생성을 취소한다. 캡슐의 취소 버튼에서 부른다.
     public func cancelProcessing() {
         processingCancel?()
-    }
-
-    /// 파이프라인 단계 체크리스트 문구. 캡슐 상세에 보여 준다.
-    public static func stageChecklist(current: ProcessingStage) -> String {
-        let all = ProcessingStage.allCases
-        guard let currentIndex = all.firstIndex(of: current) else { return current.displayName }
-        return all.enumerated().map { index, stage in
-            let marker = index < currentIndex ? "✓" : (index == currentIndex ? "▸" : "·")
-            return "\(marker) \(stage.displayName)"
-        }.joined(separator: "\n")
     }
 
     public func dismissCapsule() {

@@ -18,10 +18,6 @@ public enum CruxExpansionMode: Equatable, Sendable {
         self == .pinned
     }
 
-    public var isPreview: Bool {
-        self == .preview
-    }
-
     /// 기존 호버/고정 입력을 한 가지 표시 상태로 정규화한다.
     public static func resolve(isHovering: Bool, isPinned: Bool) -> Self {
         if isPinned {
@@ -285,7 +281,6 @@ public enum CruxShelfAction: String, Equatable, Sendable {
 /// 있고, 화면은 이 모델을 그리기만 한다.
 public struct CruxPresentationModel: Equatable, Sendable {
     public let stateKind: String
-    public let compactTitle: String
     public let title: String?
     public let detailText: String?
     public let trailingText: String?
@@ -297,16 +292,8 @@ public struct CruxPresentationModel: Equatable, Sendable {
     public let secondaryActions: [CruxShelfAction]
     public let accessibilityLabel: String
 
-    public var kindId: String { stateKind }
-    public var statusText: String { title ?? "" }
-    public var compactStatusText: String { compactTitle }
-    public var detailMessage: String? { detailText }
-    public var progress: Double? { progressFraction }
-    public var primaryActionTitle: String? { primaryAction?.title }
-
     public init(state: CruxState, detailMessage: String? = nil) {
         stateKind = state.kindId
-        compactTitle = state.compactStatusText
         trailingText = state.trailingText
         symbolName = state.symbolName
         showsRecordingIndicator = state.showsRecordingIndicator
@@ -391,11 +378,6 @@ public struct CruxPresentationModel: Equatable, Sendable {
         )
     }
 
-    /// `CruxState`에서 바로 표현 모델을 얻는다.
-    public static func make(state: CruxState, detailMessage: String? = nil) -> Self {
-        Self(state: state, detailMessage: detailMessage)
-    }
-
     private static func makeAccessibilityLabel(
         state: CruxState,
         title: String?,
@@ -419,22 +401,6 @@ public struct CruxPresentationModel: Equatable, Sendable {
             parts.append("가능한 동작: \(actions.joined(separator: ", "))")
         }
         return parts.joined(separator: ". ")
-    }
-}
-
-/// 표현 모델의 짧은 이름도 제공해 화면 코드와 테스트에서 읽기 쉽게 한다.
-public typealias CruxShelfPresentation = CruxPresentationModel
-public typealias CruxPresentation = CruxPresentationModel
-
-public extension CruxState {
-    /// 기본 상태 문구로 만든 셸프 표현 모델.
-    var presentation: CruxPresentationModel {
-        CruxPresentationModel(state: self)
-    }
-
-    /// 처리 단계 메시지를 UI에서 덮어써야 할 때 사용하는 표현 모델.
-    func presentation(detailMessage: String?) -> CruxPresentationModel {
-        CruxPresentationModel(state: self, detailMessage: detailMessage)
     }
 }
 
