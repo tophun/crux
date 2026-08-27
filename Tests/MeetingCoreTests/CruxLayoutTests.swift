@@ -49,6 +49,20 @@ struct CruxLayoutTests {
         #expect(state.trailingText == "5분 전")
     }
 
+    @Test("접힌 노치에는 짧은 문구만 두고 제목·긴 문장은 넣지 않는다")
+    func compactStatusAvoidsTruncation() {
+        let imminent = CruxState.imminent(title: "주간 유저성장 회의", minutesUntilStart: 5)
+        #expect(imminent.compactStatusText == "곧 시작")
+        #expect(!imminent.compactStatusText.contains("주간"))
+
+        #expect(CruxState.detected(title: nil, message: "확인").compactStatusText == "회의 시작")
+        #expect(CruxState.detected(title: nil, message: "확인").statusText == "회의가 시작된 것 같습니다")
+        #expect(CruxState.generating(fraction: 0.4, message: "음성 인식").compactStatusText == "작성 중")
+        #expect(CruxState.previewReady(meetingId: UUID(), actionItemCount: 3).compactStatusText == "준비 완료")
+        #expect(CruxState.recording(elapsed: 12, paused: false).compactStatusText == "녹음 중")
+        #expect(CruxState.failed(message: "오류").compactStatusText == "처리 실패")
+    }
+
     @Test("녹음 중에는 아이콘 대신 점을 그리므로 심볼이 없다")
     func recordingHasNoSymbol() {
         #expect(CruxState.recording(elapsed: 0, paused: false).symbolName == nil)
@@ -80,5 +94,107 @@ struct CruxKindTests {
             CruxState.generating(fraction: 1, message: "").kindId
                 != CruxState.previewReady(meetingId: UUID(), actionItemCount: 1).kindId
         )
+    }
+}
+
+@Suite("캡슐 셸프 표시 모델")
+struct CruxPresentationTests {
+    @Test("표시 모드는 호버·고정 조합을 세 가지 값으로 정규화한다")
+    func expansionModeTransitions() {
+        #expect(CruxExpansionMode.resolve(isHovering: false, isPinned: false) == .collapsed)
+        #expect(CruxExpansionMode.resolve(isHovering: true, isPinned: false) == .preview)
+        #expect(CruxExpansionMode.resolve(isHovering: false, isPinned: true) == .pinned)
+        #expect(CruxExpansionMode.preview.handlingHover(false) == .collapsed)
+        #expect(CruxExpansionMode.pinned.handlingHover(false) == .pinned)
+        #expect(CruxExpansionMode.preview.togglingPin() == .pinned)
+        #expect(CruxExpansionMode.pinned.togglingPin() == .collapsed)
+    }
+
+    @Test("첫 표시에서는 데모 미리보기 모드를 접지 않는다")
+    func keepsInitialDemoPreview() {
+        #expect(
+            !CapsuleHoverGate.shouldResetExpansionMode(
+                previousKindId: nil,
+                nextKindId: "recording"
+            )
+        )
+        #expect(
+            CapsuleHoverGate.shouldResetExpansionMode(
+                previousKindId: "detected",
+                nextKindId: "recording"
+            )
+        )
+        #expect(
+            !CapsuleHoverGate.shouldResetExpansionMode(
+                previousKindId: "recording",
+                nextKindId: "recording"
+            )
+        )
+    }
+
+    @Test("녹음 상태는 경과 시간과 일시정지·종료 동작을 함께 제공한다")
+    func recordingPresentation() {
+        let presentation = CruxPresentationModel(
+            state: .recording(elapsed: 754, paused: false)
+        )
+        #expect(presentation.title == "녹음 중")
+        #expect(presentation.elapsed == 754)
+        #expect(presentation.primaryAction == .stopRecording)
+        #expect(presentation.secondaryActions == [.pauseRecording, .stopRecording])
+        #expect(presentation.accessibilityLabel.contains("경과 시간 12:34"))
+    }
+
+    @Test("생성 상태는 진행률과 취소 동작을 제공한다")
+    func generatingPresentation() {
+        let presentation = CruxPresentationModel(
+            state: .generating(fraction: 0.42, message: "음성 인식")
+        )
+        #expect(presentation.title == "회의록 작성 중")
+        #expect(presentation.progressFraction == 0.42)
+        #expect(presentation.primaryAction == nil)
+        #expect(presentation.secondaryActions == [.cancelProcessing])
+        #expect(presentation.accessibilityLabel.contains("진행률 42%"))
+    }
+
+    @Test("실패 상태는 오류 문구와 재시도·닫기 동작을 제공한다")
+    func failedPresentation() {
+        let presentation = CruxPresentationModel(state: .failed(message: "네트워크 오류"))
+        #expect(presentation.title == "처리 실패")
+        #expect(presentation.detailText == "네트워크 오류")
+        #expect(presentation.primaryAction == .retry)
+        #expect(presentation.secondaryActions == [.dismiss])
+    }
+
+    @Test("임박·감지·검토·게시 상태의 주 동작이 상태별로 매핑된다")
+    func promptAndCompletionActions() {
+        #expect(
+            CruxPresentationModel(
+                state: .imminent(title: "주간 회의", minutesUntilStart: 5)
+            ).primaryAction == .prepareMeeting
+        )
+        #expect(
+            CruxPresentationModel(
+                state: .detected(title: "주간 회의", message: "녹음하시겠습니까?")
+            ).primaryAction == .startMeeting
+        )
+        #expect(
+            CruxPresentationModel(
+                state: .previewReady(meetingId: UUID(), actionItemCount: 2)
+            ).primaryAction == .review
+        )
+        #expect(
+            CruxPresentationModel(
+                state: .published(confluencePageTitle: "게시 문서", jiraIssueCount: 1)
+            ).primaryAction == .open
+        )
+    }
+
+    @Test("생성 단계의 외부 안내 문구는 상태 메시지를 덮어쓸 수 있다")
+    func generatingDetailOverride() {
+        let presentation = CruxPresentationModel(
+            state: .generating(fraction: 0.2, message: "음성 인식"),
+            detailMessage: "화자 분리 중"
+        )
+        #expect(presentation.detailText == "화자 분리 중")
     }
 }

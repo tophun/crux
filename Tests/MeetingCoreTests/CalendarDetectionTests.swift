@@ -235,6 +235,30 @@ struct NotchMetricsTests {
         #expect(origin.y + 37 == metrics.screenFrame.maxY)
     }
 
+    @Test("크기가 바뀌어도 상단은 그대로라 노치에서 떨어지지 않는다")
+    func keepsTopEdgeWhenResizing() {
+        let metrics = notchedScreen()
+        let expanded = metrics.windowFrame(for: CGSize(width: 520, height: 90))
+        let collapsed = metrics.windowFrame(for: CGSize(width: 360, height: 37), keepingTopOf: expanded)
+        #expect(collapsed.maxY == expanded.maxY)
+        #expect(collapsed.maxY == metrics.screenFrame.maxY)
+        #expect(collapsed.midX == expanded.midX)
+    }
+
+    @Test("섬 너비는 접힘·펼침 두 값뿐이고 노치보다 좁아지지 않는다")
+    func islandHasTwoWidths() {
+        let metrics = notchedScreen()
+        #expect(metrics.compactWidth == metrics.notchWidth + 2 * NotchMetrics.compactWing)
+        #expect(metrics.expandedWidth >= metrics.compactWidth)
+        #expect(metrics.compactWidth > metrics.notchWidth)
+        #expect(metrics.islandWidth(expanded: false) == metrics.compactWidth)
+        #expect(metrics.islandWidth(expanded: true) == metrics.expandedWidth)
+        let compact = metrics.windowFrame(for: CGSize(width: metrics.compactWidth, height: 37))
+        let expanded = metrics.windowFrame(for: CGSize(width: metrics.expandedWidth, height: 90))
+        #expect(compact.midX == expanded.midX)
+        #expect(compact.maxY == expanded.maxY)
+    }
+
     @Test("노치 중심에 맞춰 가로 정렬한다")
     func centersOnNotch() {
         let metrics = notchedScreen()
