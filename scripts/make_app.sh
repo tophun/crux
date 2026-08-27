@@ -14,7 +14,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG="${CONFIG:-Debug}"
-BINARY="$ROOT/.xcbuild/Build/Products/$CONFIG/Crux"
+BINARY="$ROOT/.xcbuild/Build/Products/$CONFIG/crux"
 # 실행 파일·번들 디렉터리 이름(공백 없음)과 사용자에게 보이는 이름을 분리한다.
 APP_NAME="${APP_NAME:-Crux}"
 DISPLAY_NAME="${DISPLAY_NAME:-Crux}"
@@ -23,8 +23,8 @@ BUNDLE_ID="${BUNDLE_ID:-local.crux.app}"
 APP_DIR="$ROOT/.xcbuild/$APP_NAME.app"
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
-  echo "Crux 빌드 중… (Metal 셰이더 때문에 첫 빌드는 오래 걸린다)"
-  xcodebuild -scheme Crux -destination 'platform=OS X,arch=arm64' \
+  echo "crux 빌드 중… (Metal 셰이더 때문에 첫 빌드는 오래 걸린다)"
+  xcodebuild -scheme crux -destination 'platform=OS X,arch=arm64' \
     -derivedDataPath "$ROOT/.xcbuild" -configuration "$CONFIG" \
     -skipMacroValidation build >"$ROOT/.xcbuild/build.log" 2>&1 || {
     echo "빌드 실패. 로그: $ROOT/.xcbuild/build.log" >&2
@@ -66,6 +66,11 @@ else
   echo "경고: mlx metallib을 찾지 못했습니다. 앱에서 회의록 생성 단계가 실패할 수 있습니다." >&2
 fi
 
+# 메뉴바 아이콘 (템플릿 PNG). 런타임에 Resources에서 읽는다.
+if [ -f "$ROOT/Fixtures/icon/MenuBarIconTemplate.png" ]; then
+  cp "$ROOT/Fixtures/icon/MenuBarIconTemplate.png" "$APP_DIR/Contents/Resources/MenuBarIconTemplate.png"
+fi
+
 # 앱 아이콘 (Fixtures/icon/AppIcon.icns — 원본은 source.png)
 if [ -f "$ROOT/Fixtures/icon/AppIcon.icns" ]; then
   cp "$ROOT/Fixtures/icon/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
@@ -99,9 +104,10 @@ PLIST
 # 권한(TCC)은 서명 신원 기준으로 기억된다. ad-hoc 서명은 빌드마다 바뀌어
 # 매번 권한을 다시 물으므로, 개인 Apple Development 인증서로 서명한다.
 #
-# 키체인에 회사 팀 인증서가 먼저 있으면 `head -1`이 그걸 고른다.
-# 개인 인증서는 이름에 Apple ID 이메일이 들어 있으므로 그 항목을 고른다.
-# 다른 인증서가 필요하면 CODESIGN_IDENTITY로 지정한다. ad-hoc은 `-`.
+# 우선순위: CODESIGN_IDENTITY 환경변수 → .secrets/codesign-identity 파일(gitignore) →
+# 키체인에서 이름에 이메일이 들어간 첫 Apple Development 항목. ad-hoc은 `-`.
+# 키체인에 회사 팀 인증서가 함께 있으면 마지막 방식이 다른 것을 고를 수 있으므로,
+# 그럴 때는 .secrets/codesign-identity 에 본인 인증서 이름을 한 줄로 적어 둔다.
 list_apple_development_identities() {
   security find-identity -v -p codesigning 2>/dev/null \
     | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p'
@@ -110,6 +116,10 @@ list_apple_development_identities() {
 resolve_codesign_identity() {
   if [ -n "${CODESIGN_IDENTITY:-}" ]; then
     printf '%s\n' "$CODESIGN_IDENTITY"
+    return 0
+  fi
+  if [ -s "$ROOT/.secrets/codesign-identity" ]; then
+    head -1 "$ROOT/.secrets/codesign-identity"
     return 0
   fi
   local personal
@@ -123,7 +133,7 @@ resolve_codesign_identity() {
 
 if ! IDENTITY="$(resolve_codesign_identity)"; then
   echo "개인 Apple Development 인증서를 찾지 못했습니다." >&2
-  echo "키체인에 개인 개발자 인증서를 넣거나 CODESIGN_IDENTITY로 지정하세요." >&2
+  echo "CODESIGN_IDENTITY로 지정하거나 .secrets/codesign-identity 에 인증서 이름을 적으세요." >&2
   security find-identity -v -p codesigning >&2 || true
   exit 1
 fi
