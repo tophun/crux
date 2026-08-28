@@ -42,10 +42,12 @@ struct CruxApp: App {
         let calendarRepository = CalendarRepository(database: database)
         let publishRecords = PublishRecordRepository(database: database)
 
-        // 설정에서 고른 모델이 다음 처리부터 바로 쓰이도록, 로드할 때마다 저장소를 읽는다.
-        let transcriptionConfiguration = WhisperKitTranscriptionEngine.Configuration(
+        // 설정에서 고른 모델·용어가 다음 처리부터 바로 쓰이도록, 로드·전사할 때마다 저장소를 읽는다.
+        var transcriptionConfiguration = WhisperKitTranscriptionEngine.Configuration(
             modelProvider: { ModelPreferenceStore.transcriptionModel }
         )
+        // 꺼져 있으면 nil이라 지금과 같다. 켠 경우에만 용어가 힌트로 넘어간다.
+        transcriptionConfiguration.vocabularyHintProvider = { VocabularyStore.standard.transcriptionHint }
         let inferenceConfiguration = Qwen3InferenceEngine.Configuration(
             modelProvider: { ModelPreferenceStore.languageModel }
         )

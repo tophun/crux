@@ -35,6 +35,11 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
         /// 주의: 프롬프트 토큰은 디코딩에 영향을 주어 **구간 분할이 거칠어질 수 있다.**
         /// 실제 검증에서 118초 오디오가 24구간 → 6구간으로 합쳐졌다. 기본값은 사용하지 않음(nil)이다.
         public var vocabularyHint: String?
+        /// 설정에서 켠 용어를 알려 주는 함수. 있으면 `vocabularyHint`보다 우선한다.
+        ///
+        /// 전사할 때마다 읽으므로, 설정을 바꾸면 다음 처리부터 반영된다.
+        /// 함수가 있으면 그 결과만 쓰고(꺼짐 = nil), 없으면 CLI 고정값을 쓴다.
+        public var vocabularyHintProvider: (@Sendable () -> String?)?
         /// 이 길이를 넘는 구간은 문장 단위로 다시 나눈다. 근거 타임스탬프 정밀도를 지키기 위한 장치다.
         public var maxSegmentCharacters: Int
 
@@ -59,6 +64,7 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
             self.incrementalLoading = incrementalLoading
             self.prewarm = prewarm
             self.vocabularyHint = vocabularyHint
+            vocabularyHintProvider = nil
             self.maxSegmentCharacters = maxSegmentCharacters
         }
 
@@ -84,6 +90,14 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
     /// 지금 써야 할 모델 이름. 설정이 있으면 그쪽을 따른다.
     private var selectedModel: String {
         configuration.modelProvider?() ?? configuration.model
+    }
+
+    /// 지금 써야 할 인식 힌트. 설정이 있으면 그쪽을 따른다.
+    private var activeVocabularyHint: String? {
+        VocabularyHint.resolve(
+            provider: configuration.vocabularyHintProvider,
+            cliHint: configuration.vocabularyHint
+        )
     }
 
     public func load() async throws {
@@ -138,7 +152,7 @@ public actor WhisperKitTranscriptionEngine: TranscriptionEngine {
         }
 
         // 인식 힌트를 프롬프트 토큰으로 넣는다. 힌트가 없으면 기본 동작 그대로다.
-        let promptTokens: [Int]? = configuration.vocabularyHint.flatMap { hint in
+        let promptTokens: [Int]? = activeVocabularyHint.flatMap { hint in
             guard let tokenizer = whisperKit.tokenizer else { return nil }
             let tokens = tokenizer.encode(text: " " + hint)
                 .filter { $0 < tokenizer.specialTokens.specialTokenBegin }
