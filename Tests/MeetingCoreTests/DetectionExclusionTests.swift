@@ -38,7 +38,7 @@ struct DetectionExclusionTests {
         #expect(policy.exclusionReason(for: event(attendees: 0)) == nil)
     }
 
-    @Test("종일·취소·길이 0은 기준을 낮춰도 빠진다")
+    @Test("종일·취소·거절·길이 0은 기준을 낮춰도 빠진다")
     func alwaysExcluded() {
         var configuration = MeetingDetectionPolicy.Configuration()
         configuration.minimumAttendees = 0
@@ -46,6 +46,17 @@ struct DetectionExclusionTests {
         #expect(policy.exclusionReason(for: event(attendees: 2, allDay: true)) == .allDay)
         #expect(policy.exclusionReason(for: event(attendees: 2, status: .canceled)) == .canceled)
         #expect(policy.exclusionReason(for: event(attendees: 2, minutes: 0)) == .zeroDuration)
+        let declined = CalendarEvent(
+            id: UUID().uuidString,
+            title: "거절한 일정",
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(1800),
+            attendees: [
+                EventAttendee(name: "나", isCurrentUser: true, responseStatus: .declined),
+                EventAttendee(name: "상대", responseStatus: .accepted)
+            ]
+        )
+        #expect(policy.exclusionReason(for: declined) == .declined)
     }
 
     @Test("제외 목록은 이유와 함께 돌려준다")

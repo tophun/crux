@@ -16,6 +16,7 @@ public struct SettingsView: View {
     @Bindable var coordinator: MeetingSessionCoordinator
     @Bindable var storage: AudioStorageModel
     @Bindable var installs: ModelInstallCenter
+    @Bindable var notifications: EventNotificationStore
 
     @State private var selection: Pane = .general
     @State private var atlassian: AtlassianSettingsModel
@@ -25,13 +26,15 @@ public struct SettingsView: View {
         modelDirectory: URL,
         coordinator: MeetingSessionCoordinator,
         storage: AudioStorageModel,
-        installs: ModelInstallCenter
+        installs: ModelInstallCenter,
+        notifications: EventNotificationStore
     ) {
         self.databaseURL = databaseURL
         self.modelDirectory = modelDirectory
         self.coordinator = coordinator
         self.storage = storage
         self.installs = installs
+        self.notifications = notifications
         _atlassian = State(initialValue: AtlassianSettingsModel(store: coordinator.credentialStore))
     }
 
@@ -113,7 +116,10 @@ public struct SettingsView: View {
         }
         // 시스템 설정과 비슷한 크기로 열린다. 사이드바 215 + 내용 500.
         .frame(minWidth: 715, idealWidth: 715, minHeight: 560, idealHeight: 640)
-        .task { await coordinator.refreshPermissions() }
+        .task {
+            await coordinator.refreshPermissions()
+            await notifications.refresh()
+        }
     }
 
     @ViewBuilder
@@ -121,8 +127,8 @@ public struct SettingsView: View {
         switch selection {
         case .general: NotePane(installs: installs)
         case .vocabulary: VocabularyPane()
-        case .detection: DetectionPane()
-        case .permissions: PermissionsPane(coordinator: coordinator)
+        case .detection: DetectionPane(notifications: notifications)
+        case .permissions: PermissionsPane(coordinator: coordinator, notifications: notifications)
         case .audio: AudioPane(storage: storage)
         case .atlassian: AtlassianPane(model: atlassian, coordinator: coordinator)
         case .privacy: PrivacyPane(databaseURL: databaseURL, modelDirectory: modelDirectory)
@@ -134,6 +140,7 @@ public struct SettingsView: View {
 
 private struct PermissionsPane: View {
     @Bindable var coordinator: MeetingSessionCoordinator
+    @Bindable var notifications: EventNotificationStore
 
     var body: some View {
         Section {
@@ -158,8 +165,29 @@ private struct PermissionsPane: View {
                 isSatisfied: coordinator.systemAudioStatus == .granted,
                 action: { await coordinator.requestSystemAudioPermission() }
             )
+            notificationPermissionRow
         } footer: {
             Text("시스템 오디오는 시스템 설정 → 개인정보 보호 및 보안 → 화면 및 시스템 오디오 기록에서 허용합니다. 허용하지 않으면 마이크만 녹음합니다.")
+        }
+    }
+
+    @ViewBuilder
+    private var notificationPermissionRow: some View {
+        if notifications.authorization == .denied {
+            LabeledContent {
+                Button("시스템 설정 열기") { notifications.openSystemSettings() }
+            } label: {
+                Text("알림")
+                Text("일정 시작을 이 기기에 알립니다. 한 번 거부하면 시스템 설정에서만 다시 켤 수 있습니다.")
+            }
+        } else {
+            PermissionStatusRow(
+                title: "알림",
+                detail: "일정 시작을 이 기기에 알립니다. Google 알림은 쓰지 않습니다.",
+                status: notifications.authorization.displayName,
+                isSatisfied: notifications.authorization == .authorized,
+                action: { await notifications.requestAuthorization() }
+            )
         }
     }
 }
@@ -191,6 +219,7 @@ private struct PermissionStatusRow: View {
 // MARK: - 회의 감지
 
 private struct DetectionPane: View {
+    @Bindable var notifications: EventNotificationStore
     @State private var includesSoloEvents = MeetingDetectionSettings.includesSoloEvents
 
     var body: some View {
@@ -203,7 +232,21 @@ private struct DetectionPane: View {
                 MeetingDetectionSettings.includesSoloEvents = newValue
             }
         } footer: {
-            Text("종일 일정과 취소된 일정은 항상 제외합니다. 일정에 알림이 있으면 그 시각부터, 없으면 시작 5분 전부터 캡슐이 뜨고, 한 일정에 두 번 묻지 않습니다.")
+            Text("종일 일정, 취소된 일정, 참석을 거절한 일정은 항상 제외합니다. 일정에 알림이 있으면 그 시각부터, 없으면 시작 5분 전부터 캡슐이 뜨고, 한 일정에 두 번 묻지 않습니다.")
+        }
+        Section {
+            Picker(selection: $notifications.leadMinutes) {
+                ForEach(EventNotificationSettings.allowedLeadMinutes, id: \.self) { minutes in
+                    Text("\(minutes)분 전").tag(minutes)
+                }
+            } label: {
+                Text("일정 알림 기본 시각")
+                Text("일정 상세에서 알림을 켜면 시작 이 시간 전에 이 기기로 알립니다.")
+            }
+        } header: {
+            Text("일정 알림")
+        } footer: {
+            Text("이 기기 알림만 예약합니다. Google·캘린더 알림은 바꾸지 않습니다.")
         }
     }
 }

@@ -48,7 +48,8 @@ public final class EventKitCalendarProvider: CalendarProvider, @unchecked Sendab
                 name: participant.name,
                 email: Self.email(from: participant.url),
                 isOrganizer: participant.participantRole == .chair,
-                isCurrentUser: participant.isCurrentUser
+                isCurrentUser: participant.isCurrentUser,
+                responseStatus: Self.responseStatus(participant.participantStatus)
             )
         }
         let organizer = event.organizer.map { participant in
@@ -56,7 +57,8 @@ public final class EventKitCalendarProvider: CalendarProvider, @unchecked Sendab
                 name: participant.name,
                 email: Self.email(from: participant.url),
                 isOrganizer: true,
-                isCurrentUser: participant.isCurrentUser
+                isCurrentUser: participant.isCurrentUser,
+                responseStatus: Self.responseStatus(participant.participantStatus)
             )
         }
         // 주최자가 참석자 목록에 없으면 함께 넣는다. 없는 사람을 만들지는 않는다.
@@ -99,6 +101,17 @@ public final class EventKitCalendarProvider: CalendarProvider, @unchecked Sendab
         case .tentative: .tentative
         case .canceled: .canceled
         case .none: .unknown
+        @unknown default: .unknown
+        }
+    }
+
+    static func responseStatus(_ status: EKParticipantStatus) -> AttendeeResponseStatus {
+        switch status {
+        case .accepted: .accepted
+        case .declined: .declined
+        case .tentative: .tentative
+        case .pending: .pending
+        case .unknown, .delegated, .completed, .inProcess: .unknown
         @unknown default: .unknown
         }
     }
