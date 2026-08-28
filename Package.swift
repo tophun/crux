@@ -80,14 +80,19 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
 
-        // MARK: - 외부 게시 (앱에서 유일하게 외부로 HTTP를 보내는 모듈)
+        // MARK: - 외부 게시 (캘린더 API와 분리된 Atlassian HTTP 모듈)
         .target(name: "MeetingPublishing", dependencies: ["MeetingCore"]),
 
-        // MARK: - 캘린더 (EventKit)
+        // MARK: - 캘린더 (EventKit + Google Calendar API)
         .target(
             name: "MeetingCalendar",
             dependencies: ["MeetingCore"],
-            linkerSettings: [.linkedFramework("EventKit"), .linkedFramework("CoreAudio")]
+            linkerSettings: [
+                .linkedFramework("EventKit"),
+                .linkedFramework("CoreAudio"),
+                .linkedFramework("Network"),
+                .linkedFramework("Security"),
+            ]
         ),
 
         // MARK: - 오케스트레이션
@@ -139,6 +144,10 @@ let package = Package(
         .testTarget(
             name: "MeetingPublishingTests",
             dependencies: ["MeetingCore", "MeetingPublishing"]
+        ),
+        .testTarget(
+            name: "MeetingCalendarTests",
+            dependencies: ["MeetingCore", "MeetingCalendar"]
         ),
     ]
 )

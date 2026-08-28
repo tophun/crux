@@ -20,9 +20,9 @@ public enum MainLibrary: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// 다가오는 일정 목록. EventKit만 읽고 로컬에만 저장한다.
+/// 다가오는 일정 목록. Google이 연결되어 있으면 그쪽을, 없으면 EventKit을 읽고 로컬에만 저장한다.
 ///
-/// Google 소스 선택은 #3 이후. 알림(#27)·스킵(#28)은 이 저장소에 두지 않는다.
+/// 알림(#27)·스킵(#28)은 이 저장소에 두지 않는다.
 @MainActor
 @Observable
 public final class UpcomingCalendarStore {

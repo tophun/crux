@@ -9,7 +9,7 @@ import SwiftUI
 /// - 어느 항목에도 속하지 않는 안내는 그룹 **아래(footer)** 에 둔다.
 /// - 사이드바는 고정 폭이며 접기 버튼이 없다.
 ///
-/// Atlassian 계정은 Keychain에 저장한다. 사고 모드 같은 AI 내부 동작 설정은 두지 않는다(§11).
+/// Atlassian 계정은 Keychain에 저장한다. Google Calendar는 EventKit 위에 추가 연결한다.
 public struct SettingsView: View {
     let databaseURL: URL
     let modelDirectory: URL
@@ -146,11 +146,40 @@ private struct PermissionsPane: View {
         Section {
             PermissionStatusRow(
                 title: "캘린더",
-                detail: "회의 일정을 읽어 시작을 감지하고 제목·참석자를 채웁니다.",
-                status: coordinator.calendarStatus.displayName,
-                isSatisfied: coordinator.calendarStatus == .authorized,
+                detail: "맥 캘린더 일정을 읽어 시작을 감지하고 제목·참석자를 채웁니다.",
+                status: coordinator.eventKitStatus.displayName,
+                isSatisfied: coordinator.eventKitStatus == .authorized,
                 action: { await coordinator.requestCalendarAccess() }
             )
+            PermissionStatusRow(
+                title: "Google Calendar",
+                detail: "연결하면 기본 Google 캘린더를 우선합니다. 끊으면 맥 캘린더로 돌아갑니다.",
+                status: coordinator.googleCalendarStatus.displayName,
+                isSatisfied: coordinator.googleCalendarStatus == .authorized,
+                action: { await coordinator.requestGoogleCalendarAccess() }
+            )
+            if coordinator.googleCalendarStatus == .authorized {
+                LabeledContent {
+                    HStack(spacing: 10) {
+                        if let lastUpdated = coordinator.calendarLastUpdatedAt {
+                            Text(lastUpdated, style: .time)
+                                .foregroundStyle(.secondary)
+                        }
+                        Button("새로고침") { Task { await coordinator.refreshCalendar() } }
+                        Button("연결 해제", role: .destructive) {
+                            Task { await coordinator.disconnectCalendar() }
+                        }
+                    }
+                } label: {
+                    Text("Google 동기화")
+                    Text("일정은 5분마다 갱신되며 맥 캘린더 캐시는 지우지 않습니다.")
+                }
+            }
+            if let error = coordinator.calendarSyncError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
             PermissionStatusRow(
                 title: "마이크",
                 detail: "회의 음성을 이 기기에서 녹음합니다.",

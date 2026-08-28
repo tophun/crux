@@ -2,17 +2,20 @@
 
 ## 네트워크 경계
 
-Atlassian·Slack 게시가 들어오면서 네트워크 경계가 바뀌었다. 현재 허용되는 외부 통신은 **네 가지뿐**이다.
+Atlassian·Slack 게시와 Google Calendar 연동이 들어오면서 네트워크 경계가 명시적으로 나뉜다.
+현재 허용되는 외부 통신은 **다섯 가지**다.
 
 | 허용 | 목적 | 나가는 것 | 통제 |
 | --- | --- | --- | --- |
 | 모델 다운로드 (`huggingface.co`) | WhisperKit·Qwen3 가중치 최초 다운로드 | 파일 요청만 | `--offline`, `modelFolder`, `--llm-directory`로 완전 차단 가능 |
+| Google OAuth·Calendar API | 캘린더 연결, 일정 조회·동기화, 사용자가 승인한 일정 쓰기 | Client ID, PKCE 교환·갱신 요청, 조회 시간 범위, 쓰기 승인 내용 | `calendar.events` scope, Keychain 토큰, 브라우저 OAuth, 쓰기 UI 승인 경계 |
 | Confluence 게시 | 사용자가 승인한 회의록 | `ConfluencePageDraft`가 담을 수 있는 필드만 | 승인 없으면 거부, 검열 게이트 통과 필수 |
 | Jira 이슈 생성 | 사용자가 승인한 액션 아이템 | `JiraIssueDraft`가 담을 수 있는 필드만 | 같음 |
 | Slack 액션 전송 | Preview에서 승인한 액션만 채널/DM | `SlackActionPayload`가 담을 수 있는 필드만 | 보내기 직전 확인 필수, 검열 게이트 통과 필수. 모델은 Slack을 호출하지 않음 |
 
+**Google Calendar 쓰기 승인 없이는 나가지 않는 것**: 일정 생성·수정·삭제 요청, 참석자 알림 요청.
 **절대 나가지 않는 것**: 회의 오디오 파일, 전체 전사문, 근거 인용문, 근거 타임스탬프, 내부 UUID·contentId,
-모델 프롬프트, 캘린더 원본 데이터.
+모델 프롬프트. 캘린더 일정은 Google에서 읽어오며, 읽은 원본은 Qwen3·Atlassian으로 자동 전송하지 않는다.
 
 ## 1. 앱 코드의 네트워크 호출 (실측)
 
@@ -23,15 +26,17 @@ for m in MeetingCore MeetingPersistence MeetingAudio MeetingCalendar MeetingTran
 done
 ```
 
-결과: **`MeetingPublishing`의 `AtlassianClient.swift`와 `SlackClient.swift`만 해당.** 다른 모듈은 0건이다.
+결과: Google Calendar 통신은 `MeetingCalendar`의 OAuth·API 파일,
+Atlassian·Slack 통신은 `MeetingPublishing`의 `AtlassianClient.swift`와 `SlackClient.swift`에만 있다.
 
 ```sh
-grep -rn "URLSession|URLRequest" Sources/ | grep -v "^Sources/MeetingPublishing/"
+grep -rn "URLSession|URLRequest" Sources/ | grep -vE "^Sources/(MeetingCalendar|MeetingPublishing)/"
 # 결과 없음
 ```
 
-즉 앱에서 나가는 HTTP는 전부 `MeetingPublishing`을 지난다. 이 모듈은 오디오·전사문·근거를 담는 타입을
-아예 모른다(`PublishBundle`, `EvidenceBundle`만 받는다).
+즉 캘린더 통신과 게시 통신은 서로 다른 모듈 경계를 지난다. `MeetingPublishing`은 오디오·전사문·근거를
+담는 타입을 아예 모른다(`PublishBundle`, `EvidenceBundle`만 받는다). Qwen3는 어느 네트워크 모듈에도
+직접 접근하지 않는다.
 
 의존성이 네트워크를 쓰는 지점은 그대로다.
 
@@ -85,15 +90,22 @@ Confluence 회의록과 Jira 이슈 본문에는 근거 타임스탬프를 넣�
 - CI·검증용으로 `ATLASSIAN_SITE`/`ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN` 환경 변수도 읽는다.
 - `AtlassianCredentials.redactedDescription`만 화면·로그에 쓴다. 토큰은 포함되지 않는다.
 - `AtlassianClient`와 `SlackClient`의 로그는 **메서드와 경로만** 남긴다. 헤더(Authorization)와 본문은 남기지 않는다.
+- Google Calendar access/refresh token은 `GoogleCalendarKeychainTokenStore`로 Keychain에만 저장한다.
+- Google Calendar OAuth Client ID만 번들에 넣는다. Desktop OAuth client secret은 번들에 넣지 않는다.
+- Google Calendar API 오류에도 access token, refresh token, 요청 본문을 로그로 남기지 않는다.
 - 감사: `grep -rn "apiToken|authorizationHeader" Sources/ | grep -iE "print|log"` → 결과 없음.
 
 ## 5. 캘린더 데이터
 
-- EventKit으로 읽는다. **네트워크 요청이 없다.** macOS 캘린더에 구독된 Google 계정의 일정을 그대로 읽는다.
-- 읽은 일정은 로컬 `calendarEvent` 테이블에만 저장한다.
+- EventKit이 기본 소스이고, Google이 연결되어 있으면 `GoogleCalendarProvider`가 기본 캘린더(`primary`)를 읽는다.
+  access/refresh token은 Keychain token bundle에만 저장하고, access token은 요청의 `Authorization` 헤더에 사용한다.
+- 일정은 `calendarEvent` 테이블에 로컬 캐시한다. Google 동기화 범위의 삭제는 **Google이 쓴 행만** 지운다.
+  EventKit 캐시는 Google primary가 돌려주지 않아도 남긴다.
 - 회의록에는 캘린더의 제목·날짜·참석자만 쓴다. 참석자를 임의로 추가하지 않는다.
 - 종일 일정, 취소된 일정, 참석자가 부족한 일정은 기본적으로 제외한다.
 - 중복 알림 방지용으로 알림한 이벤트 ID를 `notifiedEvent` 테이블에 남긴다.
+- 일정 생성·수정·삭제 API는 `CalendarEventWriter`에 있으며, 수정은 최신 ETag와 `If-Match`로 동시 변경을
+  감지한다. 참석자 알림 전송 여부는 `CalendarNotificationPolicy`로 명시한다.
 
 ## 6. 녹음과 감지
 

@@ -9,7 +9,7 @@ macOS용 온디바이스 AI 회의록 앱입니다.
 - Preview Viewer에서 검토한 뒤 승인한 회의록만 Confluence에 게시하고 액션 아이템을 Jira 이슈로 만들 수 있습니다.
 - 승인한 액션만 Slack 채널 또는 DM으로 보낼 수 있습니다. 전사문·오디오·근거 타임스탬프는 보내지 않습니다.
 
-회의 오디오와 전사문은 외부로 보내지 않습니다. 외부 통신은 모델 다운로드, Atlassian·Slack 연결 확인, 사용자가 승인한 게시로 제한됩니다.
+회의 오디오와 전사문은 외부로 보내지 않습니다. 외부 통신은 모델 다운로드, Google Calendar, Atlassian·Slack 연결 확인, 사용자가 승인한 게시로 제한됩니다.
 
 ## 현재 구현 상태
 
@@ -18,7 +18,7 @@ macOS용 온디바이스 AI 회의록 앱입니다.
 | 로컬 오디오 가져오기 → 전사 → 회의록 생성 → SwiftData 저장 | 구현 및 자동 테스트 완료 |
 | 기존 `meetings.sqlite` → SwiftData 마이그레이션 | 구현 및 자동 테스트 완료 |
 | 마이크 녹음, 시스템 오디오 캡처, 일시정지·재개, 트랙 합성 | 구현됨. 실제 권한 흐름은 별도 확인 필요 |
-| EventKit 캘린더 감지와 회의 앱 감지 | 구현됨. 기본은 자동 녹음이 아닌 사용자 확인 |
+| EventKit 다가오는 일정·로컬 알림·스킵, Google Calendar API 추가 연동 | 구현됨. Google이 연결되어 있으면 우선하고, 아니면 EventKit을 쓴다. OAuth 실계정 검증 필요 |
 | SwiftUI 회의 목록·상세·전사문·메뉴바·Crux 캡슐 | 구현됨 |
 | Preview Viewer와 게시 전 품질·검열 게이트 | 구현 및 자동 테스트 완료 |
 | Confluence 게시, Jira 이슈 생성, 상호 링크 | 구현됨. 앱 Settings에서 Atlassian 계정을 연결한다. 라이브 게시는 미완료 |
@@ -44,6 +44,16 @@ swift test
 
 첫 실행 전에 모델을 내려받을 네트워크가 필요합니다. 모델을 미리 설치한 뒤에는 오프라인으로 처리할 수 있습니다.
 
+## Google Calendar 설정
+
+1. Google Cloud 프로젝트에서 **Google Calendar API**를 활성화합니다.
+2. OAuth consent screen을 설정하고, 테스트 상태라면 사용할 Google 계정을 테스트 사용자로 등록합니다.
+3. OAuth Client ID에서 **Desktop app** 유형을 만듭니다. 번들에는 Client ID만 넣습니다. Desktop OAuth secret은 앱에 넣지 않습니다.
+4. Client ID는 `.secrets/google-calendar-client-id`에 저장하거나, credentials JSON에서 `client_id`만 읽게 합니다. `.secrets/`는 Git에 포함되지 않습니다.
+5. `make app`으로 앱을 만든 뒤 설정 → 권한 → Google Calendar에서 연결합니다. 브라우저에서 `calendar.events` 권한을 승인하면 됩니다.
+
+OAuth로 발급된 access/refresh token은 앱이 macOS Keychain에 저장합니다. CLI는 `GOOGLE_CALENDAR_CLIENT_ID` 환경 변수로도 Client ID를 받습니다.
+
 ## 빌드 및 실행
 
 테스트와 기본 SwiftPM 빌드:
@@ -63,7 +73,7 @@ xcodebuild -scheme crux -destination 'platform=OS X,arch=arm64' \
   -derivedDataPath .xcbuild -configuration Debug -skipMacroValidation build
 ```
 
-마이크·캘린더·화면 기록 권한은 앱 번들에서 받는 편이 안전합니다. 앱 번들을 만들고 실행합니다.
+마이크·캘린더·화면 기록 권한은 앱 번들에서 받는 편이 안전합니다. Google Calendar는 설정에서 브라우저 OAuth로 추가로 연결합니다. 앱 번들을 만들고 실행합니다.
 
 ```sh
 make app
@@ -135,7 +145,7 @@ $M retry --meeting <회의-UUID>
 # 마이크 녹음 후 회의록 생성
 $M record --seconds 60 --title "주간 회의"
 
-# 캘린더와 회의 감지 결과 확인
+# Google Calendar 일정과 회의 감지 결과 확인 (GOOGLE_CALENDAR_CLIENT_ID 필요)
 $M calendar --hours 6
 
 # 오디오 보관 상태 확인 및 정리
@@ -184,7 +194,8 @@ $M <command> --help
 
 ### 회의 감지와 녹음
 
-EventKit으로 macOS 캘린더 일정을 읽고, 실행 중인 Zoom·Meet·Teams·Slack·Webex 등의 회의 앱과 마이크 사용 여부를 확인합니다.
+`PreferredCalendarProvider`가 Google이 연결되어 있으면 Google Calendar v3 API를, 아니면 EventKit을 읽어 로컬 캐시에 저장하고, 실행 중인 Zoom·Meet·Teams·Slack·Webex 등의 회의 앱과 마이크 사용 여부를 확인합니다.
+첫 연결 때 `calendar.events` scope를 PKCE(S256)와 loopback redirect로 승인하며, 네트워크 동기화가 실패해도 마지막 캐시로 감지를 계속합니다.
 종일 일정·취소된 일정·참석자가 부족한 일정은 기본적으로 제외합니다. 같은 일정에 중복으로 묻지 않으며, 감지 후 녹음은 사용자가 직접 시작합니다.
 
 마이크 녹음은 필수이고 시스템 오디오는 선택 사항입니다. 시스템 오디오 권한이 없으면 마이크만으로 계속 녹음합니다. 녹음은 다음 트랙으로 저장되고,
@@ -218,14 +229,13 @@ Confluence·Jira·Slack 게시물에는 전체 전사문·오디오·근거 전�
 | 회의·전사문·회의록·캘린더 메타데이터 | 로컬 SwiftData와 회의별 디렉터리 |
 | 오디오 | 회의별 디렉터리. SwiftData에는 경로와 메타데이터만 저장 |
 | 근거 타임스탬프·원문 인용 | 로컬 `{meetingId}.evidence.json`과 SwiftData 회의록 항목의 `evidenceJSON` |
-| Atlassian API 토큰 | macOS Keychain |
-| Slack 봇 토큰 | macOS Keychain |
+| Atlassian API 토큰, Slack 봇 토큰, Google OAuth 토큰 | macOS Keychain |
 
 오디오 보관 기간은 `immediate`, `days7`, `days30`, `days90`, `forever` 중에서 선택할 수 있습니다. 기본값은 30일이며, 오디오가 삭제되어도 전사문·회의록·근거는 남습니다. 처리에 실패한 회의의 오디오는 자동으로 삭제하지 않습니다.
 
 ## 현재 제한
 
-- 실제 마이크·캘린더·화면 기록 권한을 승인한 뒤의 실기기 흐름은 자동 테스트에 포함되지 않습니다.
+- 실제 마이크·캘린더·화면 기록 권한과 Google OAuth를 승인한 뒤의 실기기 흐름은 자동 테스트에 포함되지 않습니다.
 - Atlassian 라이브 게시, Slack 라이브 전송, 오프라인 네트워크 차단 상태의 전체 실행, 60분 회의 실측, 16GB 장비 성능 측정은 별도 검증이 필요합니다.
 - 화자 구분은 아직 지원하지 않습니다.
 - 실시간 자막은 오디오 조각을 모은 뒤 나타나므로 몇 초 늦고, 녹음 중 요약은 초안입니다. 종료 후 기존 전체 파이프라인이 최종 전사·회의록을 만듭니다.
@@ -239,7 +249,7 @@ Sources/
   MeetingCore/          도메인 모델·추론 정책·한국어 윤문·게시 초안
   MeetingPersistence/   SwiftData 저장소 및 기존 SQLite 마이그레이션
   MeetingAudio/         오디오 가져오기·캡처·믹싱
-  MeetingCalendar/      EventKit·회의 앱 감지
+  MeetingCalendar/      EventKit·Google Calendar OAuth/API·회의 앱 감지
   MeetingTranscription/ WhisperKit 전사
   MeetingInference/     MLX Swift·Qwen3 추론
   MeetingPipeline/      처리 오케스트레이션·보관·근거·게시 준비

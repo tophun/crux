@@ -87,6 +87,7 @@ public struct LocalInferencePipeline: Sendable {
         titleHint: String,
         segments: [TranscriptSegment],
         meetingType: MeetingType = .general,
+        calendarContext: MeetingCalendarContext? = nil,
         progress: (@Sendable (Progress) -> Void)? = nil
     ) async throws -> Output {
         guard !segments.isEmpty else { throw InferenceError.emptyTranscript }
@@ -266,7 +267,8 @@ public struct LocalInferencePipeline: Sendable {
                     meetingTitleHint: titleHint,
                     catalog: catalog,
                     transcriptDigest: digest,
-                    meetingType: meetingType
+                    meetingType: meetingType,
+                    calendarContext: calendarContext
                 ),
                 mode: finalDecision.mode,
                 maxTokens: configuration.finalMaxTokens,

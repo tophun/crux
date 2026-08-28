@@ -367,7 +367,7 @@ extension MeetingCTL {
     struct CalendarCommand: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             commandName: "calendar",
-            abstract: "캘린더 일정과 회의 감지 결과 확인 (EventKit, 네트워크 미사용)"
+            abstract: "Google Calendar 일정과 회의 감지 결과 확인"
         )
 
         @OptionGroup var options: CommonOptions
@@ -376,26 +376,33 @@ extension MeetingCTL {
         var hours: Int = 4
 
         func run() async throws {
-            let provider = EventKitCalendarProvider()
+            guard let configuration = GoogleCalendarOAuthConfiguration.fromEnvironment()
+                ?? GoogleCalendarOAuthConfiguration.fromBundle()
+            else {
+                throw ValidationError("GOOGLE_CALENDAR_CLIENT_ID가 설정되지 않았습니다.")
+            }
+            let provider = GoogleCalendarProvider(configuration: configuration)
             let status = provider.authorizationStatus()
             print("캘린더 권한: \(status.displayName)")
             if status != .authorized {
                 let granted = try await provider.requestAccess()
                 print("권한 요청 결과: \(granted ? "허용" : "거부")")
                 guard granted else {
-                    print("앱 번들(Info.plist의 NSCalendarsFullAccessUsageDescription)에서만 권한을 받을 수 있습니다.")
+                    print("Google Calendar 연결을 완료한 뒤 다시 실행하세요.")
                     return
                 }
             }
 
             let now = Date()
+            let windowStart = now.addingTimeInterval(-3600)
+            let windowEnd = now.addingTimeInterval(Double(hours) * 3600)
             let events = try await provider.events(
-                from: now.addingTimeInterval(-3600),
-                to: now.addingTimeInterval(Double(hours) * 3600)
+                from: windowStart,
+                to: windowEnd
             )
             let database = try options.makeDatabase()
             let repository = CalendarRepository(database: database)
-            try repository.save(events: events)
+            try repository.replace(events: events, from: windowStart, to: windowEnd, source: .google)
 
             let policy = MeetingDetectionPolicy()
             let eligible = policy.eligibleEvents(events)

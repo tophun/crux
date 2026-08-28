@@ -25,8 +25,8 @@ SwiftData + Local Files
 | `MeetingCore` | 없음 | 도메인 모델, 추론 정책(청킹·라우팅·사담 분류·근거 검증·중복 통합·프롬프트·파서), 내보내기 |
 | `MeetingPersistence` | SwiftData | `@Model` 스키마, 기존 SQLite 마이그레이션, 회의/전사/회의록/작업 저장소 |
 | `MeetingAudio` | AVFoundation, ScreenCaptureKit, CoreAudio | 마이크·시스템 오디오 캡처, 트랙 믹싱, 파일 검사, 회의별 파일 배치 |
-| `MeetingCalendar` | EventKit, AppKit, CoreAudio | 캘린더 일정 읽기, 회의 앱·마이크 사용 감지 |
-| `MeetingPublishing` | Foundation (URLSession) | Atlassian 게시와 Slack 액션 전송. **앱에서 유일하게 외부로 HTTP를 보내는 모듈** |
+| `MeetingCalendar` | EventKit, Network, Security, AppKit, CoreAudio | EventKit 일정 읽기, Google Calendar OAuth/API, 회의 앱·마이크 사용 감지 |
+| `MeetingPublishing` | Foundation (URLSession) | Atlassian 게시와 Slack 액션 전송. 캘린더 HTTP는 `MeetingCalendar` |
 | `MeetingTranscription` | WhisperKit | `TranscriptionEngine` 구현 |
 | `MeetingInference` | MLX Swift, swift-transformers | `LocalLanguageModel` 구현 |
 | `MeetingPipeline` | Core/Persistence/Audio/Publishing | 단계 실행, 작업 기록, 모델 수명 관리, 가져오기, 근거 파일, 게시 준비 |
@@ -67,7 +67,7 @@ SwiftData + Local Files
 ## 회의 감지 → 게시 흐름 (추가 요구사항)
 
 ```
-EventKit 일정 + 회의 앱·마이크 사용 감지
+Google Calendar API 일정(로컬 캐시) + 회의 앱·마이크 사용 감지
   → MeetingDetectionPolicy          종일·취소·참석자 필터, 중복 알림 방지
   → CruxMachine              캡슐 상태 (사용자 확인 대기)
   → MeetingAudioCapture             마이크 + 시스템 오디오, 트랙 분리 저장 + mixed 생성

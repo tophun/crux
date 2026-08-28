@@ -603,6 +603,10 @@ final class CalendarEventModel {
     var location: String?
     var organizerJSON: String?
     var calendarTitle: String?
+    var source: String?
+    var etag: String?
+    var recurringEventId: String?
+    var originalStartDate: Date?
     var updatedAt: Date
 
     init(
@@ -618,7 +622,11 @@ final class CalendarEventModel {
         organizerJSON: String?,
         calendarTitle: String?,
         updatedAt: Date,
-        seriesId: String? = nil
+        seriesId: String? = nil,
+        source: String? = nil,
+        etag: String? = nil,
+        recurringEventId: String? = nil,
+        originalStartDate: Date? = nil
     ) {
         self.id = id
         self.seriesId = seriesId
@@ -632,6 +640,10 @@ final class CalendarEventModel {
         self.location = location
         self.organizerJSON = organizerJSON
         self.calendarTitle = calendarTitle
+        self.source = source
+        self.etag = etag
+        self.recurringEventId = recurringEventId
+        self.originalStartDate = originalStartDate
         self.updatedAt = updatedAt
     }
 
@@ -649,7 +661,11 @@ final class CalendarEventModel {
             organizerJSON: event.organizer.map { JSONColumn.encode($0) },
             calendarTitle: event.calendarTitle,
             updatedAt: updatedAt,
-            seriesId: event.seriesId
+            seriesId: event.seriesId,
+            source: event.source.rawValue,
+            etag: event.etag,
+            recurringEventId: event.recurringEventId,
+            originalStartDate: event.originalStartDate
         )
     }
 
@@ -666,7 +682,11 @@ final class CalendarEventModel {
             conferenceURL: conferenceURL.flatMap(URL.init(string:)),
             location: location,
             organizer: organizerJSON.flatMap { JSONColumn.decode(EventAttendee.self, from: $0) },
-            calendarTitle: calendarTitle
+            calendarTitle: calendarTitle,
+            source: CalendarEventSource(rawValue: source ?? "") ?? .eventKit,
+            etag: etag,
+            recurringEventId: recurringEventId,
+            originalStartDate: originalStartDate
         )
     }
 }

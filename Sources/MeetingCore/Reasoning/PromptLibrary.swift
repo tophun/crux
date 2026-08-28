@@ -134,14 +134,41 @@ public enum PromptLibrary {
         meetingTitleHint: String,
         catalog: FactCatalog,
         transcriptDigest: String,
-        meetingType: MeetingType = .general
+        meetingType: MeetingType = .general,
+        calendarContext: MeetingCalendarContext? = nil
     ) -> String {
         let emphasis = meetingType.finalNoteEmphasis.map { "\n        \($0)" } ?? ""
+        let calendarText: String
+        if let calendarContext {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ko_KR")
+            formatter.dateFormat = "yyyy년 M월 d일 HH:mm"
+            let attendees = calendarContext.attendees.isEmpty
+                ? "없음"
+                : calendarContext.attendees.joined(separator: ", ")
+            let conference = calendarContext.conferenceURL?.absoluteString ?? "없음"
+            calendarText = """
+            캘린더 메타데이터(전사 근거가 아님):
+            - 일정 제목: \(calendarContext.title)
+            - 시작: \(formatter.string(from: calendarContext.startDate))
+            - 종료: \(formatter.string(from: calendarContext.endDate))
+            - 참석자: \(attendees)
+            - 회의 링크: \(conference)
+            """
+        } else {
+            calendarText = "캘린더 메타데이터 없음"
+        }
+
         return """
         아래는 한 회의에서 검증된 후보 항목들과 회의록에 남길 전사 요약이다.
         이것만 사용해 최종 회의록을 작성하라. 새로운 사실을 추가하지 않는다.
 
         회의 제목 힌트: \(meetingTitleHint)
+
+        \(calendarText)
+
+        캘린더 메타데이터는 제목·시간·참석자 표기를 보조할 뿐이다.
+        결정사항·액션아이템·리스크·질문은 반드시 아래 검증된 후보와 전사 요약에만 근거한다.
 
         결정/제안 후보:
         \(catalog.describe(.decision))

@@ -1,5 +1,6 @@
 import Foundation
 import MeetingCore
+import SwiftData
 
 /// 캘린더 메타데이터와 알림 기록 저장소. 모두 로컬에만 저장한다.
 public struct CalendarRepository: NotifiedEventStore, Sendable {
@@ -11,26 +12,40 @@ public struct CalendarRepository: NotifiedEventStore, Sendable {
 
     public func save(events: [CalendarEvent]) throws {
         try database.write { context in
+            try Self.upsert(events, existing: context.all(CalendarEventModel.self), in: context)
+        }
+    }
+
+    /// API가 반환한 시간 범위의 현재 결과로 **같은 제공자** 캐시를 교체한다.
+    ///
+    /// Google primary가 돌려주지 않는 EventKit 일정을 지우지 않는다.
+    /// `source`가 없고 들어온 일정도 없으면 삭제를 건너뛴다.
+    public func replace(
+        events: [CalendarEvent],
+        from: Date,
+        to: Date,
+        source: CalendarEventSource? = nil
+    ) throws {
+        let incomingIDs = Set(events.map(\.id))
+        let scoped = source ?? events.first?.source
+        try database.write { context in
             let existing = try context.all(CalendarEventModel.self)
-            for event in events {
-                if let model = existing.first(where: { $0.id == event.id }) {
-                    model.seriesId = event.seriesId
-                    model.title = event.title
-                    model.startDate = event.startDate
-                    model.endDate = event.endDate
-                    model.isAllDay = event.isAllDay
-                    model.status = event.status.rawValue
-                    model.attendeesJSON = JSONColumn.encode(event.attendees)
-                    model.conferenceURL = event.conferenceURL?.absoluteString
-                    model.location = event.location
-                    model.organizerJSON = event.organizer.map { JSONColumn.encode($0) }
-                    model.calendarTitle = event.calendarTitle
-                    model.updatedAt = Date()
-                } else {
-                    context.insert(CalendarEventModel(event))
+            if let scoped {
+                for model in existing where model.startDate >= from && model.startDate <= to
+                    && !incomingIDs.contains(model.id)
+                    && Self.modelSource(model) == scoped {
+                    context.delete(model)
                 }
             }
+            Self.upsert(events, existing: existing, in: context)
         }
+    }
+
+    /// 회의에 연결된 일정을 회의록 생성용 컨텍스트로 읽는다. 연결이 없으면 nil.
+    public func calendarContext(meetingId: UUID) throws -> MeetingCalendarContext? {
+        guard let eventId = try linkedEventId(meetingId: meetingId),
+              let event = try event(id: eventId) else { return nil }
+        return MeetingCalendarContext(event: event)
     }
 
     public func event(id: String) throws -> CalendarEvent? {
@@ -45,6 +60,15 @@ public struct CalendarRepository: NotifiedEventStore, Sendable {
                 .filter { $0.startDate >= from && $0.startDate <= to }
                 .sorted { $0.startDate < $1.startDate }
                 .map(\.domain)
+        }
+    }
+
+    /// Google Calendar에서 삭제된 일정을 로컬 캐시에서도 제거한다.
+    public func delete(eventId: String) throws {
+        try database.write { context in
+            for model in try context.all(CalendarEventModel.self).filter({ $0.id == eventId }) {
+                context.delete(model)
+            }
         }
     }
 
@@ -63,6 +87,40 @@ public struct CalendarRepository: NotifiedEventStore, Sendable {
             try context.all(MeetingModel.self)
                 .first(where: { $0.id == meetingId.uuidString })?.calendarEventId
         }
+    }
+
+    private static func upsert(_ events: [CalendarEvent], existing: [CalendarEventModel], in context: ModelContext) {
+        let byId = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for event in events {
+            if let model = byId[event.id] {
+                apply(event, to: model)
+            } else {
+                context.insert(CalendarEventModel(event))
+            }
+        }
+    }
+
+    private static func apply(_ event: CalendarEvent, to model: CalendarEventModel) {
+        model.seriesId = event.seriesId
+        model.title = event.title
+        model.startDate = event.startDate
+        model.endDate = event.endDate
+        model.isAllDay = event.isAllDay
+        model.status = event.status.rawValue
+        model.attendeesJSON = JSONColumn.encode(event.attendees)
+        model.conferenceURL = event.conferenceURL?.absoluteString
+        model.location = event.location
+        model.organizerJSON = event.organizer.map { JSONColumn.encode($0) }
+        model.calendarTitle = event.calendarTitle
+        model.source = event.source.rawValue
+        model.etag = event.etag
+        model.recurringEventId = event.recurringEventId
+        model.originalStartDate = event.originalStartDate
+        model.updatedAt = Date()
+    }
+
+    private static func modelSource(_ model: CalendarEventModel) -> CalendarEventSource {
+        CalendarEventSource(rawValue: model.source ?? "") ?? .eventKit
     }
 
     // MARK: - NotifiedEventStore

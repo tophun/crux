@@ -77,9 +77,14 @@ struct CruxApp: App {
             calendar: calendarRepository,
             publishRecords: publishRecords
         )
+        let googleCalendarConfiguration = GoogleCalendarOAuthConfiguration.fromBundle()
+            ?? GoogleCalendarOAuthConfiguration(clientID: "")
 
         let playback = AudioPlaybackController()
-        let calendarProvider = EventKitCalendarProvider()
+        let calendarProvider = PreferredCalendarProvider(
+            eventKit: EventKitCalendarProvider(),
+            google: GoogleCalendarProvider(configuration: googleCalendarConfiguration)
+        )
         _storage = State(initialValue: AudioStorageModel(repository: repository))
         _upcoming = State(
             initialValue: UpcomingCalendarStore(

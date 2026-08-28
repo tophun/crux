@@ -22,8 +22,12 @@ fi
 
 AUTHORITY="$(codesign -dv --verbose=2 "$APP_DIR" 2>&1 | sed -n 's/^Authority=//p' | head -1 || true)"
 if [ -z "$AUTHORITY" ]; then
-  echo "앱이 서명되어 있지 않습니다: $APP_DIR" >&2
-  exit 1
+  if [ "${CODESIGN_IDENTITY:-}" = "-" ]; then
+    AUTHORITY="ad-hoc"
+  else
+    echo "앱이 서명되어 있지 않습니다: $APP_DIR" >&2
+    exit 1
+  fi
 fi
 if [ -z "${CODESIGN_IDENTITY:-}" ] && ! printf '%s' "$AUTHORITY" | grep -q '@'; then
   echo "개인 Apple Development 인증서가 아닙니다: $AUTHORITY" >&2

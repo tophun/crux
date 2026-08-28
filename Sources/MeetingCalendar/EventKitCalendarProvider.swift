@@ -98,6 +98,7 @@ public final class EventKitCalendarProvider: CalendarProvider, @unchecked Sendab
             location: event.location,
             organizer: organizer,
             calendarTitle: event.calendar?.title,
+            source: .eventKit,
             alarmOffsets: alarmOffsets
         )
     }
