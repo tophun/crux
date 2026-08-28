@@ -7,7 +7,7 @@ import MeetingCore
 /// - 사용자가 승인한 회의록과 액션 아이템만 전송한다(`approved`가 아니면 거부).
 /// - 게시 직전에 검열 게이트를 실행한다. 위반이 있으면 아무것도 보내지 않는다.
 /// - 전체 녹취록·음성 파일·근거 타임스탬프는 전송 대상 타입에 존재하지 않는다.
-/// - API 호출은 앱이 실행한다. 모델이 직접 호출하지 않는다.
+/// - API 호출은 앱이 실행한다. 모델이 직접 호출하지 않는다. Slack 전송은 `SlackPublisher`가 맡는다.
 public struct MeetingPublisher: Sendable {
     public struct Outcome: Sendable {
         public var pageId: String

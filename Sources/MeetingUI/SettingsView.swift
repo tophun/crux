@@ -479,7 +479,7 @@ private struct PrivacyPane: View {
         Section("개인정보") {
             Label("회의 오디오·전사문·회의록은 이 기기에만 저장됩니다", systemImage: "lock.laptopcomputer")
             Label("전체 녹취록과 음성 파일은 외부로 전송하지 않습니다", systemImage: "network.slash")
-            Label("네트워크는 모델 다운로드와 승인한 Atlassian 게시에만 사용합니다", systemImage: "arrow.down.circle")
+            Label("네트워크는 모델 다운로드와 사용자가 승인한 Confluence·Jira·Slack 전송에만 사용합니다", systemImage: "arrow.down.circle")
         }
         Section("저장 위치") {
             PathRow(title: "데이터베이스", url: databaseURL)

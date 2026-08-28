@@ -26,7 +26,7 @@ SwiftData + Local Files
 | `MeetingPersistence` | SwiftData | `@Model` 스키마, 기존 SQLite 마이그레이션, 회의/전사/회의록/작업 저장소 |
 | `MeetingAudio` | AVFoundation, ScreenCaptureKit, CoreAudio | 마이크·시스템 오디오 캡처, 트랙 믹싱, 파일 검사, 회의별 파일 배치 |
 | `MeetingCalendar` | EventKit, AppKit, CoreAudio | 캘린더 일정 읽기, 회의 앱·마이크 사용 감지 |
-| `MeetingPublishing` | Foundation (URLSession) | Atlassian 게시. **앱에서 유일하게 외부로 HTTP를 보내는 모듈** |
+| `MeetingPublishing` | Foundation (URLSession) | Atlassian 게시와 Slack 액션 전송. **앱에서 유일하게 외부로 HTTP를 보내는 모듈** |
 | `MeetingTranscription` | WhisperKit | `TranscriptionEngine` 구현 |
 | `MeetingInference` | MLX Swift, swift-transformers | `LocalLanguageModel` 구현 |
 | `MeetingPipeline` | Core/Persistence/Audio/Publishing | 단계 실행, 작업 기록, 모델 수명 관리, 가져오기, 근거 파일, 게시 준비 |
@@ -75,6 +75,7 @@ EventKit 일정 + 회의 앱·마이크 사용 감지
   → PublishPreparation              PublishBundle + 품질 검증
   → Preview Viewer                  사용자 검토·수정·승인
   → MeetingPublisher                검열 게이트 → Confluence 페이지 → Jira 이슈 → 상호 링크
+  → SlackPublisher                  보내기 확인 + 검열 게이트 → 승인한 액션만 채널/DM
   → PublishRecord                   contentId ↔ 외부 식별자 (로컬 전용)
 ```
 

@@ -20,11 +20,19 @@ public final class PreviewViewerModel {
     public var approved = false
     /// Settings에서 Atlassian 계정을 연결했는지. 없으면 게시 버튼을 끈다.
     public var hasAtlassianCredentials: Bool
+    /// Slack 채널 ID·이름 또는 DM. 보내기 직전에 한 번 더 확인한다.
+    public var slackDestination = ""
+    public var slackSendGate = SlackSendGate()
+    public private(set) var isSendingSlack = false
+    public private(set) var slackStatusMessage: String?
+    public private(set) var slackErrorMessage: String?
+    public private(set) var slackResult: String?
 
     /// 근거 확인 탭에서 녹음을 들을 수 있게 한다. 없으면 재생 UI를 숨긴다.
     public let playback: AudioPlaybackController?
 
     private let publishAction: @Sendable (PublishBundle, EvidenceBundle) async throws -> [String]
+    private let slackSendAction: (@Sendable (PublishBundle, EvidenceBundle, String, Bool) async throws -> String)?
     private let revalidate: @MainActor (PublishBundle) -> [MeetingQualityChecker.Finding]
 
     public init(
@@ -34,6 +42,7 @@ public final class PreviewViewerModel {
         playback: AudioPlaybackController? = nil,
         hasAtlassianCredentials: Bool = false,
         publishAction: @escaping @Sendable (PublishBundle, EvidenceBundle) async throws -> [String],
+        slackSendAction: (@Sendable (PublishBundle, EvidenceBundle, String, Bool) async throws -> String)? = nil,
         revalidate: @escaping @MainActor (PublishBundle) -> [MeetingQualityChecker.Finding] = { _ in [] }
     ) {
         self.bundle = bundle
@@ -42,6 +51,7 @@ public final class PreviewViewerModel {
         self.playback = playback
         self.hasAtlassianCredentials = hasAtlassianCredentials
         self.publishAction = publishAction
+        self.slackSendAction = slackSendAction
         self.revalidate = revalidate
     }
 
@@ -56,6 +66,82 @@ public final class PreviewViewerModel {
         let updated = revalidate(bundle)
         if !updated.isEmpty || !findings.isEmpty {
             findings = updated
+        }
+    }
+
+    public var canRequestSlackSend: Bool {
+        slackSendAction != nil
+            && !isSendingSlack
+            && !slackDestination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !bundle.includedIssues.isEmpty
+    }
+
+    public var isAwaitingSlackConfirmation: Bool {
+        slackSendGate.awaitingConfirmation
+    }
+
+    /// 보내기 버튼. 확인 대화상자로 넘길 뿐이며 여기서는 전송하지 않는다.
+    public func requestSlackSend() {
+        var gate = slackSendGate
+        if let reason = gate.begin(destination: slackDestination, actionCount: bundle.includedIssues.count) {
+            slackStatusMessage = reason
+            slackSendGate = gate
+            return
+        }
+        let payload = SlackActionPayload.make(from: bundle, destination: slackDestination)
+        let violations = PublishRedaction.audit(text: payload.messageText(), evidence: evidence)
+        if !violations.isEmpty {
+            gate.cancel()
+            slackStatusMessage = "Slack 본문에 내보내면 안 되는 내용이 있습니다: \(PublishRedaction.describe(violations))"
+            slackSendGate = gate
+            return
+        }
+        slackStatusMessage = nil
+        slackErrorMessage = nil
+        slackSendGate = gate
+    }
+
+    public func cancelSlackSend() {
+        var gate = slackSendGate
+        gate.cancel()
+        slackSendGate = gate
+    }
+
+    /// 확인 대화상자에서 승인한 뒤에만 전송한다.
+    public func confirmSlackSend() {
+        var gate = slackSendGate
+        guard gate.confirm() else {
+            slackSendGate = gate
+            slackStatusMessage = "보내기 전에 한 번 더 확인해 주세요."
+            return
+        }
+        slackSendGate = gate
+        guard let slackSendAction else {
+            slackStatusMessage = "Slack 전송을 사용할 수 없습니다."
+            return
+        }
+        isSendingSlack = true
+        slackErrorMessage = nil
+        slackStatusMessage = "Slack으로 보내는 중…"
+        let snapshot = bundle
+        let evidenceSnapshot = evidence
+        let destination = slackDestination
+
+        Task { [slackSendAction] in
+            do {
+                let result = try await slackSendAction(snapshot, evidenceSnapshot, destination, true)
+                await MainActor.run {
+                    self.isSendingSlack = false
+                    self.slackResult = result
+                    self.slackStatusMessage = "Slack 전송 완료"
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSendingSlack = false
+                    self.slackErrorMessage = error.localizedDescription
+                    self.slackStatusMessage = "Slack 전송 실패"
+                }
+            }
         }
     }
 
@@ -145,7 +231,7 @@ public struct PreviewViewerView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("게시 전 검토")
                 .font(.title3.bold())
-            Text("AI 결과물은 여기서 확인·수정한 뒤에만 Confluence와 Jira로 나갑니다. 전체 녹취록과 음성 파일은 전송되지 않습니다.")
+            Text("AI 결과물은 여기서 확인·수정한 뒤에만 나갑니다. Slack에는 승인한 액션만 보내며, 전사문·오디오·근거 타임스탬프는 포함되지 않습니다.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             HStack {
@@ -158,6 +244,9 @@ public struct PreviewViewerView: View {
                             model.bundle.issues[index].projectKey = newValue
                         }
                     }
+                TextField("Slack 채널 또는 DM", text: $model.slackDestination)
+                    .frame(width: 200)
+                    .help("채널 ID·이름 또는 DM. 예: #eng, C0123, U0123")
             }
             .textFieldStyle(.roundedBorder)
         }
@@ -256,6 +345,9 @@ public struct PreviewViewerView: View {
     private var issuesTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Text("생성에 체크한 액션만 Jira와 Slack으로 나갑니다.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if model.bundle.issues.isEmpty {
                     Text("생성할 액션 아이템이 없습니다.").foregroundStyle(.secondary)
                 }
@@ -419,6 +511,16 @@ public struct PreviewViewerView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(!model.canPublish)
             }
+            HStack {
+                Button("Slack으로 액션 보내기") { model.requestSlackSend() }
+                    .disabled(!model.canRequestSlackSend)
+                Spacer()
+                if let message = model.slackErrorMessage {
+                    Text(message).font(.caption).foregroundStyle(.red)
+                } else if let message = model.slackStatusMessage {
+                    Text(message).font(.caption).foregroundStyle(.secondary)
+                }
+            }
             if !model.publishedURLs.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(model.publishedURLs, id: \.self) { url in
@@ -426,8 +528,30 @@ public struct PreviewViewerView: View {
                     }
                 }
             }
+            if let result = model.slackResult {
+                Text(result).font(.caption).textSelection(.enabled)
+            }
         }
         .padding()
+        .confirmationDialog(
+            "승인한 액션을 Slack으로 보낼까요?",
+            isPresented: slackConfirmationBinding,
+            titleVisibility: .visible
+        ) {
+            Button("보내기") { model.confirmSlackSend() }
+            Button("취소", role: .cancel) { model.cancelSlackSend() }
+        } message: {
+            Text(
+                "액션 \(model.bundle.includedIssues.count)개만 \(model.slackDestination)에 보냅니다. 전사문·오디오·근거 타임스탬프는 포함되지 않습니다."
+            )
+        }
+    }
+
+    private var slackConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { model.isAwaitingSlackConfirmation },
+            set: { if !$0 { model.cancelSlackSend() } }
+        )
     }
 
     private func labeled(_ title: String, @ViewBuilder content: () -> some View) -> some View {
