@@ -127,7 +127,7 @@ public struct UpcomingEventDetailView: View {
 
     private func notificationToggle(for event: CalendarEvent) -> some View {
         let skipped = skips.isSkipped(event)
-        Toggle(isOn: Binding(
+        return Toggle(isOn: Binding(
             get: { notifications.isScheduled(event.id) },
             set: { newValue in
                 Task { await notifications.setScheduled(newValue, event: event, skipIndex: skips.index) }
