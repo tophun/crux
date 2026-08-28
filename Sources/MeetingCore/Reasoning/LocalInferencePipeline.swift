@@ -86,6 +86,7 @@ public struct LocalInferencePipeline: Sendable {
         meetingId: UUID,
         titleHint: String,
         segments: [TranscriptSegment],
+        meetingType: MeetingType = .general,
         progress: (@Sendable (Progress) -> Void)? = nil
     ) async throws -> Output {
         guard !segments.isEmpty else { throw InferenceError.emptyTranscript }
@@ -108,7 +109,7 @@ public struct LocalInferencePipeline: Sendable {
             progress?(.extracting(window: window.index + 1, total: windows.count))
             do {
                 let (parsed, repairs) = try await generate(
-                    prompt: PromptLibrary.windowExtraction(window: window),
+                    prompt: PromptLibrary.windowExtraction(window: window, meetingType: meetingType),
                     mode: .nonThinking,
                     maxTokens: configuration.extractionMaxTokens,
                     expectedShape: Self.windowShape
@@ -264,7 +265,8 @@ public struct LocalInferencePipeline: Sendable {
                 prompt: PromptLibrary.finalNote(
                     meetingTitleHint: titleHint,
                     catalog: catalog,
-                    transcriptDigest: digest
+                    transcriptDigest: digest,
+                    meetingType: meetingType
                 ),
                 mode: finalDecision.mode,
                 maxTokens: configuration.finalMaxTokens,

@@ -17,14 +17,17 @@ public enum PromptLibrary {
 
     // MARK: - 1차 사실 추출 (비사고 모드)
 
-    public static func windowExtraction(window: TranscriptWindow) -> String {
+    public static func windowExtraction(
+        window: TranscriptWindow,
+        meetingType: MeetingType = .general
+    ) -> String {
+        let emphasis = meetingType.extractionEmphasis.map { "\n\n\($0)\n" } ?? "\n"
         """
         아래는 회의 전사문의 한 구간이다.
 
         \(window.promptTranscript())
 
-        이 구간에서 다음을 추출하라.
-
+        이 구간에서 다음을 추출하라.\(emphasis)
         - topics: 이 구간에서 다룬 주제
         - decisions: 결정 또는 제안된 사항. kind는 확정된 결정이면 "decided", 아직 제안·검토 단계면 "proposed"
         - actionItems: 누군가 하기로 한 일. 명시적 요청이나 충분한 근거가 있을 때만 만든다.
@@ -130,8 +133,10 @@ public enum PromptLibrary {
     public static func finalNote(
         meetingTitleHint: String,
         catalog: FactCatalog,
-        transcriptDigest: String
+        transcriptDigest: String,
+        meetingType: MeetingType = .general
     ) -> String {
+        let emphasis = meetingType.finalNoteEmphasis.map { "\n        \($0)" } ?? ""
         """
         아래는 한 회의에서 검증된 후보 항목들과 회의록에 남길 전사 요약이다.
         이것만 사용해 최종 회의록을 작성하라. 새로운 사실을 추가하지 않는다.
@@ -167,7 +172,7 @@ public enum PromptLibrary {
         4. 담당자와 마감일이 확인되지 않은 항목은 null로 둔다. 임의로 채우지 않는다.
         5. 각 항목의 evidenceIndex에는 위 후보 목록의 번호를 그대로 적는다. 근거를 새로 만들지 않는다.
         6. 후보 목록에 없는 항목은 만들지 않는다.
-        7. title은 회의 내용을 나타내는 짧은 한국어 제목으로 쓴다.
+        7. title은 회의 내용을 나타내는 짧은 한국어 제목으로 쓴다.\(emphasis)
 
         출력 형식(JSON만):
         {

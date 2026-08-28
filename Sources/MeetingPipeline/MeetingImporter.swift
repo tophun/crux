@@ -20,7 +20,8 @@ public struct MeetingImporter: Sendable {
         at url: URL,
         title: String? = nil,
         startedAt: Date? = nil,
-        copyFile: Bool = true
+        copyFile: Bool = true,
+        meetingType: MeetingType = .general
     ) throws -> (meeting: Meeting, track: AudioTrack) {
         let info = try AudioFileInspector.inspect(url: url, fileManager: fileManager)
         let meetingId = UUID()
@@ -41,7 +42,7 @@ public struct MeetingImporter: Sendable {
         let started = startedAt ?? (try? fileManager.attributesOfItem(atPath: url.path)[.creationDate] as? Date)
             .flatMap { $0 } ?? Date()
 
-        let meeting = Meeting(
+        var meeting = Meeting(
             id: meetingId,
             title: title ?? url.deletingPathExtension().lastPathComponent,
             startedAt: started,
@@ -50,6 +51,7 @@ public struct MeetingImporter: Sendable {
             storageDirectory: storage.root,
             source: .importedFile
         )
+        meeting.meetingType = meetingType
         let track = AudioTrack(
             meetingId: meetingId,
             kind: .mixed,

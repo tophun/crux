@@ -178,9 +178,9 @@ public final class AppState {
     // MARK: - 동작
 
     /// 로컬 오디오 파일을 가져와 바로 처리한다 (Phase 1 흐름).
-    public func importAndProcess(url: URL) {
+    public func importAndProcess(url: URL, meetingType: MeetingType = .general) {
         do {
-            let imported = try importer.importAudio(at: url)
+            let imported = try importer.importAudio(at: url, meetingType: meetingType)
             reload()
             selectedMeetingId = imported.meeting.id
             process(meetingId: imported.meeting.id)

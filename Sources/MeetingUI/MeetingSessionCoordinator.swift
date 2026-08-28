@@ -213,7 +213,7 @@ public final class MeetingSessionCoordinator {
     // MARK: - 회의록 시작·종료
 
     /// 사용자가 "회의록 시작"을 눌렀을 때. 자동으로 시작하지 않는다.
-    public func startMeeting() async {
+    public func startMeeting(meetingType: MeetingType = .general) async {
         lastError = nil
         // 모델 미설치 같은 상태에서는 녹음해도 처리가 실패하므로 시작 전에 막는다.
         if let recordingGate, let reason = recordingGate() {
@@ -229,7 +229,7 @@ public final class MeetingSessionCoordinator {
 
         let meetingId = UUID()
         let storage = MeetingStorage.forMeeting(id: meetingId)
-        let meeting = Meeting(
+        var meeting = Meeting(
             id: meetingId,
             title: event?.title ?? "회의 \(Self.timestampTitle())",
             startedAt: Date(),
@@ -237,6 +237,7 @@ public final class MeetingSessionCoordinator {
             storageDirectory: storage.root,
             source: .liveCapture
         )
+        meeting.meetingType = meetingType
 
         do {
             try repository.save(meeting)
