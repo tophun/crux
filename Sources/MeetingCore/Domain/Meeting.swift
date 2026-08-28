@@ -10,6 +10,8 @@ public struct Meeting: Identifiable, Hashable, Sendable, Codable {
     /// 회의 관련 파일이 저장된 로컬 디렉터리 (raw/, mixed/, exports/)
     public var storageDirectory: URL
     public var source: MeetingSource
+    /// 회의 유형. 고르지 않으면 일반 — 지금과 같은 회의록 구성이다.
+    public var meetingType: MeetingType
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -31,6 +33,7 @@ public struct Meeting: Identifiable, Hashable, Sendable, Codable {
         self.status = status
         self.storageDirectory = storageDirectory
         self.source = source
+        meetingType = .general
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

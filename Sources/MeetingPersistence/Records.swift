@@ -28,6 +28,8 @@ final class MeetingModel {
     var status: String
     var storageDirectory: String
     var source: String
+    /// 없으면 일반. 기존 저장소는 필드가 없을 수 있다.
+    var meetingType: String?
     var createdAt: Date
     var updatedAt: Date
     var calendarEventId: String?
@@ -54,6 +56,7 @@ final class MeetingModel {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.calendarEventId = calendarEventId
+        meetingType = nil
     }
 
     convenience init(_ meeting: Meeting) {
@@ -68,11 +71,12 @@ final class MeetingModel {
             createdAt: meeting.createdAt,
             updatedAt: meeting.updatedAt
         )
+        meetingType = meeting.meetingType.rawValue
     }
 
     var domain: Meeting? {
         guard let uuid = UUID(uuidString: id) else { return nil }
-        return Meeting(
+        var meeting = Meeting(
             id: uuid,
             title: title,
             startedAt: startedAt,
@@ -83,6 +87,8 @@ final class MeetingModel {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+        meeting.meetingType = meetingType.flatMap(MeetingType.parse) ?? .general
+        return meeting
     }
 }
 

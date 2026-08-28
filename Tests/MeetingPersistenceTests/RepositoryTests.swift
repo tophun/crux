@@ -79,6 +79,17 @@ struct RepositoryTests {
         #expect(loaded?.status == .recorded)
         #expect(loaded?.storageDirectory.path == harness.directory.path)
         #expect(try Int(#require(loaded?.startedAt.timeIntervalSince1970)) == 1_700_000_000)
+        #expect(loaded?.meetingType == .general)
+    }
+
+    @Test("회의 유형을 저장하고 다시 읽는다", arguments: MeetingType.allCases)
+    func meetingTypeRoundTrip(type: MeetingType) throws {
+        let harness = try makeHarness()
+        var meeting = try makeMeeting(harness)
+        meeting.meetingType = type
+        try harness.repository.save(meeting)
+        let loaded = try harness.repository.meeting(id: meeting.id)
+        #expect(loaded?.meetingType == type)
     }
 
     @Test("회의록이 근거와 관측값까지 그대로 왕복한다")

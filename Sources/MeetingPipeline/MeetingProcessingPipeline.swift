@@ -161,6 +161,7 @@ public actor MeetingProcessingPipeline {
                     meetingId: meetingId,
                     titleHint: meeting.title,
                     segments: segments,
+                    meetingType: meeting.meetingType,
                     progress: { progress in
                         switch progress {
                         case let .extracting(window, total):

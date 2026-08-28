@@ -93,9 +93,14 @@ struct MeetingRow: View {
                 Spacer()
                 StatusBadge(status: summary.meeting.status)
             }
-            Text(summary.meeting.startedAt, format: .dateTime.year().month().day().hour().minute())
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Text(summary.meeting.startedAt, format: .dateTime.year().month().day().hour().minute())
+                if summary.meeting.meetingType != .general {
+                    Text(summary.meeting.meetingType.displayName)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
             if let hit = summary.searchHit {
                 Text(hit.sentence)
                     .font(.caption)

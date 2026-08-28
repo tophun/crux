@@ -139,8 +139,10 @@ struct CruxApp: App {
                         // 기록: 녹음하기 또는 불러오기. 메뉴바의 "회의록 시작"과 같은 조건으로 잠근다.
                         ToolbarItem(placement: .automatic) {
                             Menu {
-                                Button("녹음하기", systemImage: "record.circle") {
-                                    Task { await coordinator.startMeeting() }
+                                Menu("녹음하기", systemImage: "record.circle") {
+                                    MeetingTypeButtons { type in
+                                        Task { await coordinator.startMeeting(meetingType: type) }
+                                    }
                                 }
                                 .disabled(
                                     !canStartRecording
@@ -149,11 +151,13 @@ struct CruxApp: App {
                                 )
                                 .help(
                                     canStartRecording
-                                        ? "녹음을 시작합니다"
+                                        ? "녹음을 시작합니다. 유형을 고르면 회의록 섹션이 달라집니다"
                                         : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
                                 )
-                                Button("불러오기", systemImage: "square.and.arrow.down") {
-                                    importAudio()
+                                Menu("불러오기", systemImage: "square.and.arrow.down") {
+                                    MeetingTypeButtons { type in
+                                        importAudio(meetingType: type)
+                                    }
                                 }
                                 .disabled(state.isProcessing || !installs.readyForCapture)
                                 .help(
@@ -311,14 +315,14 @@ struct CruxApp: App {
         onboarding.show(coordinator: coordinator, installs: installs) { dismissedOnboarding = true }
     }
 
-    private func importAudio() {
+    private func importAudio(meetingType: MeetingType = .general) {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.audio, .mpeg4Audio, .wav, .mp3, .aiff]
         panel.message = "회의 오디오 파일을 선택하세요. 파일은 이 기기에서만 처리됩니다."
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        state.importAndProcess(url: url)
+        state.importAndProcess(url: url, meetingType: meetingType)
     }
 }
 

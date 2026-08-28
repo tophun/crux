@@ -21,6 +21,7 @@ public struct MeetingRepository: Sendable {
                 model.status = meeting.status.rawValue
                 model.storageDirectory = meeting.storageDirectory.path
                 model.source = meeting.source.rawValue
+                model.meetingType = meeting.meetingType.rawValue
                 model.createdAt = meeting.createdAt
                 model.updatedAt = meeting.updatedAt
             } else {

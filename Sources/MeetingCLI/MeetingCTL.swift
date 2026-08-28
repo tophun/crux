@@ -106,13 +106,17 @@ extension MeetingCTL {
         @Option(name: .long, help: "회의록을 내보낼 디렉터리")
         var out: String?
 
+        @Option(name: .long, help: "회의 유형 (general, scrum, one-on-one, review). 기본은 general")
+        var type: MeetingType = .general
+
         func run() async throws {
             let database = try options.makeDatabase()
             let repository = MeetingRepository(database: database)
             let importer = MeetingImporter(repository: repository)
             let imported = try importer.importAudio(
                 at: URL(fileURLWithPath: audio),
-                title: title
+                title: title,
+                meetingType: type
             )
             print("회의 생성: \(imported.meeting.id) (\(String(format: "%.1f", imported.track.duration))초)")
 
@@ -226,6 +230,7 @@ extension MeetingCTL {
                 meetingId: meetingId,
                 titleHint: meetingRecord.title,
                 segments: segments,
+                meetingType: meetingRecord.meetingType,
                 progress: { progress in
                     FileHandle.standardError.write(Data("\(progress)\n".utf8))
                 }
@@ -438,6 +443,9 @@ extension MeetingCTL {
         @Flag(name: .long, help: "녹음만 하고 회의록은 만들지 않는다")
         var recordOnly: Bool = false
 
+        @Option(name: .long, help: "회의 유형 (general, scrum, one-on-one, review). 기본은 general")
+        var type: MeetingType = .general
+
         func run() async throws {
             let database = try options.makeDatabase()
             let repository = MeetingRepository(database: database)
@@ -457,7 +465,7 @@ extension MeetingCTL {
 
             let meetingId = UUID()
             let storage = MeetingStorage.forMeeting(id: meetingId)
-            let meeting = Meeting(
+            var meeting = Meeting(
                 id: meetingId,
                 title: title ?? "CLI 녹음 \(meetingId.uuidString.prefix(8))",
                 startedAt: Date(),
@@ -465,6 +473,7 @@ extension MeetingCTL {
                 storageDirectory: storage.root,
                 source: .liveCapture
             )
+            meeting.meetingType = type
             try repository.save(meeting)
 
             try await capture.start(meetingId: meetingId, storage: storage)
@@ -740,5 +749,12 @@ extension MeetingCTL {
                 print("남겨 둔 원본 파일: \(kept.path)")
             }
         }
+    }
+}
+
+extension MeetingType: ExpressibleByArgument {
+    public init?(argument: String) {
+        guard let parsed = MeetingType.parse(argument) else { return nil }
+        self = parsed
     }
 }

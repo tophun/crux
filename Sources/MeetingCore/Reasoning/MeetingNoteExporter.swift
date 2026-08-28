@@ -124,17 +124,39 @@ public enum MeetingNoteExporter {
 
     /// 회의록 문서.
     ///
+    /// 일반(기본):
     ///     ## 날짜 / ## 참여자
     ///     ## 내용 → ### 요약 · ### 결정 · ### 논의(표) · ### 리스크 · ### 미해결
     ///     ## Action Item (체크리스트)
     ///
-    /// 리스크·미해결·결정은 **내용이 있을 때만** 만든다. 빈 제목이 남으면 문서가 지저분해진다.
+    /// 유형을 고르면 강조 섹션만 달라진다. 스크럼은 한 일/이슈, 1:1은 약속, 리뷰는 결정/리스크.
+    /// 일반은 지금과 같다. 리스크·미해결·결정은 일반에서 **내용이 있을 때만** 만든다.
     /// 전사문과 근거 타임스탬프는 넣지 않는다. 근거는 `{meetingId}.evidence.json`에만 둔다.
     ///
     /// - Parameter attendees: 캘린더 참석자. 없으면 비워 두고 임의로 만들지 않는다.
     public static func markdown(_ note: MeetingNote, meeting: Meeting? = nil, attendees: [String] = []) -> String {
         // 제목은 화면 카드와 파일명이 이미 담으므로 문서 본문에는 넣지 않는다.
         var lines: [String] = []
+        appendHeader(to: &lines, note: note, meeting: meeting, attendees: attendees)
+        switch meeting?.meetingType ?? .general {
+        case .general:
+            appendGeneralBody(to: &lines, note: note)
+        case .scrum:
+            appendScrumBody(to: &lines, note: note)
+        case .oneOnOne:
+            appendOneOnOneBody(to: &lines, note: note)
+        case .review:
+            appendReviewBody(to: &lines, note: note)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private static func appendHeader(
+        to lines: inout [String],
+        note: MeetingNote,
+        meeting: Meeting?,
+        attendees: [String]
+    ) {
         lines.append("## 날짜")
         lines.append(dateText(meeting?.startedAt ?? note.generatedAt))
         lines.append("")
@@ -148,27 +170,108 @@ public enum MeetingNoteExporter {
             }
         }
         lines.append("")
+    }
 
+    /// 지금과 같은 일반 구성. 빈 결정·리스크·미해결 제목은 만들지 않는다.
+    private static func appendGeneralBody(to lines: inout [String], note: MeetingNote) {
+        appendContentPreamble(to: &lines, note: note)
+        appendDecided(to: &lines, note: note, always: false)
+        appendDiscussion(to: &lines, note: note, includeTopics: true)
+        appendRisks(to: &lines, note: note, always: false)
+        appendOpenQuestions(to: &lines, note: note)
+        appendActionItems(to: &lines, items: note.actionItems, heading: "## Action Item")
+    }
+
+    /// 스크럼: 한 일(주제·완료 액션)과 이슈(리스크)를 요약 바로 뒤에 둔다.
+    private static func appendScrumBody(to lines: inout [String], note: MeetingNote) {
+        appendContentPreamble(to: &lines, note: note)
+        appendBullets("### 한 일", items: doneWorkItems(note), to: &lines, always: true)
+        appendRisks(to: &lines, note: note, always: true, heading: "### 이슈")
+        appendDiscussion(to: &lines, note: note, includeTopics: false)
+        appendDecided(to: &lines, note: note, always: false)
+        appendOpenQuestions(to: &lines, note: note)
+        appendActionItems(
+            to: &lines,
+            items: note.actionItems.filter { $0.status != .done },
+            heading: "## Action Item"
+        )
+    }
+
+    /// 1:1: 약속을 요약 바로 뒤에 두고 Action Item 자리를 대신한다.
+    private static func appendOneOnOneBody(to lines: inout [String], note: MeetingNote) {
+        appendContentPreamble(to: &lines, note: note)
+        appendActionItems(to: &lines, items: note.actionItems, heading: "### 약속")
+        appendDiscussion(to: &lines, note: note, includeTopics: true)
+        appendDecided(to: &lines, note: note, always: false)
+        appendRisks(to: &lines, note: note, always: false)
+        appendOpenQuestions(to: &lines, note: note)
+    }
+
+    /// 리뷰: 결정과 리스크를 요약 바로 뒤에 항상 둔다.
+    private static func appendReviewBody(to lines: inout [String], note: MeetingNote) {
+        appendContentPreamble(to: &lines, note: note)
+        appendDecided(to: &lines, note: note, always: true)
+        appendRisks(to: &lines, note: note, always: true)
+        appendDiscussion(to: &lines, note: note, includeTopics: true)
+        appendOpenQuestions(to: &lines, note: note)
+        appendActionItems(to: &lines, items: note.actionItems, heading: "## Action Item")
+    }
+
+    private static func appendContentPreamble(to lines: inout [String], note: MeetingNote) {
         lines.append("## 내용")
         lines.append("")
-
         lines.append("### 요약")
         lines.append(note.summary.isEmpty ? "(요약 없음)" : note.summary)
         lines.append("")
+    }
 
-        let decided = note.decisions.filter { $0.kind == .decided }
-        if !decided.isEmpty {
-            lines.append("### 결정")
-            for decision in decided {
-                lines.append("- \(decision.content)")
+    private static func appendDecided(to lines: inout [String], note: MeetingNote, always: Bool) {
+        let decided = note.decisions.filter { $0.kind == .decided }.map(\.content)
+        appendBullets("### 결정", items: decided, to: &lines, always: always)
+    }
+
+    private static func appendRisks(
+        to lines: inout [String],
+        note: MeetingNote,
+        always: Bool,
+        heading: String = "### 리스크"
+    ) {
+        appendBullets(heading, items: note.risks.map(\.content), to: &lines, always: always)
+    }
+
+    private static func appendOpenQuestions(to lines: inout [String], note: MeetingNote) {
+        appendBullets("### 미해결", items: note.openQuestions.map(\.question), to: &lines, always: false)
+    }
+
+    private static func appendBullets(
+        _ heading: String,
+        items: [String],
+        to lines: inout [String],
+        always: Bool
+    ) {
+        guard always || !items.isEmpty else { return }
+        lines.append(heading)
+        if items.isEmpty {
+            lines.append("- 없음")
+        } else {
+            for item in items {
+                lines.append("- \(item)")
             }
-            lines.append("")
         }
+        lines.append("")
+    }
 
+    private static func appendDiscussion(
+        to lines: inout [String],
+        note: MeetingNote,
+        includeTopics: Bool
+    ) {
         lines.append("### 논의")
         lines.append("| 주제 | 내용 |")
         lines.append("| --- | --- |")
-        let rows = discussionRows(note)
+        let rows = includeTopics
+            ? discussionRows(note)
+            : note.decisions.filter { $0.kind == .proposed }.map { (topic: "검토 중", detail: $0.content) }
         if rows.isEmpty {
             lines.append("| \(UnresolvedMarker.undetermined) | - |")
         } else {
@@ -177,35 +280,34 @@ public enum MeetingNoteExporter {
             }
         }
         lines.append("")
+    }
 
-        if !note.risks.isEmpty {
-            lines.append("### 리스크")
-            for risk in note.risks {
-                lines.append("- \(risk.content)")
-            }
-            lines.append("")
-        }
-
-        if !note.openQuestions.isEmpty {
-            lines.append("### 미해결")
-            for question in note.openQuestions {
-                lines.append("- \(question.question)")
-            }
-            lines.append("")
-        }
-
-        lines.append("## Action Item")
-        if note.actionItems.isEmpty {
+    private static func appendActionItems(
+        to lines: inout [String],
+        items: [ActionItem],
+        heading: String
+    ) {
+        lines.append(heading)
+        if items.isEmpty {
             lines.append("- 없음")
         } else {
-            for item in note.actionItems {
+            for item in items {
                 let mark = item.status == .done ? "x" : " "
                 lines.append("- [\(mark)] \(item.task) — \(item.assigneeDisplay) · \(item.dueDateDisplay)")
             }
         }
         lines.append("")
+    }
 
-        return lines.joined(separator: "\n")
+    private static func doneWorkItems(_ note: MeetingNote) -> [String] {
+        var items = note.topics.compactMap { topic -> String? in
+            if topic.title.isEmpty, topic.summary.isEmpty { return nil }
+            if topic.summary.isEmpty { return topic.title }
+            if topic.title.isEmpty { return topic.summary }
+            return "\(topic.title) — \(topic.summary)"
+        }
+        items += note.actionItems.filter { $0.status == .done }.map(\.task)
+        return items
     }
 
     /// 논의 표의 행. 주제 요약이 먼저 오고, 확정되지 않은 제안을 뒤에 붙인다.
