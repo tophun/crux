@@ -61,7 +61,7 @@ public actor MicrophoneCapture {
         AVCaptureDevice.default(for: .audio) != nil
     }
 
-    public func start(to url: URL, captionSink: LiveAudioChunkSink? = nil) async throws {
+    func start(to url: URL, captionSink: LiveAudioChunkSink? = nil) async throws {
         guard state == .idle else { throw CaptureError.invalidState(String(describing: state)) }
         guard Self.permission() == .granted else { throw CaptureError.permissionDenied("마이크") }
         guard Self.hasInputDevice() else { throw CaptureError.noInputDevice }

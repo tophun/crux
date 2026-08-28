@@ -2,6 +2,7 @@ import ArgumentParser
 import Foundation
 import MeetingCore
 import MeetingPersistence
+import MeetingPipeline
 
 extension MeetingCTL {
     /// 회의 삭제. 오디오·전사문·회의록·근거 파일을 함께 지운다.

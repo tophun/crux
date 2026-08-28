@@ -1,15 +1,21 @@
 name: Security Scan (CodeQL)
 
-# 코드 수준 보안 정적 분석(CodeQL Swift). 풀 빌드에 30분 가까이 걸리므로
+# 코드 수준 보안 정적 분석(CodeQL Swift). macOS 러너는 분당 10배 과금이라
 # PR마다가 아니라 주 1회 + main 푸시 + 수동 실행으로만 돌린다.
+#
+# 속도 전략:
+#   병목은 우리 코드(약 120개 Swift 파일)가 아니라 mlx-swift(C++ Metal 커널)·
+#   swift-syntax 같은 의존성 풀빌드다. CodeQL은 우리 소스의 컴파일만 추적하면 되므로
+#     1) CodeQL init 전에(추적 밖에서) `.build`를 캐시 복원하고 의존성을 워밍 빌드한다.
+#     2) CodeQL init 후 Sources/ 아래 .swift를 touch해 우리 모듈만 강제 재컴파일한다.
+#        (touch가 없으면 캐시 완전 히트 시 컴파일이 0건 → "No source code was seen" 실패)
+#   두 빌드는 같은 `swift build` 인자를 써야 증분 빌드가 유지된다.
+#   캐시 TTL이 7일이라 main 푸시가 없는 주엔 cron이 cold run이 될 수 있다.
 #
 # 비공개 저장소는 Advanced Security 라이선스 없이는 SARIF 업로드(Security 탭)가
 # 불가능하므로, 결과를 워크플로우 아티팩트로 내려받도록 구성했다.
 # 저장소를 공개 전환하거나 GHAS를 쓰게 되면 analyze 단계의 `upload: false`를
 # 제거하면 Security 탭 연동이 켜진다.
-#
-# 참고: macOS 러너는 분당 10배 과금이라 1회 실행 ≈ 유료 300분. 무료 크레딧
-# (월 2,000분) 기준으로 주간 실행이 부담되면 cron 주기를 늘리면 된다.
 
 on:
   push:
@@ -25,6 +31,7 @@ concurrency:
 permissions:
   actions: read
   contents: read
+  security-events: read
 
 jobs:
   codeql:
@@ -33,19 +40,43 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache SwiftPM dependencies
-        uses: actions/cache@v4
+      - name: Swift 버전 (캐시 키용)
+        id: swift
+        run: echo "version=$(swift --version 2>&1 | head -1 | tr -d ' ()' )" >> "$GITHUB_OUTPUT"
+
+      - name: Restore SwiftPM build cache
+        id: cache
+        uses: actions/cache/restore@v4
         with:
-          path: ~/.swiftpm/cache
-          key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          path: .build
+          # run_id를 붙여 매 실행이 갱신된 캐시를 저장하고, 다음 실행은 prefix로 최신 것을 가져온다.
+          # (같은 키는 덮어쓸 수 없어 부분 빌드만 담긴 캐시가 굳어질 수 있다.)
+          key: swiftpm-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.swift.outputs.version }}-${{ hashFiles('Package.resolved') }}-${{ github.run_id }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-
+            swiftpm-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.swift.outputs.version }}-${{ hashFiles('Package.resolved') }}-
+            swiftpm-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.swift.outputs.version }}-
+
+      # CodeQL 추적 밖에서 의존성을 빌드한다. 캐시 히트면 거의 즉시 끝난다.
+      - name: Warm build (dependencies, untraced)
+        run: swift build
+
+      # 뒤 단계가 실패하더라도 의존성 빌드 결과는 보존한다.
+      - name: Save SwiftPM build cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .build
+          key: ${{ steps.cache.outputs.cache-primary-key }}
 
       - uses: github/codeql-action/init@v3
         with:
           languages: swift
 
-      - uses: github/codeql-action/autobuild@v3
+      # 우리 모듈만 다시 컴파일되도록 강제해 CodeQL 추적기에 노출한다.
+      - name: Build (traced, project sources only)
+        run: |
+          find Sources -name '*.swift' -exec touch {} +
+          swift build
 
       - uses: github/codeql-action/analyze@v3
         with:

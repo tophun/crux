@@ -22,7 +22,7 @@ public enum PromptLibrary {
         meetingType: MeetingType = .general
     ) -> String {
         let emphasis = meetingType.extractionEmphasis.map { "\n\n\($0)\n" } ?? "\n"
-        """
+        return """
         아래는 회의 전사문의 한 구간이다.
 
         \(window.promptTranscript())
@@ -137,7 +137,7 @@ public enum PromptLibrary {
         meetingType: MeetingType = .general
     ) -> String {
         let emphasis = meetingType.finalNoteEmphasis.map { "\n        \($0)" } ?? ""
-        """
+        return """
         아래는 한 회의에서 검증된 후보 항목들과 회의록에 남길 전사 요약이다.
         이것만 사용해 최종 회의록을 작성하라. 새로운 사실을 추가하지 않는다.
 

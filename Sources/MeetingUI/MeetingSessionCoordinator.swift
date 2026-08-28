@@ -15,7 +15,7 @@ import Observation
 public final class MeetingSessionCoordinator {
     public private(set) var capsule: CruxState = .hidden
     public private(set) var detailMessage: String?
-    public private(set) var previewModel: PreviewViewerModel?
+    public internal(set) var previewModel: PreviewViewerModel?
     public internal(set) var lastError: String?
     /// 캘린더 권한 상태 (설정 화면 표시용)
     public internal(set) var calendarStatus: CalendarAuthorizationStatus = .notDetermined

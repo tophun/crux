@@ -10,18 +10,18 @@ public struct UserNotificationsEventCenter: EventNotificationCenter, Sendable {
 
     public func authorizationStatus() async -> EventNotificationAuthorization {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
-        Self.map(settings.authorizationStatus)
+        return Self.map(settings.authorizationStatus)
     }
 
     public func requestAuthorization() async -> EventNotificationAuthorization {
         let center = UNUserNotificationCenter.current()
         _ = try? await center.requestAuthorization(options: [.alert, .sound])
-        await authorizationStatus()
+        return await authorizationStatus()
     }
 
     public func pendingIdentifiers() async -> Set<String> {
         let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
-        Set(requests.map(\.identifier))
+        return Set(requests.map(\.identifier))
     }
 
     public func add(_ request: EventNotificationRequest) async throws {
