@@ -222,7 +222,7 @@ struct RepositoryTests {
         #expect(byDecision.first?.searchHit?.field == .decision)
         #expect(byDecision.first?.searchHit?.sentence == "배포를 3월 12일로 확정")
         // 사용자 문서로 고친 회의록도 찾는다.
-        var edited = try #require(harness.repository.note(meetingId: first.id))
+        var edited = try #require(try harness.repository.note(meetingId: first.id))
         edited.customDocument = "보안 검토를 배포 전에 끝낸다."
         try harness.repository.save(note: edited)
         let byDocument = try harness.repository.summaries(matching: "보안 검토")
@@ -272,6 +272,86 @@ struct RepositoryTests {
         #expect(try harness.repository.meeting(id: meeting.id) == nil)
         #expect(try harness.repository.transcript(meetingId: meeting.id).isEmpty)
         #expect(try harness.repository.note(meetingId: meeting.id) == nil)
+    }
+
+    @Test("캘린더 동기화는 삭제된 일정과 Google 메타데이터를 캐시에 반영한다")
+    func calendarCacheReplacement() throws {
+        let database = try AppDatabase.inMemory()
+        let calendar = CalendarRepository(database: database)
+        let from = Date(timeIntervalSince1970: 1_800_000_000)
+        let to = from.addingTimeInterval(86400)
+        let deleted = CalendarEvent(
+            id: "deleted-event",
+            title: "삭제된 일정",
+            startDate: from.addingTimeInterval(3600),
+            endDate: from.addingTimeInterval(7200),
+            source: .google,
+            etag: "\"old\""
+        )
+        let current = CalendarEvent(
+            id: "current-event",
+            title: "현재 일정",
+            startDate: from.addingTimeInterval(10800),
+            endDate: from.addingTimeInterval(14400),
+            source: .google,
+            etag: "\"new\"",
+            recurringEventId: "series-1",
+            originalStartDate: from.addingTimeInterval(10800)
+        )
+        try calendar.save(events: [deleted, current])
+
+        let replacement = CalendarEvent(
+            id: current.id,
+            title: "수정된 현재 일정",
+            startDate: current.startDate,
+            endDate: current.endDate,
+            source: .google,
+            etag: "\"newer\"",
+            recurringEventId: current.recurringEventId,
+            originalStartDate: current.originalStartDate
+        )
+        try calendar.replace(events: [replacement], from: from, to: to, source: .google)
+
+        #expect(try calendar.event(id: deleted.id) == nil)
+        #expect(try calendar.event(id: replacement.id)?.title == "수정된 현재 일정")
+        #expect(try calendar.event(id: replacement.id)?.etag == "\"newer\"")
+        #expect(try calendar.event(id: replacement.id)?.recurringEventId == "series-1")
+    }
+
+    @Test("Google 캐시 교체는 EventKit 일정을 지우지 않는다")
+    func googleReplaceDoesNotDeleteEventKitEvents() throws {
+        let database = try AppDatabase.inMemory()
+        let calendar = CalendarRepository(database: database)
+        let from = Date(timeIntervalSince1970: 1_800_000_000)
+        let to = from.addingTimeInterval(86400)
+        let eventKit = CalendarEvent(
+            id: "eventkit-event",
+            title: "맥 캘린더 일정",
+            startDate: from.addingTimeInterval(3600),
+            endDate: from.addingTimeInterval(7200),
+            source: .eventKit
+        )
+        let staleGoogle = CalendarEvent(
+            id: "stale-google",
+            title: "삭제된 Google 일정",
+            startDate: from.addingTimeInterval(4000),
+            endDate: from.addingTimeInterval(7600),
+            source: .google
+        )
+        let currentGoogle = CalendarEvent(
+            id: "current-google",
+            title: "현재 Google 일정",
+            startDate: from.addingTimeInterval(10800),
+            endDate: from.addingTimeInterval(14400),
+            source: .google
+        )
+        try calendar.save(events: [eventKit, staleGoogle, currentGoogle])
+
+        try calendar.replace(events: [currentGoogle], from: from, to: to, source: .google)
+
+        #expect(try calendar.event(id: eventKit.id)?.title == "맥 캘린더 일정")
+        #expect(try calendar.event(id: staleGoogle.id) == nil)
+        #expect(try calendar.event(id: currentGoogle.id)?.source == .google)
     }
 }
 

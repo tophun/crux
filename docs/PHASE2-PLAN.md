@@ -6,7 +6,7 @@
 
 | 항목 | 선택 | 이유 |
 | --- | --- | --- |
-| 캘린더 소스 | **EventKit** (macOS 캘린더에 구독된 Google 계정) | 네트워크·OAuth·GCP 프로젝트가 필요 없어 온디바이스 원칙을 지킨다. `CalendarProvider` 프로토콜을 두어 Google Calendar API 구현을 나중에 추가할 수 있다 |
+| 캘린더 소스 | **EventKit + Google Calendar API** | EventKit이 기본·폴백이다. Google이 연결되어 있으면 그쪽을 우선한다. 토큰은 Keychain에 저장한다 |
 | Atlassian 인증 | **API 토큰(Basic)** + Keychain | 개인·팀 단위 사용에 가장 단순하다. 앱 Settings 또는 CLI stdin으로만 받고 로그·인자에 남기지 않는다 |
 | 게시 검증 | 샌드박스에 실제 게시 | 페이로드 단위 테스트만으로는 API 계약(spaceId·ADF·remote link)을 확인할 수 없다 |
 
@@ -14,16 +14,20 @@
 
 | 요구사항 | 구현 |
 | --- | --- |
-| 일정을 읽어 회의 전후 상태 감지 | `MeetingCalendar/EventKitCalendarProvider`, `MeetingCore/MeetingDetectionPolicy` |
+| 일정을 읽어 회의 전후 상태 감지 | `MeetingCalendar/GoogleCalendarProvider`, `MeetingCore/MeetingDetectionPolicy` |
 | 제목·날짜·참석자·회의 링크를 회의록 메타데이터로 | `CalendarEvent` → `PublishBundleBuilder`가 제목·날짜·참석자를 캘린더 우선으로 사용 |
 | 시작 직전 또는 회의 앱·오디오 활성 시 Crux | `MeetingDetectionPolicy.decide` — 임박(5분 전), 시작(10분 이내), 미등록 회의(회의 앱 + 마이크 사용 중) |
 | 기본은 자동 녹음이 아니라 사용자 확인 | 캡슐이 "…가 시작된 것 같습니다. 회의록을 시작할까요?"를 띄우고, `startMeeting()`은 사용자 동작에서만 호출된다 |
 | 종일·취소·참석자 없는 일정 제외 | `eligibleEvents` (기본 참석자 2명 이상) |
 | 중복 알림 금지 | `notifiedEvent` 테이블 + `CruxMachine.dismissedEventIds` — 앱을 다시 켜도 유지 |
-| 캘린더 메타데이터는 로컬 저장 | `calendarEvent` 테이블. 네트워크 전송 없음 |
+| 캘린더 메타데이터는 로컬 저장 | `calendarEvent` 테이블. API 응답을 캐시하고 5분마다 동기화 |
 
 회의 링크는 이벤트의 `url`, `location`, `notes`에서 Zoom·Meet·Teams·Webex 호스트를 찾아 뽑는다
 (`ConferenceLinkExtractor`).
+
+OAuth 연결은 `calendar.events` scope, PKCE S256, loopback redirect를 사용한다. 일정 쓰기는
+`CalendarEventWriter`의 생성·수정·삭제 API로 분리했으며, 수정 전 최신 ETag를 확인하고 충돌이면 로컬
+캐시를 바꾸지 않는다. Qwen3에는 캘린더 메타데이터를 보조 컨텍스트로만 전달하고, 쓰기 함수를 노출하지 않는다.
 
 ## 2. Atlassian 연동
 
@@ -146,14 +150,14 @@ $ swift build && swift test
 | `xcodebuild -scheme meetingctl` | 성공 |
 | `scripts/make_app.sh` | 성공. ad-hoc 서명, 번들 식별자 `local.meetingnotes.app`, 권한 사용 설명 3종 포함 |
 | 앱 번들 실행 | 프로세스 정상 유지, 오류 로그 없음 |
-| CLI `calendar` | 번들이 아니므로 캘린더 권한 거부 — 그 사실을 사용자에게 알리고 종료(설계 의도대로 동작) |
+| CLI `calendar` | `GOOGLE_CALENDAR_CLIENT_ID`가 있으면 브라우저 OAuth 후 일정 조회. 마이크·시스템 오디오 권한은 앱 번들에서만 요청 |
 | CLI `preview` (실제 회의록) | 성공. Confluence 본문 순서(날짜·참석자 우선), Jira 초안 2건, 근거는 로컬 목록에만 표시, 게시 본문에 타임스탬프 0건 |
-| 네트워크 감사 | `MeetingPublishing` 1개 파일만 HTTP 사용, 나머지 10개 모듈 0건, 토큰 로깅 0건 |
+| 네트워크 감사 | Google Calendar 통신은 `MeetingCalendar`에, Atlassian 통신은 `MeetingPublishing`에 격리. 토큰 로깅 0건 |
 
 ### 검증하지 못한 것
 
-- **실기기 권한 흐름**: 마이크·캘린더·화면 기록 권한은 사람이 승인 창을 눌러야 한다. 승인 후의 실제 녹음,
-  일정 읽기, 시스템 오디오 캡처는 측정하지 못했다.
+- **실계정·실기기 흐름**: Google OAuth와 마이크·화면 기록 권한은 사람이 승인 창을 눌러야 한다. 승인 후의 실제
+  일정 동기화, 녹음, 시스템 오디오 캡처는 측정하지 못했다.
 - **Crux 육안 렌더링**: 화면 기록 권한이 없어 `screencapture`가 검은 화면만 반환한다.
 - **Atlassian 라이브 게시**: 아래 "라이브 검증 절차"를 사용자가 실행하면 확인된다.
 

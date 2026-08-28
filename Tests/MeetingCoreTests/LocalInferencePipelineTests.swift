@@ -56,6 +56,30 @@ struct LocalInferencePipelineTests {
         #expect(output.note.openQuestions.count == 1)
     }
 
+    @Test("캘린더 메타데이터를 최종 회의록 컨텍스트로 전달하되 근거로 취급하지 않는다")
+    func includesCalendarContextOnlyAsMetadata() async throws {
+        let model = makeModel()
+        let context = MeetingCalendarContext(
+            title: "캘린더 제품 회의",
+            startDate: Date(timeIntervalSince1970: 1_777_000_000),
+            endDate: Date(timeIntervalSince1970: 1_777_003_600),
+            attendees: ["홍길동"],
+            conferenceURL: URL(string: "https://meet.google.com/example")
+        )
+
+        _ = try await LocalInferencePipeline(model: model).generateNote(
+            meetingId: Fixtures.meetingId,
+            titleHint: "회의",
+            segments: Fixtures.meetingSegments,
+            calendarContext: context
+        )
+
+        let finalPrompt = try #require(await (model.callLog()).last(where: { $0.kind == .finalNote })?.prompt)
+        #expect(finalPrompt.contains("캘린더 제품 회의"))
+        #expect(finalPrompt.contains("홍길동"))
+        #expect(finalPrompt.contains("전사 근거가 아님"))
+    }
+
     @Test("사담은 회의록 입력에서 제외되고 전사문은 그대로 남는다")
     func excludesSmallTalk() async throws {
         let model = makeModel()

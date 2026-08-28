@@ -29,7 +29,7 @@ public struct OnboardingView: View {
             header
             Divider()
             VStack(spacing: 0) {
-                calendarRow
+                calendarSection
                 Divider()
                 microphoneRow
                 Divider()
@@ -44,6 +44,20 @@ public struct OnboardingView: View {
         }
         .frame(width: 520)
         .task { await coordinator.refreshPermissions() }
+    }
+
+    private var calendarSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            calendarRow
+            if let error = coordinator.calendarSyncError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+            }
+        }
     }
 
     private var header: some View {
@@ -62,8 +76,8 @@ public struct OnboardingView: View {
         PermissionRow(
             symbol: "calendar",
             title: "캘린더",
-            detail: "회의 시작 시각을 알아내 캡슐로 물어봅니다. 일정 제목과 참석자는 이 기기에만 저장됩니다.",
-            state: PermissionRow.State(coordinator.calendarStatus),
+            detail: "맥 캘린더에서 회의 시작 시각을 읽어 캡슐로 물어봅니다. Google 연결은 설정에서 추가할 수 있습니다.",
+            state: PermissionRow.State(coordinator.eventKitStatus),
             requirement: .required
         ) {
             Task { await coordinator.requestCalendarAccess() }
@@ -183,14 +197,15 @@ public struct OnboardingView: View {
 struct PermissionRow: View {
     enum State {
         case notDetermined
+        case connecting
         case granted
         case blocked
 
         init(_ status: CalendarAuthorizationStatus) {
             switch status {
             case .authorized: self = .granted
-            case .notDetermined: self = .notDetermined
-            case .denied, .restricted, .writeOnly: self = .blocked
+            case .notDetermined, .denied: self = .notDetermined
+            case .restricted, .writeOnly: self = .blocked
             }
         }
 
@@ -247,6 +262,10 @@ struct PermissionRow: View {
     @ViewBuilder
     private var action: some View {
         switch state {
+        case .connecting:
+            ProgressView()
+                .controlSize(.small)
+                .help("Google 인증 결과를 처리하는 중입니다")
         case .granted:
             Label("허용됨", systemImage: "checkmark.circle.fill")
                 .labelStyle(.iconOnly)

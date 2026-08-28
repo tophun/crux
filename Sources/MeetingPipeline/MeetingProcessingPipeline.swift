@@ -87,6 +87,7 @@ public actor MeetingProcessingPipeline {
     /// 회의 하나를 처리한다. 이미 완료된 단계는 다시 하지 않는다(재처리 지원).
     public func process(
         meetingId: UUID,
+        calendarContext: MeetingCalendarContext? = nil,
         force: Bool = false,
         onUpdate: (@Sendable (Update) -> Void)? = nil
     ) async throws -> Result {
@@ -166,6 +167,7 @@ public actor MeetingProcessingPipeline {
                     titleHint: meeting.title,
                     segments: segments,
                     meetingType: meeting.meetingType,
+                    calendarContext: calendarContext,
                     progress: { progress in
                         switch progress {
                         case let .extracting(window, total):

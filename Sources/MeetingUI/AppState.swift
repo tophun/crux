@@ -110,7 +110,7 @@ public final class AppState {
         self.calendar = calendar
         self.playback = playback ?? AudioPlaybackController()
         // 지난 실행에서 중단된 작업을 재처리 대상으로 표시한다.
-        try? jobs.markRunningJobsInterrupted()
+        _ = try? jobs.markRunningJobsInterrupted()
         reload()
     }
 
@@ -205,8 +205,11 @@ public final class AppState {
 
         processingTask = Task { [pipeline] in
             do {
+                // 캘린더 캐시를 읽지 못해도 오디오 처리와 회의록 생성은 계속한다.
+                let calendarContext = self.calendar.flatMap { try? $0.calendarContext(meetingId: meetingId) }
                 let result = try await pipeline.process(
                     meetingId: meetingId,
+                    calendarContext: calendarContext,
                     force: force,
                     onUpdate: { [weak self] update in
                         Task { @MainActor [weak self] in

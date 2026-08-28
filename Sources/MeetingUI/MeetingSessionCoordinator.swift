@@ -32,6 +32,16 @@ public final class MeetingSessionCoordinator {
     /// 녹음 중 Whisper 부분 결과. 실패해도 녹음은 계속된다.
     public internal(set) var liveCaptions = LiveCaptionState()
     var captionSession: LiveCaptionSession?
+    /// Google OAuth callback 이후 token 교환·일정 동기화가 끝날 때까지의 상태.
+    public internal(set) var calendarConnectionInProgress = false
+    /// 캐시에서 읽은 다가오는 일정. 네트워크 동기화 실패 시에도 마지막 값은 유지한다.
+    public internal(set) var upcomingEvents: [CalendarEvent] = []
+    public internal(set) var calendarLastUpdatedAt: Date?
+    public internal(set) var calendarSyncError: String?
+    /// EventKit 권한. 설정 화면의 맥 캘린더 행에 쓴다.
+    public internal(set) var eventKitStatus: CalendarAuthorizationStatus = .notDetermined
+    /// Google Calendar 연결 상태. 설정 화면의 Google 행에 쓴다.
+    public internal(set) var googleCalendarStatus: CalendarAuthorizationStatus = .notDetermined
 
     /// 회의 목록이 바뀌었을 때 알린다. 앱이 회의 목록·상세 화면을 새로 고치는 데 쓴다.
     /// (녹음 시작, 처리 완료, 처리 실패 시점)
@@ -48,12 +58,14 @@ public final class MeetingSessionCoordinator {
 
     private var machine = CruxMachine()
     let calendarProvider: any CalendarProvider
-    private let calendarRepository: CalendarRepository
+    let calendarRepository: CalendarRepository
     private let detector: ConferenceAppDetector
     private var policy: MeetingDetectionPolicy
     /// 같은 진단을 15초마다 반복해서 남기지 않기 위한 직전 값.
     private var lastDiagnostic: String?
     private var lastDiagnosticAt: Date?
+    /// 마지막 동기화 시도 시각(성공·실패 무관). 실패 후 재시도 간격을 지키는 데 쓴다.
+    var lastCalendarRefreshAttemptAt: Date?
     let capture: MeetingAudioCapture
     let repository: MeetingRepository
     let pipeline: MeetingProcessingPipeline
@@ -123,97 +135,6 @@ public final class MeetingSessionCoordinator {
     public func stopMonitoring() {
         pollingTask?.cancel()
         pollingTask = nil
-    }
-
-    public func pollOnce() async {
-        await refreshPermissions()
-        // 설정에서 감지 기준을 바꿨을 수 있으므로 매번 읽는다.
-        policy.configuration.minimumAttendees = MeetingDetectionSettings.minimumAttendees
-
-        guard calendarStatus.canReadEvents || !detector.detect().isEmpty else {
-            diagnose("캘린더 권한이 없고 실행 중인 회의 앱도 없어 감지를 건너뜁니다. (권한: \(calendarStatus.displayName))")
-            return
-        }
-
-        var events: [CalendarEvent] = []
-        if calendarStatus.canReadEvents {
-            let now = Date()
-            events = await (try? calendarProvider.events(
-                from: now.addingTimeInterval(-3600),
-                to: now.addingTimeInterval(7200)
-            )) ?? []
-            // 캘린더 메타데이터는 로컬에만 저장한다.
-            try? calendarRepository.save(events: events)
-        }
-
-        let notified = (try? calendarRepository.notifiedEventIds()) ?? []
-        let skipIndex = EventSkipIndex(records: (try? calendarRepository.skipRecords()) ?? [])
-        let verdict = policy.decide(
-            events: events,
-            now: Date(),
-            notifiedEventIds: notified,
-            conferenceApps: detector.detect(),
-            skipIndex: skipIndex
-        )
-        report(events: events, notified: notified, skipIndex: skipIndex, verdict: verdict)
-
-        let message = policy.confirmationMessage(for: verdict)
-        capsule = machine.apply(.detection(verdict, message: message))
-        // 녹음·처리 중에는 감지 문구를 덮지 않는다. 캡슐에 지난 감지 문구가 남는 문제를 막는다.
-        switch capsule {
-        case .imminent, .detected:
-            detailMessage = message
-        case .hidden:
-            detailMessage = nil
-        default:
-            break
-        }
-    }
-
-    /// 왜 캡슐이 떴는지·안 떴는지 로그로 남긴다. 같은 내용은 반복하지 않는다.
-    private func report(
-        events: [CalendarEvent],
-        notified: Set<String>,
-        skipIndex: EventSkipIndex,
-        verdict: MeetingDetectionPolicy.Verdict
-    ) {
-        // 권한 상태를 항상 남긴다. 이게 빠지면 "일정 0건"이 권한 문제인지 일정이 없는 것인지 알 수 없다.
-        var parts: [String] = ["캘린더 \(calendarStatus.displayName)", "일정 \(events.count)건"]
-        let eligible = policy.eligibleEvents(events, skipIndex: skipIndex)
-        parts.append("대상 \(eligible.count)건")
-        for event in eligible.prefix(3) {
-            let lead = Int(policy.leadTime(for: event) / 60)
-            let source = event.earliestAlarmLeadTime == nil ? "기본" : "일정 알림"
-            parts.append("\(event.title): \(lead)분 전부터(\(source))")
-        }
-
-        for (event, reason) in policy.exclusions(events, skipIndex: skipIndex).prefix(5) {
-            parts.append("제외: \(event.title) — \(reason.displayName)")
-        }
-        let alreadyAsked = eligible.filter { notified.contains($0.id) }
-        if !alreadyAsked.isEmpty {
-            parts.append("이미 물어본 일정 \(alreadyAsked.count)건")
-        }
-        switch verdict {
-        case .idle: parts.append("판정: 표시할 것 없음")
-        case let .imminent(event, seconds):
-            parts.append("판정: \(event.title) \(Int(seconds / 60))분 전")
-        case let .started(event, reason):
-            parts.append("판정: \(event.title) 시작됨(\(reason.rawValue))")
-        case let .unscheduled(appName):
-            parts.append("판정: 일정 없이 \(appName) 실행 중")
-        }
-        diagnose(parts.joined(separator: " · "))
-    }
-
-    /// 같은 내용은 반복하지 않되, 루프가 살아 있는지 알 수 있게 5분마다 한 번은 남긴다.
-    private func diagnose(_ message: String, now: Date = Date()) {
-        if message == lastDiagnostic, let last = lastDiagnosticAt, now.timeIntervalSince(last) < 300 {
-            return
-        }
-        lastDiagnostic = message
-        lastDiagnosticAt = now
-        log?("감지 " + message)
     }
 
     // MARK: - 회의록 시작·종료
@@ -325,7 +246,11 @@ public final class MeetingSessionCoordinator {
             }
 
             var lastStage: ProcessingStage?
-            let task = Task { try await self.pipeline.process(meetingId: meetingId) { [weak self] update in
+            let calendarContext = try? calendarRepository.calendarContext(meetingId: meetingId)
+            let task = Task { try await self.pipeline.process(
+                meetingId: meetingId,
+                calendarContext: calendarContext
+            ) { [weak self] update in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     capsule = machine.apply(
@@ -411,6 +336,105 @@ public final class MeetingSessionCoordinator {
 }
 
 extension MeetingSessionCoordinator {
+    public func pollOnce() async {
+        await refreshPermissions()
+        // 설정에서 감지 기준을 바꿨을 수 있으므로 매번 읽는다.
+        policy.configuration.minimumAttendees = MeetingDetectionSettings.minimumAttendees
+
+        guard calendarStatus.canReadEvents || !detector.detect().isEmpty else {
+            diagnose("캘린더 권한이 없고 실행 중인 회의 앱도 없어 감지를 건너뜁니다. (권한: \(calendarStatus.displayName))")
+            return
+        }
+
+        var events: [CalendarEvent] = []
+        if calendarStatus.canReadEvents {
+            await refreshCalendar(force: false)
+            let now = Date()
+            events = (try? calendarRepository.events(
+                from: now.addingTimeInterval(-3600),
+                to: now.addingTimeInterval(7200)
+            )) ?? []
+        }
+
+        let notified = (try? calendarRepository.notifiedEventIds()) ?? []
+        let skipIndex = EventSkipIndex(records: (try? calendarRepository.skipRecords()) ?? [])
+        let verdict = policy.decide(
+            events: events,
+            now: Date(),
+            notifiedEventIds: notified,
+            conferenceApps: detector.detect(),
+            skipIndex: skipIndex
+        )
+        report(events: events, notified: notified, skipIndex: skipIndex, verdict: verdict)
+
+        let message = policy.confirmationMessage(for: verdict)
+        capsule = machine.apply(.detection(verdict, message: message))
+        // 녹음·처리 중에는 감지 문구를 덮지 않는다. 캡슐에 지난 감지 문구가 남는 문제를 막는다.
+        switch capsule {
+        case .imminent, .detected:
+            detailMessage = message
+        case .hidden:
+            detailMessage = nil
+        default:
+            break
+        }
+    }
+
+    func loadUpcomingEvents(now: Date) {
+        upcomingEvents = (try? calendarRepository.events(
+            from: now,
+            to: now.addingTimeInterval(7 * 24 * 3600)
+        ))?
+            .filter { $0.status != .canceled }
+            .sorted { $0.startDate < $1.startDate } ?? []
+    }
+
+    /// 왜 캡슐이 떴는지·안 떴는지 로그로 남긴다. 같은 내용은 반복하지 않는다.
+    private func report(
+        events: [CalendarEvent],
+        notified: Set<String>,
+        skipIndex: EventSkipIndex,
+        verdict: MeetingDetectionPolicy.Verdict
+    ) {
+        // 권한 상태를 항상 남긴다. 이게 빠지면 "일정 0건"이 권한 문제인지 일정이 없는 것인지 알 수 없다.
+        var parts: [String] = ["캘린더 \(calendarStatus.displayName)", "일정 \(events.count)건"]
+        let eligible = policy.eligibleEvents(events, skipIndex: skipIndex)
+        parts.append("대상 \(eligible.count)건")
+        for event in eligible.prefix(3) {
+            let lead = Int(policy.leadTime(for: event) / 60)
+            let source = event.earliestAlarmLeadTime == nil ? "기본" : "일정 알림"
+            parts.append("\(event.title): \(lead)분 전부터(\(source))")
+        }
+
+        for (event, reason) in policy.exclusions(events, skipIndex: skipIndex).prefix(5) {
+            parts.append("제외: \(event.title) — \(reason.displayName)")
+        }
+        let alreadyAsked = eligible.filter { notified.contains($0.id) }
+        if !alreadyAsked.isEmpty {
+            parts.append("이미 물어본 일정 \(alreadyAsked.count)건")
+        }
+        switch verdict {
+        case .idle: parts.append("판정: 표시할 것 없음")
+        case let .imminent(event, seconds):
+            parts.append("판정: \(event.title) \(Int(seconds / 60))분 전")
+        case let .started(event, reason):
+            parts.append("판정: \(event.title) 시작됨(\(reason.rawValue))")
+        case let .unscheduled(appName):
+            parts.append("판정: 일정 없이 \(appName) 실행 중")
+        }
+        diagnose(parts.joined(separator: " · "))
+    }
+
+    /// 같은 내용은 반복하지 않되, 루프가 살아 있는지 알 수 있게 5분마다 한 번은 남긴다.
+    private func diagnose(_ message: String, now: Date = Date()) {
+        if message == lastDiagnostic, let last = lastDiagnosticAt, now.timeIntervalSince(last) < 300 {
+            return
+        }
+        lastDiagnostic = message
+        lastDiagnosticAt = now
+        log?("감지 " + message)
+    }
+
     /// 게시 결과를 캡슐 상태에 반영한다.
     public func applyPublished(title: String?, issueCount: Int) {
         capsule = machine.apply(.published(confluencePageTitle: title, jiraIssueCount: issueCount))

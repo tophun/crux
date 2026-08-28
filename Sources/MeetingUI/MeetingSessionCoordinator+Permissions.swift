@@ -8,6 +8,13 @@ public extension MeetingSessionCoordinator {
     /// 감지 루프에서 주기적으로 부르는 가벼운 확인. 권한 창을 띄우는 API는 호출하지 않는다.
     func refreshPermissions() async {
         calendarStatus = calendarProvider.authorizationStatus()
+        if let preferred = calendarProvider as? PreferredCalendarProvider {
+            eventKitStatus = preferred.eventKitStatus()
+            googleCalendarStatus = preferred.googleStatus()
+        } else {
+            eventKitStatus = calendarStatus
+            googleCalendarStatus = calendarStatus
+        }
         microphoneStatus = await capture.microphonePermission()
     }
 
@@ -20,11 +27,6 @@ public extension MeetingSessionCoordinator {
     /// 설정·온보딩의 '허용' 버튼용. 아직 정해지지 않았으면 시스템 대화상자를 띄운다.
     func requestSystemAudioPermission() async {
         systemAudioStatus = await capture.requestSystemAudioPermission()
-    }
-
-    func requestCalendarAccess() async {
-        _ = try? await calendarProvider.requestAccess()
-        calendarStatus = calendarProvider.authorizationStatus()
     }
 
     func requestRecordingPermissions() async {

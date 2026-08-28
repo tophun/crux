@@ -64,6 +64,12 @@ public enum CalendarEventStatus: String, Sendable, Codable, CaseIterable {
     case unknown
 }
 
+/// 일정을 쓴 캘린더 제공자. 캐시 교체 때 다른 제공자 행을 지우지 않기 위해 쓴다.
+public enum CalendarEventSource: String, Sendable, Codable, CaseIterable {
+    case eventKit
+    case google
+}
+
 /// 캘린더 일정. 회의록 메타데이터(제목·날짜·참석자·회의 링크)의 기본값이 된다.
 ///
 /// 이 정보는 로컬에만 저장한다. 회의 오디오·전사문·요약은 온디바이스로 처리한다.
@@ -86,6 +92,14 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
     public var location: String?
     public var organizer: EventAttendee?
     public var calendarTitle: String?
+    /// 이 일정을 기록한 제공자. `replace`가 제공자 범위 밖을 지우지 않게 한다.
+    public var source: CalendarEventSource
+    /// Google Calendar 응답의 ETag. 수정 전 동시 변경을 감지하는 데 사용한다.
+    public var etag: String?
+    /// 반복 일정의 원본 시리즈 ID. nil이면 일반 일정 또는 시리즈 자체다.
+    public var recurringEventId: String?
+    /// 반복 일정 인스턴스의 원래 시작 시각.
+    public var originalStartDate: Date?
     /// 일정에 설정된 알림. 시작 기준 상대 초이며 **시작 전이면 음수**다(예: 1분 전 = -60).
     ///
     /// 캡슐을 언제 띄울지의 기준이 된다. 사용자가 캘린더에서 정한 시각에 맞추는 것이
@@ -106,6 +120,10 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
         location: String? = nil,
         organizer: EventAttendee? = nil,
         calendarTitle: String? = nil,
+        source: CalendarEventSource = .eventKit,
+        etag: String? = nil,
+        recurringEventId: String? = nil,
+        originalStartDate: Date? = nil,
         alarmOffsets: [TimeInterval] = []
     ) {
         self.id = id
@@ -120,6 +138,10 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
         self.location = location
         self.organizer = organizer
         self.calendarTitle = calendarTitle
+        self.source = source
+        self.etag = etag
+        self.recurringEventId = recurringEventId
+        self.originalStartDate = originalStartDate
         self.alarmOffsets = alarmOffsets
     }
 

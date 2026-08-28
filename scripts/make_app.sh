@@ -1,8 +1,9 @@
 #!/bin/bash
 # Crux 앱 번들 생성.
 #
-# EventKit(캘린더), 마이크, 화면 기록 권한은 번들 식별자 기준으로 부여되므로
-# 실행 파일이 아니라 .app 번들로 실행해야 한다.
+# 마이크, 화면 기록, 캘린더 권한은 번들 식별자 기준으로 부여되므로 실행 파일이 아니라 .app 번들로
+# 실행해야 한다. Google Calendar OAuth Client ID만 .secrets/에서 읽어 Info.plist에 넣는다.
+# Desktop OAuth client secret은 번들에 넣지 않는다.
 #
 # 사용법:
 #   ./scripts/make_app.sh              # 빌드하고 번들까지 만든다
@@ -21,6 +22,27 @@ DISPLAY_NAME="${DISPLAY_NAME:-Crux}"
 # Developer ID를 쓰게 되면 BUNDLE_ID를 조직 도메인으로 바꾼다.
 BUNDLE_ID="${BUNDLE_ID:-local.crux.app}"
 APP_DIR="$ROOT/.xcbuild/$APP_NAME.app"
+GOOGLE_CALENDAR_CLIENT_ID="${GOOGLE_CALENDAR_CLIENT_ID:-}"
+CLIENT_ID_FILE="$ROOT/.secrets/google-calendar-client-id"
+# Google Cloud 콘솔에서 내려받은 credentials JSON. Client ID만 읽고 secret은 쓰지 않는다.
+CLIENT_CREDENTIALS_FILE="${GOOGLE_CALENDAR_CREDENTIALS_FILE:-$(ls "$ROOT"/.secrets/client_secret_*.json 2>/dev/null | head -1)}"
+if [ -z "$GOOGLE_CALENDAR_CLIENT_ID" ] && [ -f "$CLIENT_ID_FILE" ]; then
+  GOOGLE_CALENDAR_CLIENT_ID="$(tr -d '[:space:]' < "$CLIENT_ID_FILE")"
+fi
+if [ -z "$GOOGLE_CALENDAR_CLIENT_ID" ] && [ -n "$CLIENT_CREDENTIALS_FILE" ] && [ -f "$CLIENT_CREDENTIALS_FILE" ]; then
+  for credential_section in installed web; do
+    credential_id="$(plutil -extract "$credential_section.client_id" raw -o - "$CLIENT_CREDENTIALS_FILE" 2>/dev/null || true)"
+    if [ -n "$credential_id" ]; then
+      GOOGLE_CALENDAR_CLIENT_ID="$credential_id"
+      break
+    fi
+  done
+fi
+
+if [ -z "$GOOGLE_CALENDAR_CLIENT_ID" ]; then
+  echo "경고: Google Calendar Client ID가 없습니다. 앱에서 Google 캘린더 연결이 실패합니다." >&2
+  echo "      GOOGLE_CALENDAR_CLIENT_ID 환경변수 또는 $CLIENT_ID_FILE 에 설정하세요." >&2
+fi
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
   echo "crux 빌드 중… (Metal 셰이더 때문에 첫 빌드는 오래 걸린다)"
@@ -97,6 +119,8 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <string>회의 일정을 읽어 회의 시작을 감지하고 회의록의 제목·날짜·참석자를 채우기 위해 캘린더를 사용합니다. 일정 정보는 이 기기에만 저장됩니다.</string>
   <key>NSCalendarsUsageDescription</key>
   <string>회의 일정을 읽어 회의 시작을 감지하기 위해 캘린더를 사용합니다.</string>
+  <key>GoogleCalendarClientID</key>
+  <string>$GOOGLE_CALENDAR_CLIENT_ID</string>
 </dict>
 </plist>
 PLIST
@@ -153,5 +177,5 @@ echo "실행: open \"$APP_DIR\""
 echo ""
 echo "권한 안내"
 echo "- 마이크: 온보딩 또는 설정에서 권한을 허용하세요."
-echo "- 캘린더: 설정 화면의 '캘린더 권한 요청'을 누르세요."
+echo "- Google Calendar: 설정 화면의 'Google Calendar 연결'을 누르세요."
 echo "- 시스템 오디오: 시스템 설정 → 개인정보 보호 및 보안 → 화면 및 시스템 오디오 기록에서 이 앱을 허용하세요."
