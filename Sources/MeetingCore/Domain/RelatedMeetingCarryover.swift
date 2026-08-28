@@ -117,7 +117,9 @@ public struct CarryoverAction: Identifiable, Hashable, Sendable {
     public var jiraKey: String?
     public var jiraURL: String?
 
-    public var id: UUID { action.id }
+    public var id: UUID {
+        action.id
+    }
 
     public init(
         action: ActionItem,

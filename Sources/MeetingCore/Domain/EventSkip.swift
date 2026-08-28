@@ -98,9 +98,9 @@ public enum EventSkipPolicy {
     public static func recordId(scope: EventSkipScope, eventId: String, seriesId: String?) -> String {
         switch scope {
         case .occurrence:
-            return "occurrence:\(eventId)"
+            "occurrence:\(eventId)"
         case .series:
-            return "series:\(seriesId ?? eventId)"
+            "series:\(seriesId ?? eventId)"
         }
     }
 
@@ -142,9 +142,9 @@ public enum EventSkipPolicy {
     public static func matches(_ record: EventSkipRecord, _ event: CalendarEvent) -> Bool {
         switch record.scope {
         case .occurrence:
-            return matchesOccurrence(record, id: event.id, seriesId: event.seriesId, startDate: event.startDate)
+            matchesOccurrence(record, id: event.id, seriesId: event.seriesId, startDate: event.startDate)
         case .series:
-            return matchesSeries(record, seriesId: event.seriesId)
+            matchesSeries(record, seriesId: event.seriesId)
         }
     }
 
