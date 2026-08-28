@@ -69,7 +69,12 @@ public enum CalendarEventStatus: String, Sendable, Codable, CaseIterable {
 /// 이 정보는 로컬에만 저장한다. 회의 오디오·전사문·요약은 온디바이스로 처리한다.
 public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
     /// 캘린더 제공자가 준 이벤트 식별자. 중복 알림 방지의 기준이다.
+    ///
+    /// 반복 일정의 각 회차는 `occurrenceIdentifier`로 서로 다른 id를 갖는다.
+    /// 시리즈 전체는 `seriesId`로 묶는다.
     public var id: String
+    /// 반복 일정의 시리즈 식별자. 단발 일정이면 nil.
+    public var seriesId: String?
     public var title: String
     public var startDate: Date
     public var endDate: Date
@@ -90,6 +95,7 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
 
     public init(
         id: String,
+        seriesId: String? = nil,
         title: String,
         startDate: Date,
         endDate: Date,
@@ -103,6 +109,7 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
         alarmOffsets: [TimeInterval] = []
     ) {
         self.id = id
+        self.seriesId = seriesId
         self.title = title
         self.startDate = startDate
         self.endDate = endDate
@@ -114,6 +121,28 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
         self.organizer = organizer
         self.calendarTitle = calendarTitle
         self.alarmOffsets = alarmOffsets
+    }
+
+    /// 반복 일정인지. 시리즈 스킵은 이 값이 있을 때만 쓴다.
+    public var isRecurring: Bool {
+        seriesId != nil
+    }
+
+    /// EventKit·Google 공통 식별자. 반복 회차는 시작 시각으로 구분한다.
+    public static func identity(
+        eventIdentifier: String,
+        startDate: Date,
+        isRecurring: Bool
+    ) -> (id: String, seriesId: String?) {
+        if isRecurring {
+            return (occurrenceIdentifier(seriesId: eventIdentifier, startDate: startDate), eventIdentifier)
+        }
+        return (eventIdentifier, nil)
+    }
+
+    /// 반복 회차의 고유 id. `seriesId`와 시작 시각(초)을 붙인다.
+    public static func occurrenceIdentifier(seriesId: String, startDate: Date) -> String {
+        "\(seriesId)#\(Int64(startDate.timeIntervalSince1970))"
     }
 
     /// 시작 전에 울리는 알림 중 **가장 이른 것**까지 남은 시간. 알림이 없으면 nil.

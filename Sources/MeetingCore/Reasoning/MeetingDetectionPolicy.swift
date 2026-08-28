@@ -88,6 +88,7 @@ public struct MeetingDetectionPolicy: Sendable {
         case declined
         case tooFewAttendees
         case zeroDuration
+        case skipped
 
         public var displayName: String {
             switch self {
@@ -96,12 +97,19 @@ public struct MeetingDetectionPolicy: Sendable {
             case .declined: "참석 거절"
             case .tooFewAttendees: "참석자 부족"
             case .zeroDuration: "길이가 0"
+            case .skipped: "건너뛴 일정"
             }
         }
     }
 
     /// 이 일정을 뺀다면 그 이유. 대상이면 nil.
-    public func exclusionReason(for event: CalendarEvent) -> ExclusionReason? {
+    public func exclusionReason(
+        for event: CalendarEvent,
+        skipIndex: EventSkipIndex = .empty
+    ) -> ExclusionReason? {
+        if skipIndex.isSkipped(event) {
+            return .skipped
+        }
         if configuration.excludeAllDay, event.isAllDay {
             return .allDay
         }
@@ -121,16 +129,22 @@ public struct MeetingDetectionPolicy: Sendable {
     }
 
     /// 회의록 대상이 될 수 있는 일정만 남긴다.
-    public func eligibleEvents(_ events: [CalendarEvent]) -> [CalendarEvent] {
+    public func eligibleEvents(
+        _ events: [CalendarEvent],
+        skipIndex: EventSkipIndex = .empty
+    ) -> [CalendarEvent] {
         events
-            .filter { exclusionReason(for: $0) == nil }
+            .filter { exclusionReason(for: $0, skipIndex: skipIndex) == nil }
             .sorted { $0.startDate < $1.startDate }
     }
 
     /// 뺀 일정과 그 이유. 진단 로그에 쓴다.
-    public func exclusions(_ events: [CalendarEvent]) -> [(event: CalendarEvent, reason: ExclusionReason)] {
+    public func exclusions(
+        _ events: [CalendarEvent],
+        skipIndex: EventSkipIndex = .empty
+    ) -> [(event: CalendarEvent, reason: ExclusionReason)] {
         events.compactMap { event in
-            exclusionReason(for: event).map { (event: event, reason: $0) }
+            exclusionReason(for: event, skipIndex: skipIndex).map { (event: event, reason: $0) }
         }
     }
 
@@ -138,13 +152,16 @@ public struct MeetingDetectionPolicy: Sendable {
     /// - Parameters:
     ///   - notifiedEventIds: 이미 알림을 보여 준 이벤트. 같은 회의에 두 번 묻지 않는다.
     ///   - conferenceApps: 실행 중인 회의 앱
+    ///   - skipIndex: 이 기기에서 건너뛴 일정. 없으면 스킵을 보지 않는다.
     public func decide(
         events: [CalendarEvent],
         now: Date,
         notifiedEventIds: Set<String>,
-        conferenceApps: [ConferenceAppSignal] = []
+        conferenceApps: [ConferenceAppSignal] = [],
+        skipIndex: EventSkipIndex = .empty
     ) -> Verdict {
-        let eligible = eligibleEvents(events).filter { !notifiedEventIds.contains($0.id) }
+        let eligible = eligibleEvents(events, skipIndex: skipIndex)
+            .filter { !notifiedEventIds.contains($0.id) }
 
         // 1. 이미 시작한(또는 방금 시작한) 회의
         let started = eligible.filter { event in

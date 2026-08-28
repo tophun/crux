@@ -3,6 +3,7 @@ import Foundation
 /// 다가오는 일정 목록에 그릴 한 줄. 상세는 원본 `CalendarEvent`를 쓴다.
 public struct UpcomingEventRow: Identifiable, Hashable, Sendable {
     public var id: String
+    public var seriesId: String?
     public var title: String
     public var startDate: Date
     public var endDate: Date
@@ -11,6 +12,7 @@ public struct UpcomingEventRow: Identifiable, Hashable, Sendable {
 
     public init(
         id: String,
+        seriesId: String? = nil,
         title: String,
         startDate: Date,
         endDate: Date,
@@ -18,6 +20,7 @@ public struct UpcomingEventRow: Identifiable, Hashable, Sendable {
         conferenceURL: URL? = nil
     ) {
         self.id = id
+        self.seriesId = seriesId
         self.title = title
         self.startDate = startDate
         self.endDate = endDate
@@ -28,6 +31,7 @@ public struct UpcomingEventRow: Identifiable, Hashable, Sendable {
     public init(_ event: CalendarEvent) {
         self.init(
             id: event.id,
+            seriesId: event.seriesId,
             title: event.title,
             startDate: event.startDate,
             endDate: event.endDate,

@@ -56,11 +56,18 @@ public struct EventNotificationScheduler: Sendable {
     /// 시작 N분 전에 로컬 알림을 건다. 같은 일정의 기존 예약은 덮어쓴다.
     ///
     /// 권한은 여기서 요청한다. 거부되면 예약을 만들지 않는다.
+    /// 스킵 인덱스가 비어 있으면 스킵 여부를 보지 않는다.
     public func schedule(
         event: CalendarEvent,
         settings: EventNotificationSettings = .standard,
-        now: Date = Date()
+        now: Date = Date(),
+        skipIndex: EventSkipIndex = .empty
     ) async throws -> EventNotificationRequest {
+        if skipIndex.isSkipped(event) {
+            await cancel(eventId: event.id)
+            throw EventNotificationError.skipped
+        }
+
         var authorization = await center.authorizationStatus()
         if authorization == .notDetermined {
             authorization = await center.requestAuthorization()
@@ -90,6 +97,12 @@ public struct EventNotificationScheduler: Sendable {
     /// 대기 중인 예약만 지운다. 캘린더 일정은 그대로 둔다.
     public func cancel(eventId: String) async {
         await center.removePending(identifiers: [Self.identifier(eventId: eventId)])
+    }
+
+    /// 여러 일정의 대기 예약을 한 번에 지운다. 시리즈 스킵에 쓴다.
+    public func cancel(eventIds: [String]) async {
+        guard !eventIds.isEmpty else { return }
+        await center.removePending(identifiers: eventIds.map(Self.identifier(eventId:)))
     }
 
     public static func reminderBody(leadMinutes: Int) -> String {

@@ -77,8 +77,15 @@ public final class EventKitCalendarProvider: CalendarProvider, @unchecked Sendab
             return alarm.relativeOffset
         }
 
+        let rawId = event.eventIdentifier ?? event.calendarItemIdentifier
+        let identity = CalendarEvent.identity(
+            eventIdentifier: rawId.isEmpty ? UUID().uuidString : rawId,
+            startDate: event.startDate,
+            isRecurring: event.hasRecurrenceRules
+        )
         return CalendarEvent(
-            id: event.eventIdentifier ?? UUID().uuidString,
+            id: identity.id,
+            seriesId: identity.seriesId,
             title: event.title ?? "제목 없는 일정",
             startDate: event.startDate,
             endDate: event.endDate,

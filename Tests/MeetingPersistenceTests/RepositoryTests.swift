@@ -339,3 +339,45 @@ struct ProcessingJobRepositoryTests {
         #expect(try jobs.jobs(meetingId: meeting.id).map(\.stage) == ProcessingStage.allCases)
     }
 }
+
+@Suite("일정 스킵 저장소")
+struct EventSkipRepositoryTests {
+    @Test("스킵을 저장하고 해제하면 다시 비운다")
+    func skipRoundTripAndUnskip() throws {
+        let calendar = CalendarRepository(database: try AppDatabase.inMemory())
+        let start = Date(timeIntervalSince1970: 1_772_000_000)
+        let event = CalendarEvent(
+            id: "weekly#1",
+            seriesId: "series-weekly",
+            title: "주간 스탠드업",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800)
+        )
+        let record = EventSkipPolicy.record(for: event, scope: .series, at: start)
+
+        try calendar.upsertSkip(record)
+        let loaded = try calendar.skipRecords()
+        #expect(loaded.count == 1)
+        #expect(loaded.first?.scope == .series)
+        #expect(loaded.first?.seriesId == "series-weekly")
+        #expect(try calendar.event(id: event.id) == nil)
+
+        try calendar.removeSkips(matching: event)
+        #expect(try calendar.skipRecords().isEmpty)
+    }
+
+    @Test("일정 메타데이터는 seriesId를 함께 저장한다")
+    func savesSeriesIdWithEvent() throws {
+        let calendar = CalendarRepository(database: try AppDatabase.inMemory())
+        let start = Date(timeIntervalSince1970: 1_772_000_000)
+        let event = CalendarEvent(
+            id: "weekly#1",
+            seriesId: "series-weekly",
+            title: "주간 스탠드업",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800)
+        )
+        try calendar.save(events: [event])
+        #expect(try calendar.event(id: "weekly#1")?.seriesId == "series-weekly")
+    }
+}

@@ -1,12 +1,14 @@
 import MeetingCore
 import SwiftUI
 
-/// 다가오는 일정 목록. 제목, 시작/끝, 캘린더, 회의 링크를 보여 준다.
+/// 다가오는 일정 목록. 제목, 시작/끝, 캘린더, 회의 링크, 스킵 상태를 보여 준다.
 public struct UpcomingEventListView: View {
     @Bindable var store: UpcomingCalendarStore
+    @Bindable var skips: EventSkipStore
 
-    public init(store: UpcomingCalendarStore) {
+    public init(store: UpcomingCalendarStore, skips: EventSkipStore) {
         self.store = store
+        self.skips = skips
     }
 
     public var body: some View {
@@ -35,7 +37,7 @@ public struct UpcomingEventListView: View {
                     set: { store.selectedEventId = $0 }
                 )) {
                     ForEach(store.rows) { row in
-                        UpcomingEventRowView(row: row)
+                        UpcomingEventRowView(row: row, isSkipped: skips.isSkipped(row))
                             .tag(row.id)
                     }
                 }
@@ -52,12 +54,20 @@ public struct UpcomingEventListView: View {
 
 struct UpcomingEventRowView: View {
     let row: UpcomingEventRow
+    var isSkipped = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(row.title)
-                .font(.headline)
-                .lineLimit(1)
+            HStack(spacing: 8) {
+                Text(row.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                if isSkipped {
+                    Text("건너뜀")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Text(timeRange)
                 .font(.caption)
                 .foregroundStyle(.secondary)

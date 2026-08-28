@@ -592,6 +592,7 @@ final class ProcessingJobModel {
 @Model
 final class CalendarEventModel {
     @Attribute(.unique) var id: String
+    var seriesId: String?
     var title: String
     var startDate: Date
     var endDate: Date
@@ -616,9 +617,11 @@ final class CalendarEventModel {
         location: String?,
         organizerJSON: String?,
         calendarTitle: String?,
-        updatedAt: Date
+        updatedAt: Date,
+        seriesId: String? = nil
     ) {
         self.id = id
+        self.seriesId = seriesId
         self.title = title
         self.startDate = startDate
         self.endDate = endDate
@@ -645,13 +648,15 @@ final class CalendarEventModel {
             location: event.location,
             organizerJSON: event.organizer.map { JSONColumn.encode($0) },
             calendarTitle: event.calendarTitle,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            seriesId: event.seriesId
         )
     }
 
     var domain: CalendarEvent {
         CalendarEvent(
             id: id,
+            seriesId: seriesId,
             title: title,
             startDate: startDate,
             endDate: endDate,
@@ -689,6 +694,55 @@ final class MeetingGroupMembershipModel {
     }
 }
 
+@Model
+final class SkippedEventModel {
+    @Attribute(.unique) var id: String
+    var eventId: String
+    var seriesId: String?
+    var startDate: Date
+    var scope: String
+    var skippedAt: Date
+
+    init(
+        id: String,
+        eventId: String,
+        seriesId: String?,
+        startDate: Date,
+        scope: String,
+        skippedAt: Date
+    ) {
+        self.id = id
+        self.eventId = eventId
+        self.seriesId = seriesId
+        self.startDate = startDate
+        self.scope = scope
+        self.skippedAt = skippedAt
+    }
+
+    convenience init(_ record: EventSkipRecord) {
+        self.init(
+            id: record.id,
+            eventId: record.eventId,
+            seriesId: record.seriesId,
+            startDate: record.startDate,
+            scope: record.scope.rawValue,
+            skippedAt: record.skippedAt
+        )
+    }
+
+    var domain: EventSkipRecord? {
+        guard let scope = EventSkipScope(rawValue: scope) else { return nil }
+        return EventSkipRecord(
+            id: id,
+            eventId: eventId,
+            seriesId: seriesId,
+            startDate: startDate,
+            scope: scope,
+            skippedAt: skippedAt
+        )
+    }
+}
+
 enum PersistenceSchema {
     static let schema = Schema([
         MeetingModel.self,
@@ -704,7 +758,8 @@ enum PersistenceSchema {
         CalendarEventModel.self,
         NotifiedEventModel.self,
         PublishRecordModel.self,
-        MeetingGroupMembershipModel.self
+        MeetingGroupMembershipModel.self,
+        SkippedEventModel.self
     ])
 }
 

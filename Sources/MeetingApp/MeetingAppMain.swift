@@ -18,6 +18,7 @@ struct CruxApp: App {
     @State private var coordinator: MeetingSessionCoordinator
     @State private var upcoming: UpcomingCalendarStore
     @State private var notifications: EventNotificationStore
+    @State private var skips: EventSkipStore
     @State private var library: MainLibrary = .meetings
     /// 오디오 보관 설정과 사용량
     @State private var storage: AudioStorageModel
@@ -89,6 +90,12 @@ struct CruxApp: App {
         _notifications = State(
             initialValue: EventNotificationStore(center: UserNotificationsEventCenter())
         )
+        _skips = State(
+            initialValue: EventSkipStore(
+                repository: calendarRepository,
+                notifications: _notifications.wrappedValue
+            )
+        )
 
         // 모델 설치 관리. 카탈로그의 모든 선택지를 미리 만들어 두고
         // 설정·온보딩·메뉴바가 같은 인스턴스를 바라보게 한다.
@@ -159,7 +166,7 @@ struct CruxApp: App {
                     case .meetings:
                         MeetingListView(state: state)
                     case .calendar:
-                        UpcomingEventListView(store: upcoming)
+                        UpcomingEventListView(store: upcoming, skips: skips)
                     }
                 }
                 .frame(minWidth: 280)
@@ -237,7 +244,7 @@ struct CruxApp: App {
                             prompt: "회의·전사문·액션아이템 검색"
                         )
                 case .calendar:
-                    UpcomingEventDetailView(store: upcoming, notifications: notifications)
+                    UpcomingEventDetailView(store: upcoming, notifications: notifications, skips: skips)
                         .frame(minWidth: 560, minHeight: 480)
                 }
             }
@@ -256,6 +263,7 @@ struct CruxApp: App {
                 await coordinator.refreshPermissions()
                 await upcoming.reload()
                 await notifications.refresh()
+                skips.refresh()
                 // 권한이 없으면 무엇이 필요한지 먼저 보여 준다. 없는 채로 두면 기능이 조용히 죽는다.
                 presentOnboardingIfNeeded()
                 coordinator.startMonitoring()

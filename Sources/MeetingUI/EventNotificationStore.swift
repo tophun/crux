@@ -34,22 +34,40 @@ public final class EventNotificationStore {
     }
 
     /// 토글을 반영한다. 켜면 기본 오프셋으로 예약하고, 끄면 대기 예약만 지운다.
-    public func setScheduled(_ enabled: Bool, event: CalendarEvent) async {
+    /// 건너뛴 일정에는 알림을 걸 수 없다. 이미 있으면 지운다.
+    public func setScheduled(
+        _ enabled: Bool,
+        event: CalendarEvent,
+        skipIndex: EventSkipIndex = .empty
+    ) async {
         lastError = nil
         if enabled {
             do {
                 _ = try await scheduler.schedule(
                     event: event,
-                    settings: EventNotificationSettings(leadMinutes: leadMinutes)
+                    settings: EventNotificationSettings(leadMinutes: leadMinutes),
+                    skipIndex: skipIndex
                 )
             } catch EventNotificationError.denied {
                 lastError = EventNotificationError.denied.errorDescription
+            } catch EventNotificationError.skipped {
+                lastError = EventNotificationError.skipped.errorDescription
             } catch {
                 lastError = error.localizedDescription
             }
         } else {
             await scheduler.cancel(eventId: event.id)
         }
+        await refresh()
+    }
+
+    public func cancel(eventId: String) async {
+        await scheduler.cancel(eventId: eventId)
+        await refresh()
+    }
+
+    public func cancel(eventIds: [String]) async {
+        await scheduler.cancel(eventIds: eventIds)
         await refresh()
     }
 
