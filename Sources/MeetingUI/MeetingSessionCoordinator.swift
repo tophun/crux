@@ -57,10 +57,10 @@ public final class MeetingSessionCoordinator {
     let capture: MeetingAudioCapture
     let repository: MeetingRepository
     let pipeline: MeetingProcessingPipeline
-    private let preparation: PublishPreparation
+    let preparation: PublishPreparation
     let credentialStore: any AtlassianCredentialStore
     /// 검토 화면에서 녹음을 들을 수 있게 공유하는 재생 컨트롤러
-    private let playback: AudioPlaybackController
+    let playback: AudioPlaybackController
     let log: (@Sendable (String) -> Void)?
     /// 녹음 시작 전 마지막 관문. 막는 이유를 반환하고, 통과면 nil을 반환한다.
     /// 모델 미설치 같은 "지금 시작하면 처리가 실패하는" 상태를 잡는다.
@@ -408,50 +408,6 @@ public final class MeetingSessionCoordinator {
 }
 
 extension MeetingSessionCoordinator {
-    // MARK: - Preview · 게시
-
-    public func preparePreview(meetingId: UUID) {
-        do {
-            let prepared = try preparation.prepare(
-                meetingId: meetingId,
-                options: PublishBundleBuilder.Options(
-                    spaceKey: defaultSpaceKey,
-                    projectKey: defaultProjectKey
-                )
-            )
-            let preparation = preparation
-            let credentialStore = credentialStore
-            // 근거를 들어 보며 검토할 수 있도록 이 회의의 오디오를 준비한다.
-            let tracks = (try? repository.tracks(meetingId: meetingId)) ?? []
-            playback.prepare(tracks: tracks)
-            previewModel = PreviewViewerModel(
-                bundle: prepared.bundle,
-                evidence: prepared.evidence,
-                findings: prepared.findings,
-                playback: playback,
-                hasAtlassianCredentials: (try? credentialStore.load()) != nil,
-                publishAction: { [weak self] bundle, evidence in
-                    guard let credentials = try credentialStore.load() else {
-                        throw PublishError.missingCredentials("설정에서 Atlassian 계정을 연결해 주세요.")
-                    }
-                    let publisher = MeetingPublisher(client: AtlassianClient(credentials: credentials))
-                    let outcome = try await publisher.publish(bundle: bundle, evidence: evidence, approved: true)
-                    try preparation.recordOutcome(outcome, meetingId: meetingId, spaceKey: bundle.spaceKey)
-                    // 게시 결과를 캡슐에 반영한다: "Confluence 게시 · Jira 이슈 N개 생성"
-                    await MainActor.run { [weak self] in
-                        self?.applyPublished(title: outcome.pageTitle, issueCount: outcome.issues.count)
-                    }
-                    return [outcome.pageURL] + outcome.issues.map(\.url)
-                },
-                revalidate: { bundle in
-                    MeetingQualityChecker().check(note: prepared.note, bundle: bundle, evidence: prepared.evidence)
-                }
-            )
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
     /// 게시 결과를 캡슐 상태에 반영한다.
     public func applyPublished(title: String?, issueCount: Int) {
         capsule = machine.apply(.published(confluencePageTitle: title, jiraIssueCount: issueCount))

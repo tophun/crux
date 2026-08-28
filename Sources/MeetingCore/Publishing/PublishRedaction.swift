@@ -80,23 +80,32 @@ public enum PublishError: Error, LocalizedError, Sendable {
     case invalidResponse(String)
     case spaceNotFound(String)
     case nothingToPublish
+    case missingDestination
+    case missingSlackCredentials(String)
+    case slackAPI(status: Int, message: String)
 
     public var errorDescription: String? {
         switch self {
         case let .redactionFailed(violations):
             "게시 본문에 내보내면 안 되는 내용이 있어 중단했습니다: \(PublishRedaction.describe(violations))"
         case .notApproved:
-            "사용자가 승인하지 않은 회의록은 게시하지 않습니다."
+            "사용자가 승인하지 않은 내용은 전송하지 않습니다."
         case let .missingCredentials(message):
             "Atlassian 인증 정보가 없습니다: \(message)"
         case let .api(status, message):
             "Atlassian API 오류(\(status)): \(message)"
         case let .invalidResponse(message):
-            "Atlassian 응답을 해석할 수 없습니다: \(message)"
+            "응답을 해석할 수 없습니다: \(message)"
         case let .spaceNotFound(key):
             "Confluence Space를 찾을 수 없습니다: \(key)"
         case .nothingToPublish:
             "게시할 항목이 없습니다."
+        case .missingDestination:
+            "Slack 채널 또는 DM을 지정해야 합니다."
+        case let .missingSlackCredentials(message):
+            "Slack 인증 정보가 없습니다: \(message)"
+        case let .slackAPI(status, message):
+            "Slack API 오류(\(status)): \(message)"
         }
     }
 }

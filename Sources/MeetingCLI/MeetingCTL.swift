@@ -18,7 +18,7 @@ struct MeetingCTL: AsyncParsableCommand {
         subcommands: [
             Run.self, Transcribe.self, Note.self, List.self, Show.self, Retry.self,
             Auth.self, CalendarCommand.self, Record.self, Preview.self, Publish.self,
-            Delete.self, Retention.self, ModelsCommand.self, RetranscribeCommand.self
+            SlackCommand.self, Delete.self, Retention.self, ModelsCommand.self, RetranscribeCommand.self
         ]
     )
 }
@@ -569,6 +569,8 @@ extension MeetingCTL {
             } catch {
                 print("검열 게이트에서 중단됨: \(error.localizedDescription)")
             }
+            print("")
+            SlackCommand.printDryRun(bundle: prepared.bundle, evidence: prepared.evidence)
             print("")
             print("=== 근거(로컬에만 보관) ===")
             for item in prepared.evidence.items {

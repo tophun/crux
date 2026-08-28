@@ -48,10 +48,10 @@
 
 ### 전송 제한
 
-- 전체 녹취록·음성 파일은 게시 타입(`ConfluencePageDraft`, `JiraIssueDraft`)에 **필드가 없다.**
-- 승인(`approved`)이 없으면 `PublishError.notApproved`로 거부한다.
-- 전송 직전 `MeetingPublisher.audit`이 검열 게이트를 실행한다.
-- API 호출은 앱(`MeetingPublishing`)이 실행한다. 모델은 호출 경로를 갖지 않는다.
+- 전체 녹취록·음성 파일은 게시 타입(`ConfluencePageDraft`, `JiraIssueDraft`, `SlackActionPayload`)에 **필드가 없다.**
+- 승인(`approved` / Slack의 `confirmed`)이 없으면 `PublishError.notApproved`로 거부한다.
+- 전송 직전 `MeetingPublisher.audit`과 `SlackPublisher.audit`이 검열 게이트를 실행한다.
+- API 호출은 앱(`MeetingPublishing`)이 실행한다. 모델은 호출 경로를 갖지 않는다. Slack도 모델이 부르지 않는다.
 
 ## 3. Crux
 
@@ -94,6 +94,7 @@
 | Preview Viewer 근거 확인 탭 | 있음 |
 | Confluence 페이지 | 없음 |
 | Jira 이슈 | 없음 |
+| Slack 액션 메시지 | 없음 |
 | 로컬 Markdown 내보내기 | 있음 (사용자 파일) |
 
 연결은 내부 `contentId`(`D1`, `A2`, `R1`, `Q1`)로 한다. contentId 자체도 게시물에 넣지 않고,

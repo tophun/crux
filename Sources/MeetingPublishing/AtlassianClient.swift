@@ -3,7 +3,7 @@ import MeetingCore
 
 /// Atlassian Cloud REST 클라이언트.
 ///
-/// **이 모듈이 앱에서 유일하게 외부로 HTTP를 보내는 곳이다.**
+/// HTTP는 `MeetingPublishing` 안에서만 나간다(`AtlassianClient`, `SlackClient`).
 /// 회의 오디오·전사문·근거 타임스탬프는 여기까지 오지 않는다(타입에 담을 수 없다).
 /// 로깅에서 Authorization 헤더와 토큰은 항상 제외한다.
 public actor AtlassianClient {

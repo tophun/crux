@@ -7,8 +7,9 @@ macOS용 온디바이스 AI 회의록 앱입니다.
 - 사담을 분류해 회의록 입력에서 제외하고, 결정사항·액션 아이템·리스크·미해결 질문에 근거 타임스탬프를 연결합니다.
 - 회의록과 전사문을 로컬에 저장하고, 앱에서 내용을 수정·재생·내보내기할 수 있습니다.
 - Preview Viewer에서 검토한 뒤 승인한 회의록만 Confluence에 게시하고 액션 아이템을 Jira 이슈로 만들 수 있습니다.
+- 승인한 액션만 Slack 채널 또는 DM으로 보낼 수 있습니다. 전사문·오디오·근거 타임스탬프는 보내지 않습니다.
 
-회의 오디오와 전사문은 외부로 보내지 않습니다. 외부 통신은 모델 다운로드, Atlassian 연결 확인, 사용자가 승인한 게시로 제한됩니다.
+회의 오디오와 전사문은 외부로 보내지 않습니다. 외부 통신은 모델 다운로드, Atlassian·Slack 연결 확인, 사용자가 승인한 게시로 제한됩니다.
 
 ## 현재 구현 상태
 
@@ -21,6 +22,7 @@ macOS용 온디바이스 AI 회의록 앱입니다.
 | SwiftUI 회의 목록·상세·전사문·메뉴바·Crux 캡슐 | 구현됨 |
 | Preview Viewer와 게시 전 품질·검열 게이트 | 구현 및 자동 테스트 완료 |
 | Confluence 게시, Jira 이슈 생성, 상호 링크 | 구현됨. 앱 Settings에서 Atlassian 계정을 연결한다. 라이브 게시는 미완료 |
+| Slack으로 승인한 액션만 전송 | 구현됨. 보내기 직전 확인과 검열 게이트 필수. 라이브 전송은 별도 확인 |
 | 녹음 중 실시간 자막·초안 요약 (전사 모델만, 화자 구분 없음) | 구현 및 자동 테스트 완료 |
 | 화자 구분 | 미구현 |
 
@@ -162,6 +164,13 @@ $M preview --meeting <회의-UUID> --space TEAM --project PROJ
 
 # 승인한 회의록 게시 및 Jira 이슈 생성
 $M publish --meeting <회의-UUID> --space TEAM --project PROJ --yes
+
+# Slack 봇 토큰은 프롬프트(stdin)로만 입력
+$M slack auth
+$M slack auth --verify
+
+# 승인한 액션만 Slack으로 전송 (--yes 없이는 보내지 않음)
+$M slack send --meeting <회의-UUID> --channel "#eng" --yes
 ```
 
 CLI의 전체 명령과 옵션은 다음으로 확인할 수 있습니다.
@@ -198,7 +207,7 @@ Preview Viewer에서는 다음 내용을 게시 전에 검토·수정합니다.
 - Confluence Space와 Jira Project
 - 근거와 품질 경고
 
-Confluence와 Jira 게시물에는 전체 전사문·오디오·근거 전용 메타데이터·타임스탬프·내부 UUID와 `contentId`를 넣지 않습니다. 회의록 본문 자체가 근거 문장과 같을 수는 있으며, 게시 직전 검열 게이트가 이 구분을 포함해 한 번 더 검사합니다.
+Confluence·Jira·Slack 게시물에는 전체 전사문·오디오·근거 전용 메타데이터·타임스탬프·내부 UUID와 `contentId`를 넣지 않습니다. Slack에는 Preview에서 생성에 체크한 액션만 들어가며, 보내기 직전에 한 번 더 확인합니다. 회의록 본문 자체가 근거 문장과 같을 수는 있으며, 게시 직전 검열 게이트가 이 구분을 포함해 한 번 더 검사합니다.
 
 ## 데이터와 개인정보
 
@@ -210,13 +219,14 @@ Confluence와 Jira 게시물에는 전체 전사문·오디오·근거 전용 �
 | 오디오 | 회의별 디렉터리. SwiftData에는 경로와 메타데이터만 저장 |
 | 근거 타임스탬프·원문 인용 | 로컬 `{meetingId}.evidence.json`과 SwiftData 회의록 항목의 `evidenceJSON` |
 | Atlassian API 토큰 | macOS Keychain |
+| Slack 봇 토큰 | macOS Keychain |
 
 오디오 보관 기간은 `immediate`, `days7`, `days30`, `days90`, `forever` 중에서 선택할 수 있습니다. 기본값은 30일이며, 오디오가 삭제되어도 전사문·회의록·근거는 남습니다. 처리에 실패한 회의의 오디오는 자동으로 삭제하지 않습니다.
 
 ## 현재 제한
 
 - 실제 마이크·캘린더·화면 기록 권한을 승인한 뒤의 실기기 흐름은 자동 테스트에 포함되지 않습니다.
-- Atlassian 라이브 게시, 오프라인 네트워크 차단 상태의 전체 실행, 60분 회의 실측, 16GB 장비 성능 측정은 별도 검증이 필요합니다.
+- Atlassian 라이브 게시, Slack 라이브 전송, 오프라인 네트워크 차단 상태의 전체 실행, 60분 회의 실측, 16GB 장비 성능 측정은 별도 검증이 필요합니다.
 - 화자 구분은 아직 지원하지 않습니다.
 - 실시간 자막은 오디오 조각을 모은 뒤 나타나므로 몇 초 늦고, 녹음 중 요약은 초안입니다. 종료 후 기존 전체 파이프라인이 최종 전사·회의록을 만듭니다.
 - 회의 품질은 오디오와 모델에 따라 달라질 수 있으며, 실제 회의 데이터셋을 이용한 정량 평가는 아직 없습니다.
@@ -233,7 +243,7 @@ Sources/
   MeetingTranscription/ WhisperKit 전사
   MeetingInference/     MLX Swift·Qwen3 추론
   MeetingPipeline/      처리 오케스트레이션·보관·근거·게시 준비
-  MeetingPublishing/    Atlassian API 연동
+  MeetingPublishing/    Atlassian·Slack API 연동
   MeetingUI/            SwiftUI 화면·Crux·Preview Viewer
   MeetingApp/           앱 조립 지점
   MeetingCLI/           meetingctl 명령

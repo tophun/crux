@@ -2,13 +2,14 @@
 
 ## 네트워크 경계
 
-Atlassian 게시 기능이 들어오면서 네트워크 경계가 바뀌었다. 현재 허용되는 외부 통신은 **세 가지뿐**이다.
+Atlassian·Slack 게시가 들어오면서 네트워크 경계가 바뀌었다. 현재 허용되는 외부 통신은 **네 가지뿐**이다.
 
 | 허용 | 목적 | 나가는 것 | 통제 |
 | --- | --- | --- | --- |
 | 모델 다운로드 (`huggingface.co`) | WhisperKit·Qwen3 가중치 최초 다운로드 | 파일 요청만 | `--offline`, `modelFolder`, `--llm-directory`로 완전 차단 가능 |
 | Confluence 게시 | 사용자가 승인한 회의록 | `ConfluencePageDraft`가 담을 수 있는 필드만 | 승인 없으면 거부, 검열 게이트 통과 필수 |
 | Jira 이슈 생성 | 사용자가 승인한 액션 아이템 | `JiraIssueDraft`가 담을 수 있는 필드만 | 같음 |
+| Slack 액션 전송 | Preview에서 승인한 액션만 채널/DM | `SlackActionPayload`가 담을 수 있는 필드만 | 보내기 직전 확인 필수, 검열 게이트 통과 필수. 모델은 Slack을 호출하지 않음 |
 
 **절대 나가지 않는 것**: 회의 오디오 파일, 전체 전사문, 근거 인용문, 근거 타임스탬프, 내부 UUID·contentId,
 모델 프롬프트, 캘린더 원본 데이터.
@@ -22,7 +23,7 @@ for m in MeetingCore MeetingPersistence MeetingAudio MeetingCalendar MeetingTran
 done
 ```
 
-결과: **`MeetingPublishing`의 1개 파일(`AtlassianClient.swift`)만 해당.** 다른 10개 모듈은 0건이다.
+결과: **`MeetingPublishing`의 `AtlassianClient.swift`와 `SlackClient.swift`만 해당.** 다른 모듈은 0건이다.
 
 ```sh
 grep -rn "URLSession|URLRequest" Sources/ | grep -v "^Sources/MeetingPublishing/"
@@ -59,8 +60,9 @@ grep -rn "URLSession|URLRequest" Sources/ | grep -v "^Sources/MeetingPublishing/
 1. `MeetingQualityChecker` — Preview Viewer에 차단 사유로 표시
 2. `MeetingPublisher.audit` — 전송 직전. 여기서 걸리면 `PublishError.redactionFailed`로 중단
 
-**구조적 방어가 먼저다.** `ConfluencePageDraft`와 `JiraIssueDraft`에는 타임스탬프·세그먼트 ID·전사 원문을
+**구조적 방어가 먼저다.** `ConfluencePageDraft`, `JiraIssueDraft`, `SlackActionPayload`에는 타임스탬프·세그먼트 ID·전사 원문을
 넣을 필드가 없다. 검열 게이트는 사용자가 근거 문장을 직접 붙여 넣은 경우 같은 예외를 잡는 두 번째 방어선이다.
+Slack 전송은 보내기 직전 확인(`confirmed`)이 없으면 클라이언트를 호출하지 않는다.
 
 ## 3. 근거 분리 (요구사항 7)
 
@@ -77,11 +79,12 @@ Confluence 회의록과 Jira 이슈 본문에는 근거 타임스탬프를 넣�
 
 - Atlassian API 토큰은 **Keychain**에 저장한다(`KeychainCredentialStore`).
 - 앱 Settings의 Atlassian 항목에서 사이트·이메일·API 토큰을 저장하고, 연결 해제는 Keychain에서 삭제한다.
+- Slack 봇 토큰도 **Keychain**에 저장한다(`SlackKeychainCredentialStore`). CLI는 `meetingctl slack auth`로 stdin만 받는다.
 - CLI는 토큰을 명령 인자로 받지 않는다. `meetingctl auth --site ... --email ...`이 **stdin**으로만 받는다.
   (`ps`나 셸 히스토리에 토큰이 남지 않는다.)
 - CI·검증용으로 `ATLASSIAN_SITE`/`ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN` 환경 변수도 읽는다.
 - `AtlassianCredentials.redactedDescription`만 화면·로그에 쓴다. 토큰은 포함되지 않는다.
-- `AtlassianClient`의 로그는 **메서드와 경로만** 남긴다. 헤더(Authorization)와 본문은 남기지 않는다.
+- `AtlassianClient`와 `SlackClient`의 로그는 **메서드와 경로만** 남긴다. 헤더(Authorization)와 본문은 남기지 않는다.
 - 감사: `grep -rn "apiToken|authorizationHeader" Sources/ | grep -iE "print|log"` → 결과 없음.
 
 ## 5. 캘린더 데이터
