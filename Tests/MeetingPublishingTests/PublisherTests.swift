@@ -13,6 +13,7 @@ struct AtlassianCredentialsTests {
             apiToken: "super-secret-token-value"
         )
         #expect(credentials.site == "team.atlassian.net")
+        #expect(credentials.isComplete)
         #expect(!credentials.redactedDescription.contains("super-secret"))
         #expect(credentials.redactedDescription.contains("토큰 저장됨"))
     }

@@ -3,7 +3,7 @@ import MeetingCore
 import Security
 
 /// Atlassian 인증 정보. 토큰은 로그·인자·화면에 남기지 않는다.
-public struct AtlassianCredentials: Sendable {
+public struct AtlassianCredentials: Sendable, Equatable {
     /// 예: `your-team.atlassian.net`
     public let site: String
     public let email: String
@@ -14,6 +14,11 @@ public struct AtlassianCredentials: Sendable {
         self.site = site.replacingOccurrences(of: "https://", with: "").trimmingCharacters(in: .whitespaces)
         self.email = email.trimmingCharacters(in: .whitespaces)
         self.apiToken = apiToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// 사이트·이메일·토큰이 모두 있을 때만 저장·연결에 쓸 수 있다.
+    public var isComplete: Bool {
+        !site.isEmpty && !email.isEmpty && !apiToken.isEmpty
     }
 
     public var baseURL: URL? {
@@ -163,5 +168,31 @@ public struct ChainedCredentialStore: AtlassianCredentialStore {
         for store in stores {
             try? store.delete()
         }
+    }
+}
+
+/// Settings와 CLI가 같이 쓰는 연결 상태 조작. 토큰은 저장소에만 넘기고 로그에 남기지 않는다.
+public struct AtlassianAccountService: Sendable {
+    private let store: any AtlassianCredentialStore
+
+    public init(store: any AtlassianCredentialStore = ChainedCredentialStore()) {
+        self.store = store
+    }
+
+    public func currentCredentials() throws -> AtlassianCredentials? {
+        try store.load()
+    }
+
+    public func connect(site: String, email: String, apiToken: String) throws -> AtlassianCredentials {
+        let credentials = AtlassianCredentials(site: site, email: email, apiToken: apiToken)
+        guard credentials.isComplete else {
+            throw PublishError.missingCredentials("사이트, 이메일, API 토큰이 모두 필요합니다.")
+        }
+        try store.save(credentials)
+        return credentials
+    }
+
+    public func disconnect() throws {
+        try store.delete()
     }
 }

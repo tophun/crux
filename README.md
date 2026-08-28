@@ -20,7 +20,7 @@ macOS용 온디바이스 AI 회의록 앱입니다.
 | EventKit 캘린더 감지와 회의 앱 감지 | 구현됨. 기본은 자동 녹음이 아닌 사용자 확인 |
 | SwiftUI 회의 목록·상세·전사문·메뉴바·Crux 캡슐 | 구현됨 |
 | Preview Viewer와 게시 전 품질·검열 게이트 | 구현 및 자동 테스트 완료 |
-| Confluence 게시, Jira 이슈 생성, 상호 링크 | 구현됨. 라이브 Atlassian 게시 검증은 미완료 |
+| Confluence 게시, Jira 이슈 생성, 상호 링크 | 구현됨. 앱 Settings에서 Atlassian 계정을 연결한다. 라이브 게시는 미완료 |
 | 화자 구분, 실시간 자막·요약 | 미구현 |
 
 `swift test`는 모델을 내려받지 않고 파이프라인·저장소·UI 상태·오디오 합성·게시 게이트를 검증합니다.
@@ -149,7 +149,7 @@ $M run --audio meeting.m4a --offline \
 
 인식 힌트가 필요하면 `--vocabulary`를 사용할 수 있습니다. 힌트는 전사 구간 분할에 영향을 줄 수 있으므로 기본값은 비활성입니다.
 
-Atlassian 연동은 먼저 인증 정보를 등록하고, Preview로 내용을 확인한 뒤 `--yes`로 승인합니다.
+Atlassian 연동은 앱 Settings의 Atlassian 항목에서 사이트·이메일·API 토큰을 연결하거나, CLI로 인증 정보를 등록한 뒤 Preview로 내용을 확인하고 `--yes`로 승인합니다. 토큰은 Keychain에만 저장됩니다.
 
 ```sh
 # API 토큰은 프롬프트(stdin)로만 입력

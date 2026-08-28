@@ -55,7 +55,7 @@ public final class MeetingSessionCoordinator {
     private let repository: MeetingRepository
     private let pipeline: MeetingProcessingPipeline
     private let preparation: PublishPreparation
-    private let credentialStore: any AtlassianCredentialStore
+    let credentialStore: any AtlassianCredentialStore
     /// 검토 화면에서 녹음을 들을 수 있게 공유하는 재생 컨트롤러
     private let playback: AudioPlaybackController
     let log: (@Sendable (String) -> Void)?
@@ -417,6 +417,7 @@ public final class MeetingSessionCoordinator {
                 evidence: prepared.evidence,
                 findings: prepared.findings,
                 playback: playback,
+                hasAtlassianCredentials: (try? credentialStore.load()) != nil,
                 publishAction: { [weak self] bundle, evidence in
                     guard let credentials = try credentialStore.load() else {
                         throw PublishError.missingCredentials("설정에서 Atlassian 계정을 연결해 주세요.")
