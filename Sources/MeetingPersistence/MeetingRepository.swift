@@ -88,7 +88,7 @@ public struct MeetingRepository: Sendable {
     /// 회의 목록. 최근 회의가 먼저 온다.
     public func summaries(matching query: String? = nil) throws -> [MeetingSummary] {
         try database.read { context in
-            var meetings = try context.all(MeetingModel.self)
+            let meetings = try context.all(MeetingModel.self)
                 .compactMap(\.domain)
                 .sorted { $0.startedAt > $1.startedAt }
             let notes = try context.all(NoteModel.self)
@@ -98,22 +98,12 @@ public struct MeetingRepository: Sendable {
             let questions = try context.all(OpenQuestionModel.self)
             let risks = try context.all(RiskItemModel.self)
 
-            if let query, !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
-                let matchingIds = Set(
-                    tracks.filter { $0.text.lowercased().contains(needle) }.map(\.meetingId)
-                        + actions.filter { $0.task.lowercased().contains(needle) }.map(\.meetingId)
-                        + decisions.filter { $0.content.lowercased().contains(needle) }.map(\.meetingId)
-                        + notes.filter {
-                            $0.title.lowercased().contains(needle) || $0.summary.lowercased().contains(needle)
-                        }.map(\.meetingId)
-                )
-                meetings = meetings.filter {
-                    matchingIds.contains($0.id.uuidString) || $0.title.lowercased().contains(needle)
-                }
-            }
-
             let notesByMeeting = Dictionary(notes.map { ($0.meetingId, $0) }, uniquingKeysWith: { first, _ in first })
+            let transcriptsByMeeting = Dictionary(grouping: tracks, by: \.meetingId)
+            let decisionsByMeeting = Dictionary(grouping: decisions, by: \.meetingId)
+            let actionsByMeeting = Dictionary(grouping: actions, by: \.meetingId)
+            let needle = MeetingSearch.normalizedQuery(query)
+
             func countByMeeting(_ models: [String]) -> [String: Int] {
                 Dictionary(grouping: models, by: { $0 }).mapValues(\.count)
             }
@@ -122,17 +112,31 @@ public struct MeetingRepository: Sendable {
             let questionCounts = countByMeeting(questions.map(\.meetingId))
             let riskCounts = countByMeeting(risks.map(\.meetingId))
 
-            return meetings.map { meeting in
+            return meetings.compactMap { meeting in
                 let key = meeting.id.uuidString
-                return MeetingSummary(
+                let note = notesByMeeting[key]
+                let document = MeetingSearch.Document(
+                    title: meeting.title,
+                    notes: [note?.title, note?.summary, note?.customDocument].compactMap { $0 },
+                    transcript: (transcriptsByMeeting[key] ?? []).map(\.text),
+                    decisions: (decisionsByMeeting[key] ?? []).map(\.content),
+                    actions: (actionsByMeeting[key] ?? []).map(\.task)
+                )
+                let hit = needle.flatMap { MeetingSearch.firstHit(query: $0, in: document) }
+                if needle != nil, hit == nil {
+                    return nil
+                }
+                var summary = MeetingSummary(
                     meeting: meeting,
-                    noteTitle: notesByMeeting[key]?.title,
-                    summaryPreview: notesByMeeting[key]?.summary,
+                    noteTitle: note?.title,
+                    summaryPreview: note?.summary,
                     decisionCount: decisionCounts[key] ?? 0,
                     actionItemCount: actionCounts[key] ?? 0,
                     openQuestionCount: questionCounts[key] ?? 0,
                     riskCount: riskCounts[key] ?? 0
                 )
+                summary.searchHit = hit
+                return summary
             }
         }
     }

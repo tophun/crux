@@ -185,12 +185,39 @@ struct RepositoryTests {
         #expect(target.riskCount == 1)
         #expect(target.summaryPreview == "배포일 확정")
 
-        // 전사문 내용으로 검색
-        #expect(try harness.repository.summaries(matching: "3월 12일").map(\.id) == [first.id])
+        // 전사문 내용으로 검색. 상세에 보여줄 맞춘 문장도 함께 온다.
+        let byTranscript = try harness.repository.summaries(matching: "3월 12일")
+        #expect(byTranscript.map(\.id) == [first.id])
+        #expect(byTranscript.first?.searchHit?.field == .transcript)
+        #expect(byTranscript.first?.searchHit?.sentence == "결제 모듈 배포는 3월 12일 수요일로 확정합니다.")
         // 제목으로 검색
-        #expect(try harness.repository.summaries(matching: "채용").map(\.id) == [second.id])
+        let byTitle = try harness.repository.summaries(matching: "채용")
+        #expect(byTitle.map(\.id) == [second.id])
+        #expect(byTitle.first?.searchHit?.field == .title)
+        #expect(byTitle.first?.searchHit?.sentence == "채용 계획 회의")
         // 액션아이템으로 검색
-        #expect(try harness.repository.summaries(matching: "체크리스트").map(\.id) == [first.id])
+        let byAction = try harness.repository.summaries(matching: "체크리스트")
+        #expect(byAction.map(\.id) == [first.id])
+        #expect(byAction.first?.searchHit?.field == .action)
+        #expect(byAction.first?.searchHit?.sentence == "체크리스트 공유")
+        // 회의록 요약으로 검색
+        let byNotes = try harness.repository.summaries(matching: "배포일")
+        #expect(byNotes.map(\.id) == [first.id])
+        #expect(byNotes.first?.searchHit?.field == .notes)
+        #expect(byNotes.first?.searchHit?.sentence == "배포일 확정")
+        // 결정사항으로 검색
+        let byDecision = try harness.repository.summaries(matching: "배포를 3월 12일로")
+        #expect(byDecision.map(\.id) == [first.id])
+        #expect(byDecision.first?.searchHit?.field == .decision)
+        #expect(byDecision.first?.searchHit?.sentence == "배포를 3월 12일로 확정")
+        // 사용자 문서로 고친 회의록도 찾는다.
+        var edited = try #require(harness.repository.note(meetingId: first.id))
+        edited.customDocument = "보안 검토를 배포 전에 끝낸다."
+        try harness.repository.save(note: edited)
+        let byDocument = try harness.repository.summaries(matching: "보안 검토")
+        #expect(byDocument.map(\.id) == [first.id])
+        #expect(byDocument.first?.searchHit?.field == .notes)
+        #expect(byDocument.first?.searchHit?.sentence == "보안 검토를 배포 전에 끝낸다.")
         _ = second
     }
 

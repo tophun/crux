@@ -9,6 +9,8 @@ public struct MeetingSummary: Identifiable, Hashable, Sendable {
     public var actionItemCount: Int
     public var openQuestionCount: Int
     public var riskCount: Int
+    /// 검색 중일 때만 채운다. 상세에서 맞춘 문장을 보여 줄 때 쓴다.
+    public var searchHit: MeetingSearch.Hit?
 
     public var id: UUID {
         meeting.id
@@ -30,6 +32,7 @@ public struct MeetingSummary: Identifiable, Hashable, Sendable {
         self.actionItemCount = actionItemCount
         self.openQuestionCount = openQuestionCount
         self.riskCount = riskCount
+        searchHit = nil
     }
 
     public var displayTitle: String {

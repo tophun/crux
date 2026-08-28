@@ -56,6 +56,12 @@ public final class AppState {
         didSet { reload() }
     }
 
+    /// 목록에서 고른 회의가 검색어와 맞춘 문장. 검색 중이 아니면 nil.
+    public var selectedSearchHit: MeetingSearch.Hit? {
+        guard MeetingSearch.normalizedQuery(searchText) != nil else { return nil }
+        return summaries.first { $0.id == selectedMeetingId }?.searchHit
+    }
+
     public var selectedMeetingId: UUID? {
         didSet { loadDetail() }
     }
@@ -110,7 +116,7 @@ public final class AppState {
 
     public func reload() {
         do {
-            summaries = try repository.summaries(matching: searchText.isEmpty ? nil : searchText)
+            summaries = try repository.summaries(matching: MeetingSearch.normalizedQuery(searchText))
             errorMessage = nil
             // 목록이 비어 있지 않으면 항상 하나는 선택돼 있어야 한다.
             // 선택이 없거나(첫 실행), 선택했던 회의가 삭제·검색으로 사라졌으면 가장 최근 회의를 고른다.
