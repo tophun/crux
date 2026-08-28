@@ -10,39 +10,74 @@ public struct MeetingListView: View {
     }
 
     public var body: some View {
-        Group {
-            if MeetingSplitEmptyPolicy.showsListPlaceholder(meetingCount: state.summaries.count) {
-                ContentUnavailableView(
-                    "회의가 없습니다",
-                    systemImage: "waveform",
-                    description: Text("오디오 파일을 가져오면 이 기기에서 전사와 회의록 생성이 진행됩니다.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(selection: Binding(
-                    get: { state.selectedMeetingId },
-                    set: { state.selectedMeetingId = $0 }
-                )) {
-                    ForEach(state.summaries) { summary in
-                        MeetingRow(summary: summary)
-                            .tag(summary.id)
-                            .contextMenu {
-                                Button("회의록 열기") { state.selectedMeetingId = summary.id }
-                                Divider()
-                                Button("회의 삭제…", role: .destructive) {
-                                    state.requestDelete(meetingId: summary.id)
-                                }
+        VStack(spacing: 0) {
+            searchField
+            listContent
+        }
+        .deleteConfirmation(state: state)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("제목·회의록·전사문·결정·액션 검색", text: $state.searchText)
+                .textFieldStyle(.plain)
+            if MeetingSearch.normalizedQuery(state.searchText) != nil {
+                Button {
+                    state.searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("검색 지우기")
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    @ViewBuilder
+    private var listContent: some View {
+        if MeetingSearch.normalizedQuery(state.searchText) != nil, state.summaries.isEmpty {
+            ContentUnavailableView(
+                "검색 결과가 없습니다",
+                systemImage: "magnifyingglass",
+                description: Text("제목, 회의록, 전사문, 결정사항, 액션에서 다시 찾아 보세요.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if MeetingSplitEmptyPolicy.showsListPlaceholder(meetingCount: state.summaries.count) {
+            ContentUnavailableView(
+                "회의가 없습니다",
+                systemImage: "waveform",
+                description: Text("오디오 파일을 가져오면 이 기기에서 전사와 회의록 생성이 진행됩니다.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            List(selection: Binding(
+                get: { state.selectedMeetingId },
+                set: { state.selectedMeetingId = $0 }
+            )) {
+                ForEach(state.summaries) { summary in
+                    MeetingRow(summary: summary)
+                        .tag(summary.id)
+                        .contextMenu {
+                            Button("회의록 열기") { state.selectedMeetingId = summary.id }
+                            Divider()
+                            Button("회의 삭제…", role: .destructive) {
+                                state.requestDelete(meetingId: summary.id)
                             }
-                            .swipeActions(edge: .trailing) {
-                                Button("삭제", role: .destructive) {
-                                    state.requestDelete(meetingId: summary.id)
-                                }
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button("삭제", role: .destructive) {
+                                state.requestDelete(meetingId: summary.id)
                             }
-                    }
+                        }
                 }
             }
         }
-        .deleteConfirmation(state: state)
     }
 }
 
@@ -61,7 +96,12 @@ struct MeetingRow: View {
             Text(summary.meeting.startedAt, format: .dateTime.year().month().day().hour().minute())
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            if let preview = summary.summaryPreview, !preview.isEmpty {
+            if let hit = summary.searchHit {
+                Text(hit.sentence)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            } else if let preview = summary.summaryPreview, !preview.isEmpty {
                 Text(preview)
                     .font(.caption)
                     .foregroundStyle(.secondary)

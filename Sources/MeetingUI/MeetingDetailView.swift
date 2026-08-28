@@ -63,6 +63,10 @@ public struct MeetingDetailView: View {
             if let message = state.errorMessage {
                 Text(message).font(.caption).foregroundStyle(.red)
             }
+
+            if let hit = state.selectedSearchHit {
+                SearchMatchBanner(hit: hit)
+            }
         }
         .padding()
     }
@@ -576,6 +580,27 @@ public struct DetailToolbarButtons: View {
 
     public var body: some View {
         MeetingDetailView(state: state).actionButtons(detail)
+    }
+}
+
+/// 목록에서 고른 검색 결과가 맞춘 문장. 검색을 지울 때까지 상세 위에 남겨 둔다.
+struct SearchMatchBanner: View {
+    let hit: MeetingSearch.Hit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("검색 일치 · \(hit.field.displayName)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(hit.sentence)
+                .font(.callout)
+                .textSelection(.enabled)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("검색 일치, \(hit.field.displayName), \(hit.sentence)")
     }
 }
 
