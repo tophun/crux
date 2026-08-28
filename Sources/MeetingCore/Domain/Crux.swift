@@ -31,11 +31,11 @@ public enum CruxExpansionMode: Equatable, Sendable {
     public func handlingHover(_ hovering: Bool) -> Self {
         switch (self, hovering) {
         case (.pinned, _):
-            return .pinned
+            .pinned
         case (_, true):
-            return .preview
+            .preview
         case (_, false):
-            return .collapsed
+            .collapsed
         }
     }
 

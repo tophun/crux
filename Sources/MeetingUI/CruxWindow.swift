@@ -395,9 +395,9 @@ public final class CruxWindowController {
         guard awaitingSettle else { return }
         settleWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.awaitingSettle else { return }
-            self.awaitingSettle = false
-            self.setWindowSize(size)
+            guard let self, awaitingSettle else { return }
+            awaitingSettle = false
+            setWindowSize(size)
         }
         settleWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)

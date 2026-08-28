@@ -399,7 +399,9 @@ public final class MeetingSessionCoordinator {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let memoStore else { return }
         var elapsed: TimeInterval = 0
-        if case let .recording(seconds, _) = capsule { elapsed = seconds }
+        if case let .recording(seconds, _) = capsule {
+            elapsed = seconds
+        }
         let memo = MeetingMemo(elapsed: elapsed, text: trimmed)
         memos.append(memo)
         do {

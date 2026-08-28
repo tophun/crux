@@ -63,7 +63,7 @@ public struct CruxView: View {
         self.memos = memos
         self.processingStage = processingStage
         self.metrics = metrics
-        self.presentation = CruxPresentationModel(state: state, detailMessage: detailMessage)
+        presentation = CruxPresentationModel(state: state, detailMessage: detailMessage)
         self.onAddMemo = onAddMemo
         self.onMemoFocusChange = onMemoFocusChange
         self.onContentSizeChange = onContentSizeChange
@@ -629,13 +629,13 @@ public struct CruxView: View {
 struct LevelWaveform: View {
     var barCount: Int = 5
     var color: Color = .white
-    var levels: [Double]? = nil
+    var levels: [Double]?
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             HStack(spacing: 2.5) {
-                ForEach(0..<barCount, id: \.self) { index in
+                ForEach(0 ..< barCount, id: \.self) { index in
                     let level = levels?[safe: index] ?? Self.mockLevel(index: index, time: t)
                     Capsule()
                         .fill(color)
@@ -698,7 +698,7 @@ enum MeetingTint {
         Color(red: 0.62, green: 0.45, blue: 1.0),
         Color(red: 0.22, green: 0.72, blue: 0.55),
         Color(red: 1.0, green: 0.58, blue: 0.30),
-        Color(red: 0.95, green: 0.40, blue: 0.55),
+        Color(red: 0.95, green: 0.40, blue: 0.55)
     ]
 
     static func color(for key: String) -> Color {
