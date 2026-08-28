@@ -16,17 +16,17 @@ public final class MeetingSessionCoordinator {
     public private(set) var capsule: CruxState = .hidden
     public private(set) var detailMessage: String?
     public private(set) var previewModel: PreviewViewerModel?
-    public private(set) var lastError: String?
+    public internal(set) var lastError: String?
     /// 캘린더 권한 상태 (설정 화면 표시용)
-    public private(set) var calendarStatus: CalendarAuthorizationStatus = .notDetermined
-    public private(set) var microphoneStatus: CapturePermissionState = .notDetermined
-    public private(set) var systemAudioStatus: CapturePermissionState = .notDetermined
+    public internal(set) var calendarStatus: CalendarAuthorizationStatus = .notDetermined
+    public internal(set) var microphoneStatus: CapturePermissionState = .notDetermined
+    public internal(set) var systemAudioStatus: CapturePermissionState = .notDetermined
     public private(set) var activeMeetingId: UUID?
     /// 녹음 중인 회의 제목. 노치 펼침 헤더에 쓴다.
     public private(set) var activeMeetingTitle: String?
     /// 녹음 중 노치에서 남긴 메모. 회의 저장 폴더의 memos.json과 같은 내용이다.
-    public private(set) var memos: [MeetingMemo] = []
-    private var memoStore: MeetingMemoStore?
+    public internal(set) var memos: [MeetingMemo] = []
+    var memoStore: MeetingMemoStore?
     /// 회의록 생성 중 현재 단계. 캡슐 상세가 단계 체크리스트를 그리는 데 쓴다.
     public private(set) var processingStage: ProcessingStage?
 
@@ -44,21 +44,21 @@ public final class MeetingSessionCoordinator {
     }
 
     private var machine = CruxMachine()
-    private let calendarProvider: any CalendarProvider
+    let calendarProvider: any CalendarProvider
     private let calendarRepository: CalendarRepository
     private let detector: ConferenceAppDetector
     private var policy: MeetingDetectionPolicy
     /// 같은 진단을 15초마다 반복해서 남기지 않기 위한 직전 값.
     private var lastDiagnostic: String?
     private var lastDiagnosticAt: Date?
-    private let capture: MeetingAudioCapture
+    let capture: MeetingAudioCapture
     private let repository: MeetingRepository
     private let pipeline: MeetingProcessingPipeline
     private let preparation: PublishPreparation
     private let credentialStore: any AtlassianCredentialStore
     /// 검토 화면에서 녹음을 들을 수 있게 공유하는 재생 컨트롤러
     private let playback: AudioPlaybackController
-    private let log: (@Sendable (String) -> Void)?
+    let log: (@Sendable (String) -> Void)?
     /// 녹음 시작 전 마지막 관문. 막는 이유를 반환하고, 통과면 nil을 반환한다.
     /// 모델 미설치 같은 "지금 시작하면 처리가 실패하는" 상태를 잡는다.
     private let recordingGate: (@Sendable () -> String?)?
@@ -99,36 +99,6 @@ public final class MeetingSessionCoordinator {
         self.log = log
         defaultSpaceKey = UserDefaults.standard.string(forKey: "publish.spaceKey") ?? ""
         defaultProjectKey = UserDefaults.standard.string(forKey: "publish.projectKey") ?? ""
-    }
-
-    // MARK: - 권한
-
-    /// 감지 루프에서 주기적으로 부르는 가벼운 확인. 권한 창을 띄우는 API는 호출하지 않는다.
-    public func refreshPermissions() async {
-        calendarStatus = calendarProvider.authorizationStatus()
-        microphoneStatus = await capture.microphonePermission()
-    }
-
-    /// 시스템 오디오(화면 기록) 권한 확인. ScreenCaptureKit은 조회 API가 없어 실제 조회로 확인해야 하고,
-    /// 그 호출이 권한 창을 띄울 수 있다. 그래서 주기적으로 부르지 않고 사용자 동작에서만 확인한다.
-    public func refreshSystemAudioPermission() async {
-        systemAudioStatus = await capture.systemAudioPermission()
-    }
-
-    /// 설정·온보딩의 '허용' 버튼용. 아직 정해지지 않았으면 시스템 대화상자를 띄운다.
-    public func requestSystemAudioPermission() async {
-        systemAudioStatus = await capture.requestSystemAudioPermission()
-    }
-
-    public func requestCalendarAccess() async {
-        _ = try? await calendarProvider.requestAccess()
-        calendarStatus = calendarProvider.authorizationStatus()
-    }
-
-    public func requestRecordingPermissions() async {
-        let result = await capture.requestPermissions()
-        microphoneStatus = result.microphone
-        systemAudioStatus = result.systemAudio
     }
 
     // MARK: - 감지 루프
@@ -391,24 +361,6 @@ public final class MeetingSessionCoordinator {
             try? repository.updateStatus(.failed, meetingId: meetingId)
             capsule = machine.apply(.failed(message: error.localizedDescription))
             onMeetingsChanged?(meetingId)
-        }
-    }
-
-    /// 녹음 중 메모를 남긴다. 빈 문자열은 무시하고, 녹음 경과 시각을 함께 기록한다.
-    public func addMemo(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let memoStore else { return }
-        var elapsed: TimeInterval = 0
-        if case let .recording(seconds, _) = capsule {
-            elapsed = seconds
-        }
-        let memo = MeetingMemo(elapsed: elapsed, text: trimmed)
-        memos.append(memo)
-        do {
-            try memoStore.save(memos)
-        } catch {
-            lastError = error.localizedDescription
-            log?("메모 저장 실패: \(error.localizedDescription)")
         }
     }
 
