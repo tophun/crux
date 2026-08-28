@@ -97,7 +97,7 @@ struct RangeRetranscribeTests {
         #expect(stored[1].startTime == 1)
         #expect(stored[1].endTime == 2)
 
-        let note = try #require(harness.repository.note(meetingId: seeded.meeting.id))
+        let note = try #require(try harness.repository.note(meetingId: seeded.meeting.id))
         #expect(note.decisions[0].evidence[0].startTime == 0.2)
         #expect(note.decisions[0].evidence[0].endTime == 0.8)
         #expect(note.actionItems[0].evidence[0].startTime == 1.2)
@@ -158,7 +158,7 @@ struct RangeRetranscribeTests {
         let stored = try harness.repository.transcript(meetingId: seeded.meeting.id)
         #expect(stored.map(\.id) == [seeded.first.id, seeded.middle.id, seeded.last.id])
         #expect(stored[1].text == "중간 구간 원문")
-        let note = try #require(harness.repository.note(meetingId: seeded.meeting.id))
+        let note = try #require(try harness.repository.note(meetingId: seeded.meeting.id))
         #expect(note.actionItems[0].evidence[0].startTime == 1.2)
         #expect(try harness.repository.meeting(id: seeded.meeting.id)?.status == .completed)
     }

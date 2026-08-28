@@ -14,9 +14,7 @@ final class RecordingSlackClient: SlackMessaging, @unchecked Sendable {
     }
 
     func postMessage(channel: String, text: String) async throws -> SlackPostedMessage {
-        lock.lock()
-        _posts.append((channel, text))
-        lock.unlock()
+        lock.withLock { _posts.append((channel, text)) }
         return SlackPostedMessage(channel: channel, timestamp: "1.0")
     }
 }
