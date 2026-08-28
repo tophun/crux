@@ -432,7 +432,9 @@ public final class CruxWindowController {
 /// 비활성화 패널이지만 메모 입력을 위해 키 창이 될 수 있어야 한다.
 /// `canBecomeKey`가 false면 텍스트 필드가 포커스를 받지 못한다.
 final class KeyablePanel: NSPanel {
-    override var canBecomeKey: Bool { true }
+    override var canBecomeKey: Bool {
+        true
+    }
 }
 
 /// 노치 셸프 루트 뷰가 읽는 상태. 창(CruxWindow)이 값을 바꾸고 SwiftUI가 애니메이션한다.

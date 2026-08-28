@@ -91,7 +91,9 @@ public struct CruxView: View {
     }
 
     /// 화면 상단과 캡슐을 잇는 오목한 곡선의 크기.
-    private var topFlare: CGFloat { 20 }
+    private var topFlare: CGFloat {
+        20
+    }
 
     private var barWidth: CGFloat {
         metrics.islandWidth(expanded: isEnlarged)
