@@ -17,6 +17,7 @@ struct CruxApp: App {
     @State private var state: AppState
     @State private var coordinator: MeetingSessionCoordinator
     @State private var upcoming: UpcomingCalendarStore
+    @State private var notifications: EventNotificationStore
     @State private var library: MainLibrary = .meetings
     /// 오디오 보관 설정과 사용량
     @State private var storage: AudioStorageModel
@@ -84,6 +85,9 @@ struct CruxApp: App {
                 provider: calendarProvider,
                 repository: calendarRepository
             )
+        )
+        _notifications = State(
+            initialValue: EventNotificationStore(center: UserNotificationsEventCenter())
         )
 
         // 모델 설치 관리. 카탈로그의 모든 선택지를 미리 만들어 두고
@@ -233,7 +237,7 @@ struct CruxApp: App {
                             prompt: "회의·전사문·액션아이템 검색"
                         )
                 case .calendar:
-                    UpcomingEventDetailView(store: upcoming)
+                    UpcomingEventDetailView(store: upcoming, notifications: notifications)
                         .frame(minWidth: 560, minHeight: 480)
                 }
             }
@@ -251,6 +255,7 @@ struct CruxApp: App {
                 }
                 await coordinator.refreshPermissions()
                 await upcoming.reload()
+                await notifications.refresh()
                 // 권한이 없으면 무엇이 필요한지 먼저 보여 준다. 없는 채로 두면 기능이 조용히 죽는다.
                 presentOnboardingIfNeeded()
                 coordinator.startMonitoring()
@@ -299,7 +304,8 @@ struct CruxApp: App {
                 modelDirectory: AppIdentity.dataDirectory().appendingPathComponent("models"),
                 coordinator: coordinator,
                 storage: storage,
-                installs: installs
+                installs: installs,
+                notifications: notifications
             )
         }
     }

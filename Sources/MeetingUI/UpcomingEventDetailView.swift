@@ -1,14 +1,16 @@
 import MeetingCore
 import SwiftUI
 
-/// 다가오는 일정 상세. 시간, 참석자, 회의 링크만 보여 준다.
+/// 다가오는 일정 상세. 시간, 참석자, 회의 링크, 로컬 알림을 보여 준다.
 ///
-/// 알림 등록과 스킵은 넣지 않는다. 오디오·전사문도 이 화면에 없다.
+/// 알림은 이 기기 `UNUserNotificationCenter`만 쓴다. 스킵과 오디오·전사문은 없다.
 public struct UpcomingEventDetailView: View {
     @Bindable var store: UpcomingCalendarStore
+    @Bindable var notifications: EventNotificationStore
 
-    public init(store: UpcomingCalendarStore) {
+    public init(store: UpcomingCalendarStore, notifications: EventNotificationStore) {
         self.store = store
+        self.notifications = notifications
     }
 
     public var body: some View {
@@ -29,6 +31,28 @@ public struct UpcomingEventDetailView: View {
                     }
                 } header: {
                     Text(event.title)
+                }
+
+                Section {
+                    notificationToggle(for: event)
+                    if notifications.authorization == .denied {
+                        LabeledContent {
+                            Button("시스템 설정 열기") {
+                                notifications.openSystemSettings()
+                            }
+                        } label: {
+                            Text("알림이 꺼져 있습니다")
+                            Text("시스템 설정에서 알림을 허용하면 예약할 수 있습니다.")
+                        }
+                    }
+                    if let message = notifications.lastError, notifications.authorization != .denied {
+                        Text(message)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("알림")
+                } footer: {
+                    Text("이 기기에서만 울립니다. Google·캘린더 알림은 바꾸지 않습니다.")
                 }
 
                 Section("참석자") {
@@ -54,8 +78,21 @@ public struct UpcomingEventDetailView: View {
             }
             .formStyle(.grouped)
             .navigationTitle(event.title)
+            .task(id: event.id) { await notifications.refresh() }
         } else {
             Color.clear
+        }
+    }
+
+    private func notificationToggle(for event: CalendarEvent) -> some View {
+        Toggle(isOn: Binding(
+            get: { notifications.isScheduled(event.id) },
+            set: { newValue in
+                Task { await notifications.setScheduled(newValue, event: event) }
+            }
+        )) {
+            Text("시작 \(notifications.leadMinutes)분 전")
+            Text("설정에서 기본 시각을 바꿀 수 있습니다.")
         }
     }
 
