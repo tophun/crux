@@ -16,6 +16,8 @@ public struct MeetingDetail: Sendable {
     public var attendees: [String]
     /// 녹음 중 노치에서 남긴 메모.
     public var memos: [MeetingMemo] = []
+    /// 같은 시리즈·사용자가 묶은 이전 회의의 미완료 액션. 상태를 바꾸지 않는다.
+    public var carryoverActions: [CarryoverAction] = []
 
     public init(
         meeting: Meeting,
@@ -66,25 +68,25 @@ public final class AppState {
         didSet { loadDetail() }
     }
 
-    public private(set) var detail: MeetingDetail?
+    public internal(set) var detail: MeetingDetail?
     /// 미리보기 / 전사문 화면 전환.
     public var detailTab: DetailTab = .preview
     /// 미리보기의 편집 모드. 켜져 있는 동안 제목도 함께 고칠 수 있다.
     public var isEditingDocument = false
     public private(set) var progress: MeetingProcessingPipeline.Update?
     public private(set) var isProcessing = false
-    public private(set) var statusMessage: String?
-    public private(set) var errorMessage: String?
+    public internal(set) var statusMessage: String?
+    public internal(set) var errorMessage: String?
     public private(set) var logLines: [String] = []
 
     /// 삭제 확인을 기다리는 회의. UI가 확인 대화상자를 띄운다.
     public var pendingDeletion: MeetingSummary?
 
-    private let repository: MeetingRepository
+    let repository: MeetingRepository
     private let jobs: ProcessingJobRepository
     private let pipeline: MeetingProcessingPipeline
     private let importer: MeetingImporter
-    private let deleter: MeetingDeleter
+    let deleter: MeetingDeleter
     /// 참석자 조회용. 캘린더를 쓰지 않는 실행(테스트·CLI)에서는 nil이다.
     private let calendar: CalendarRepository?
     /// 회의 오디오 재생. 근거 타임스탬프에서 바로 들을 수 있게 한다.
@@ -143,6 +145,7 @@ public final class AppState {
             let tracks = try repository.tracks(meetingId: id).map {
                 MeetingProcessingPipeline.resolveAudioFile(for: $0, meetingId: id)
             }
+            let carryover = try repository.carryoverActions(for: id)
             detail = try MeetingDetail(
                 meeting: meeting,
                 note: repository.note(meetingId: id),
@@ -153,6 +156,7 @@ public final class AppState {
                 attendees: attendees(meetingId: id)
             )
             detail?.memos = MeetingMemoStore(storageDirectory: meeting.storageDirectory).load()
+            detail?.carryoverActions = carryover
             playback.prepare(tracks: tracks)
         } catch {
             errorMessage = error.localizedDescription

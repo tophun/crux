@@ -94,6 +94,15 @@ public struct MeetingDetailView: View {
                     }
                 }
                 .disabled(state.isProcessing)
+                if state.summaries.contains(where: { $0.id != detail.meeting.id }) {
+                    Menu("관련 회의로 묶기") {
+                        ForEach(state.summaries.filter { $0.id != detail.meeting.id }) { other in
+                            Button(other.displayTitle) {
+                                state.groupMeetings(detail.meeting.id, with: other.id)
+                            }
+                        }
+                    }
+                }
                 Divider()
                 Button("회의 삭제…", systemImage: "trash", role: .destructive) {
                     state.requestDelete(meetingId: detail.meeting.id)
@@ -122,19 +131,27 @@ public struct MeetingDetailView: View {
 
     @ViewBuilder
     private func content(_ detail: MeetingDetail) -> some View {
-        switch state.detailTab {
-        case .preview:
-            VStack(alignment: .leading, spacing: 0) {
-                if !detail.memos.isEmpty {
-                    MemoListView(memos: detail.memos) { elapsed in
-                        state.playback.seek(to: elapsed)
-                    }
-                    Divider()
+        VStack(alignment: .leading, spacing: 0) {
+            if !detail.carryoverActions.isEmpty {
+                CarryoverActionsView(actions: detail.carryoverActions) { meetingId in
+                    state.selectedMeetingId = meetingId
                 }
-                MarkdownPreviewTab(state: state, detail: detail)
+                Divider()
             }
-        case .transcript:
-            TranscriptTab(state: state, detail: detail)
+            switch state.detailTab {
+            case .preview:
+                VStack(alignment: .leading, spacing: 0) {
+                    if !detail.memos.isEmpty {
+                        MemoListView(memos: detail.memos) { elapsed in
+                            state.playback.seek(to: elapsed)
+                        }
+                        Divider()
+                    }
+                    MarkdownPreviewTab(state: state, detail: detail)
+                }
+            case .transcript:
+                TranscriptTab(state: state, detail: detail)
+            }
         }
     }
 }
