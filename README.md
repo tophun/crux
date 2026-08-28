@@ -56,7 +56,7 @@ MLX Metal 리소스를 포함한 실행 파일은 `xcodebuild`로 빌드합니�
 xcodebuild -scheme meetingctl -destination 'platform=OS X,arch=arm64' \
   -derivedDataPath .xcbuild -configuration Debug -skipMacroValidation build
 
-xcodebuild -scheme Crux -destination 'platform=OS X,arch=arm64' \
+xcodebuild -scheme crux -destination 'platform=OS X,arch=arm64' \
   -derivedDataPath .xcbuild -configuration Debug -skipMacroValidation build
 ```
 
@@ -67,7 +67,7 @@ make app
 open .xcbuild/Crux.app
 ```
 
-`make app`은 `Info.plist`, MLX Metal 리소스, 앱 아이콘을 넣고 Apple Development 인증서로 서명합니다. 기본 번들 식별자는
+`make app`은 `Info.plist`, MLX Metal 리소스, 앱 아이콘을 넣고 `Apple Development: imtophun@gmail.com` 인증서로 서명합니다. 기본 번들 식별자는
 `local.crux.app`이며, 다른 인증서와 식별자가 필요하면 `CODESIGN_IDENTITY`와 `BUNDLE_ID`를 지정할 수 있습니다.
 
 DMG가 필요하면 다음을 실행합니다.

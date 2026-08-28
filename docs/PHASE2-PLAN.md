@@ -141,7 +141,7 @@ $ swift build && swift test
 | 항목 | 결과 |
 | --- | --- |
 | `swift build` | 성공 |
-| `xcodebuild -scheme Crux` | 성공 |
+| `xcodebuild -scheme crux` | 성공 |
 | `xcodebuild -scheme meetingctl` | 성공 |
 | `scripts/make_app.sh` | 성공. ad-hoc 서명, 번들 식별자 `local.meetingnotes.app`, 권한 사용 설명 3종 포함 |
 | 앱 번들 실행 | 프로세스 정상 유지, 오류 로그 없음 |

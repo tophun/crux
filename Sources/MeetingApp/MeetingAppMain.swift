@@ -235,7 +235,14 @@ struct CruxApp: App {
                 openWindow: { Self.activateWindow(titled: AppIdentity.productName) }
             )
         } label: {
-            Image(systemName: menuBarSymbol)
+            // 대기 상태는 전용 아이콘(고양이), 녹음·생성 중에는 상태를 나타내는 SF Symbol을 쓴다.
+            if let symbol = menuBarStateSymbol {
+                Image(systemName: symbol)
+            } else if let icon = Self.menuBarIcon {
+                Image(nsImage: icon)
+            } else {
+                Image(systemName: "doc.text")
+            }
         }
 
         Settings {
@@ -259,12 +266,22 @@ struct CruxApp: App {
         )
     }
 
-    private var menuBarSymbol: String {
+    /// 앱 번들 Resources의 템플릿 PNG. 메뉴바 밝기에 맞춰 자동으로 색이 바뀐다.
+    /// `swift run`처럼 번들 없이 실행하면 nil이고, 그때는 SF Symbol로 대신한다.
+    private static let menuBarIcon: NSImage? = {
+        guard let url = Bundle.main.resourceURL?.appendingPathComponent("MenuBarIconTemplate.png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        image.size = NSSize(width: 18, height: 18)
+        return image
+    }()
+
+    /// 상태를 알려야 할 때만 심볼을 쓴다. nil이면 기본 아이콘.
+    private var menuBarStateSymbol: String? {
         switch coordinator.capsule {
         case .recording: "record.circle"
         case .generating: "waveform.circle.fill"
-        case .previewReady: "doc.badge.ellipsis"
-        default: state.isProcessing ? "waveform.circle.fill" : "waveform.circle"
+        default: nil
         }
     }
 
@@ -310,6 +327,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var coordinator: MeetingSessionCoordinator?
     private var syncTask: Task<Void, Never>?
     private var lastState: CruxState = .hidden
+    private var lastMemoCount = 0
 
     func attach(coordinator: MeetingSessionCoordinator) {
         guard self.coordinator == nil else { return }
@@ -324,13 +342,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func sync() {
         guard let coordinator else { return }
-        let state = coordinator.capsule
-        guard state != lastState else { return }
+        let state = Self.demoCapsuleState ?? coordinator.capsule
+        let memos = coordinator.memos
+        guard state != lastState || memos.count != lastMemoCount else { return }
         lastState = state
+        lastMemoCount = memos.count
 
+        let isDemo = Self.demoCapsuleState != nil
         capsuleWindow.show(
             state: state,
             detailMessage: coordinator.detailMessage,
+            meetingTitle: isDemo ? "데모 회의" : coordinator.activeMeetingTitle,
+            memos: memos,
+            // 데모 모드의 생성 상태는 실제 파이프라인이 없으므로 단계 하나를 가정한다.
+            processingStage: isDemo && state.kindId == "generating" ? .extractFacts : coordinator.processingStage,
+            onAddMemo: { coordinator.addMemo($0) },
             onPrimaryAction: { [weak self] in self?.handlePrimaryAction(state) },
             onDismiss: {
                 // 녹음 중 닫기는 "숨김"이 아니라 녹음 취소다. 숨기기만 하면 녹음이 계속 돈다.
@@ -375,6 +401,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         syncTask?.cancel()
         capsuleWindow.close()
     }
+
+    /// 개발용. `CRUX_DEMO_CAPSULE=recording ./Crux.app/Contents/MacOS/Crux`처럼 실행하면
+    /// 실제 회의 없이 캡슐을 해당 상태로 고정해 레이아웃을 눈으로 확인할 수 있다.
+    /// 값: imminent · detected · recording · paused · generating · previewReady · published · failed
+    private static let demoCapsuleState: CruxState? = {
+        guard let raw = ProcessInfo.processInfo.environment["CRUX_DEMO_CAPSULE"] else { return nil }
+        switch raw {
+        case "imminent": return .imminent(title: "주간 유저성장 회의", minutesUntilStart: 5)
+        case "detected": return .detected(title: "주간 유저성장 회의", message: "Zoom 회의가 시작된 것 같습니다. 녹음을 시작할까요?")
+        case "recording": return .recording(elapsed: 754, paused: false)
+        case "paused": return .recording(elapsed: 754, paused: true)
+        case "generating": return .generating(fraction: 0.4, message: "음성 인식 중 (40%)")
+        case "previewReady": return .previewReady(meetingId: UUID(), actionItemCount: 3)
+        case "published": return .published(confluencePageTitle: "주간 유저성장 회의", jiraIssueCount: 2)
+        case "failed": return .failed(message: "모델을 불러오지 못했습니다. 다시 시도하세요.")
+        default: return nil
+        }
+    }()
 }
 
 /// 공유·더보기 묶음을 툴바 오른쪽 끝에 붙인다.

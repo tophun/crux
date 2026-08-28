@@ -1,5 +1,50 @@
 import Foundation
 
+/// 노치 셸프의 표시 상태.
+///
+/// `preview`는 포인터가 셸프 위에 있어 잠깐 펼쳐진 상태이고, `pinned`는
+/// 사용자가 클릭해 고정한 상태다. 호버와 고정 여부를 두 개의 Bool로 조합하면
+/// 상태 전환 때 잠깐 잘못된 조합이 보일 수 있으므로 화면에서는 이 값을 하나만 쓴다.
+public enum CruxExpansionMode: Equatable, Sendable {
+    case collapsed
+    case preview
+    case pinned
+
+    public var isExpanded: Bool {
+        self != .collapsed
+    }
+
+    public var isPinned: Bool {
+        self == .pinned
+    }
+
+    /// 기존 호버/고정 입력을 한 가지 표시 상태로 정규화한다.
+    public static func resolve(isHovering: Bool, isPinned: Bool) -> Self {
+        if isPinned {
+            return .pinned
+        }
+        return isHovering ? .preview : .collapsed
+    }
+
+    /// 포인터가 들어오거나 나갈 때의 표시 상태다. 고정된 셸프는 포인터가
+    /// 나가도 열린 채로 유지한다.
+    public func handlingHover(_ hovering: Bool) -> Self {
+        switch (self, hovering) {
+        case (.pinned, _):
+            .pinned
+        case (_, true):
+            .preview
+        case (_, false):
+            .collapsed
+        }
+    }
+
+    /// 셸프를 클릭했을 때 고정을 켜거나 끈다.
+    public func togglingPin() -> Self {
+        isPinned ? .collapsed : .pinned
+    }
+}
+
 /// Crux 상태(요구사항 3).
 ///
 /// 회의 임박 → 회의 시작 감지 → 녹음 중 → 회의록 생성 중 → Preview 준비 완료 → 게시 완료
@@ -61,6 +106,8 @@ public enum CruxState: Equatable, Sendable {
     }
 
     /// 캡슐 **좌측**에 두는 상태 문구. 시간·진행률 같은 수치는 `trailingText`로 뺀다.
+    ///
+    /// 펼쳤을 때 쓴다. 접힌 노치에는 `compactStatusText`를 쓴다.
     public var statusText: String {
         switch self {
         case .hidden:
@@ -75,6 +122,30 @@ public enum CruxState: Equatable, Sendable {
             "회의록 작성 중"
         case .previewReady:
             "회의록 준비 완료"
+        case .published:
+            "게시 완료"
+        case .failed:
+            "처리 실패"
+        }
+    }
+
+    /// 접힌 노치 왼쪽 날개에 넣는 짧은 문구. 말줄임 없이 항상 들어가야 한다.
+    ///
+    /// 회의 제목·긴 확인 문장은 접힌 상태에서 쓰지 않는다. 펼치거나 상세에서 보여 준다.
+    public var compactStatusText: String {
+        switch self {
+        case .hidden:
+            ""
+        case .imminent:
+            "곧 시작"
+        case .detected:
+            "회의 시작"
+        case let .recording(_, paused):
+            paused ? "일시정지" : "녹음 중"
+        case .generating:
+            "작성 중"
+        case .previewReady:
+            "준비 완료"
         case .published:
             "게시 완료"
         case .failed:
@@ -154,6 +225,182 @@ public enum CruxState: Equatable, Sendable {
         return hours > 0
             ? String(format: "%d:%02d:%02d", hours, minutes % 60, secs)
             : String(format: "%d:%02d", minutes, secs)
+    }
+}
+
+/// 셸프에 표시할 수 있는 사용자 동작.
+///
+/// 도메인 상태(`CruxState`)와 화면 문구·버튼 매핑을 분리하면 상태 머신은
+/// 그대로 둔 채 노치 셸프와 다른 화면에서 같은 의미를 재사용할 수 있다.
+public enum CruxShelfAction: String, Equatable, Sendable {
+    case prepareMeeting
+    case startMeeting
+    case pauseRecording
+    case resumeRecording
+    case stopRecording
+    case cancelProcessing
+    case review
+    case open
+    case retry
+    case dismiss
+
+    public var title: String {
+        switch self {
+        case .prepareMeeting: "회의록 준비"
+        case .startMeeting: "회의록 시작"
+        case .pauseRecording: "일시정지"
+        case .resumeRecording: "재개"
+        case .stopRecording: "종료"
+        case .cancelProcessing: "생성 취소"
+        case .review: "검토하기"
+        case .open: "열기"
+        case .retry: "다시 시도"
+        case .dismiss: "닫기"
+        }
+    }
+
+    public var accessibilityLabel: String {
+        switch self {
+        case .prepareMeeting: "회의록 준비"
+        case .startMeeting: "회의록 시작"
+        case .pauseRecording: "녹음 일시정지"
+        case .resumeRecording: "녹음 재개"
+        case .stopRecording: "녹음 종료"
+        case .cancelProcessing: "회의록 생성 취소"
+        case .review: "회의록 검토"
+        case .open: "게시된 회의록 열기"
+        case .retry: "다시 시도"
+        case .dismiss: "닫기"
+        }
+    }
+}
+
+/// 한 상태를 셸프의 제목·보조 문구·진행 정보·동작으로 변환한 표현 모델.
+///
+/// 이 타입은 UI 프레임워크에 의존하지 않아 상태별 표시 규칙을 단위 테스트할 수
+/// 있고, 화면은 이 모델을 그리기만 한다.
+public struct CruxPresentationModel: Equatable, Sendable {
+    public let stateKind: String
+    public let title: String?
+    public let detailText: String?
+    public let trailingText: String?
+    public let symbolName: String?
+    public let showsRecordingIndicator: Bool
+    public let elapsed: TimeInterval?
+    public let progressFraction: Double?
+    public let primaryAction: CruxShelfAction?
+    public let secondaryActions: [CruxShelfAction]
+    public let accessibilityLabel: String
+
+    public init(state: CruxState, detailMessage: String? = nil) {
+        stateKind = state.kindId
+        trailingText = state.trailingText
+        symbolName = state.symbolName
+        showsRecordingIndicator = state.showsRecordingIndicator
+
+        switch state {
+        case .hidden:
+            title = nil
+            detailText = nil
+            elapsed = nil
+            progressFraction = nil
+            primaryAction = nil
+            secondaryActions = []
+
+        case let .imminent(meetingTitle, minutes):
+            title = meetingTitle
+            detailText = "\(minutes)분 뒤 시작합니다."
+            elapsed = nil
+            progressFraction = nil
+            primaryAction = .prepareMeeting
+            secondaryActions = [.dismiss]
+
+        case let .detected(meetingTitle, message):
+            title = meetingTitle ?? "회의 감지"
+            detailText = message
+            elapsed = nil
+            progressFraction = nil
+            primaryAction = .startMeeting
+            secondaryActions = [.dismiss]
+
+        case let .recording(seconds, paused):
+            title = paused ? "녹음 일시정지" : "녹음 중"
+            detailText = "마이크와 시스템 오디오는 이 기기에만 저장됩니다."
+            elapsed = max(0, seconds)
+            progressFraction = nil
+            primaryAction = paused ? .resumeRecording : .stopRecording
+            secondaryActions = paused ? [.resumeRecording, .stopRecording] : [.pauseRecording, .stopRecording]
+
+        case let .generating(fraction, message):
+            title = "회의록 작성 중"
+            detailText = detailMessage ?? message
+            elapsed = nil
+            progressFraction = min(1, max(0, fraction))
+            primaryAction = nil
+            secondaryActions = [.cancelProcessing]
+
+        case let .previewReady(_, count):
+            title = "회의록 준비 완료"
+            detailText = count > 0
+                ? "액션 아이템 \(count)개를 검토할 수 있습니다."
+                : "회의록을 검토할 수 있습니다."
+            elapsed = nil
+            progressFraction = nil
+            primaryAction = .review
+            secondaryActions = [.dismiss]
+
+        case let .published(pageTitle, issueCount):
+            title = pageTitle ?? "게시 완료"
+            detailText = issueCount > 0
+                ? "Jira 이슈 \(issueCount)개 생성"
+                : "게시를 마쳤습니다."
+            elapsed = nil
+            progressFraction = nil
+            primaryAction = .open
+            secondaryActions = [.dismiss]
+
+        case let .failed(message):
+            title = "처리 실패"
+            detailText = message
+            elapsed = nil
+            progressFraction = nil
+            primaryAction = .retry
+            secondaryActions = [.dismiss]
+        }
+
+        accessibilityLabel = Self.makeAccessibilityLabel(
+            state: state,
+            title: title,
+            elapsed: elapsed,
+            progressFraction: progressFraction,
+            primaryAction: primaryAction,
+            secondaryActions: secondaryActions
+        )
+    }
+
+    private static func makeAccessibilityLabel(
+        state: CruxState,
+        title: String?,
+        elapsed: TimeInterval?,
+        progressFraction: Double?,
+        primaryAction: CruxShelfAction?,
+        secondaryActions: [CruxShelfAction]
+    ) -> String {
+        guard state.isVisible else { return "Crux 숨김" }
+
+        var parts = [title ?? state.statusText]
+        if let elapsed {
+            parts.append("경과 시간 \(CruxState.clock(elapsed))")
+        }
+        if let progressFraction {
+            parts.append("진행률 \(Int((progressFraction * 100).rounded()))%")
+        }
+        let actions = ([primaryAction].compactMap { $0 } + secondaryActions)
+            .map(\.accessibilityLabel)
+        if !actions.isEmpty {
+            parts.append("가능한 동작: \(actions.joined(separator: ", "))")
+        }
+        return parts.joined(separator: ". ")
     }
 }
 

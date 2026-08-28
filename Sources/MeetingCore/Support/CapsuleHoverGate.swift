@@ -5,10 +5,19 @@ import Foundation
 /// 창을 다시 그리거나 크기를 바꾸면 히트 영역이 잠깐 어긋나 hover-off가 온다.
 /// 그 신호를 바로 접기에 쓰지 않고, 포인터가 창 밖에 있을 때만 접는다.
 public enum CapsuleHoverGate {
+    /// 첫 렌더처럼 이전 상태가 없을 때는 개발용 초기 미리보기 모드를 유지한다.
+    /// 이전 상태가 있고 단계가 바뀐 경우에만 펼친 셸프를 접는다.
+    public static func shouldResetExpansionMode(previousKindId: String?, nextKindId: String) -> Bool {
+        guard let previousKindId else { return false }
+        return previousKindId != nextKindId
+    }
+
     /// 실제 이탈로 보고 접기 전에 기다리는 시간.
-    public static let collapseDelay: TimeInterval = 0.2
+    public static let collapseDelay: TimeInterval = 0.28
     /// 레이아웃이 바뀐 직후 hover-off를 무시하는 시간.
-    public static let ignoreLeaveAfterLayoutChange: TimeInterval = 0.25
+    ///
+    /// 창이 커지는 애니메이션보다 짧으면, 확장 중에 온 leave로 바로 접혀 깜빡인다.
+    public static let ignoreLeaveAfterLayoutChange: TimeInterval = 0.45
 
     /// hover-off를 즉시 접기로 쓰면 안 되는 경우.
     public static func shouldDeferHoverOff(
