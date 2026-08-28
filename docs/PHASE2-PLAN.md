@@ -7,7 +7,7 @@
 | 항목 | 선택 | 이유 |
 | --- | --- | --- |
 | 캘린더 소스 | **EventKit** (macOS 캘린더에 구독된 Google 계정) | 네트워크·OAuth·GCP 프로젝트가 필요 없어 온디바이스 원칙을 지킨다. `CalendarProvider` 프로토콜을 두어 Google Calendar API 구현을 나중에 추가할 수 있다 |
-| Atlassian 인증 | **API 토큰(Basic)** + Keychain | 개인·팀 단위 사용에 가장 단순하다. 토큰은 stdin으로만 받고 로그·인자에 남기지 않는다 |
+| Atlassian 인증 | **API 토큰(Basic)** + Keychain | 개인·팀 단위 사용에 가장 단순하다. 앱 Settings 또는 CLI stdin으로만 받고 로그·인자에 남기지 않는다 |
 | 게시 검증 | 샌드박스에 실제 게시 | 페이로드 단위 테스트만으로는 API 계약(spaceId·ADF·remote link)을 확인할 수 없다 |
 
 ## 1. Google Calendar 연동
@@ -73,7 +73,7 @@
 - 수정 가능: 회의록 문장, 결정사항, 액션 아이템, 담당자, 기한, Jira Project·이슈 유형·우선순위,
   Confluence Space, 생성 여부
 - Preview와 게시가 같은 `PublishBundle`을 쓴다. 화면에서 고친 값이 그대로 전송된다.
-- 게시 버튼은 (1) 사용자 승인 체크, (2) 차단 수준 품질 문제 없음일 때만 활성화된다.
+- 게시 버튼은 (1) 사용자 승인 체크, (2) 차단 수준 품질 문제 없음, (3) Settings에 Atlassian 계정이 연결되어 있을 때만 활성화된다. 계정이 없으면 설정 화면으로 안내한다.
 - 근거 타임스탬프·원문은 "근거 확인" 탭에서만 보인다.
 
 ## 5·6. 한국어 윤문 Skill과 파이프라인
@@ -121,7 +121,7 @@ $ swift build && swift test
 | 검열 게이트 | 정상 통과, 인용·타임스탬프·UUID·내부 키 차단 |
 | 품질 검증 | 차단·경고 구분 |
 | 게시 게이트 | 승인 없으면 거부, 근거 섞이면 거부, dry run 내용 |
-| 인증 | 토큰 미노출, Basic 헤더, 환경 변수 |
+| 인증 | 토큰 미노출, Basic 헤더, 환경 변수, 저장·삭제·미설정 |
 | 오디오 합성 | 두 트랙 믹싱(실제 AVFoundation), 단일 트랙 복사, 입력 없음 오류 |
 | 동시 처리 차단 | 처리 중 다른 회의 요청 거부, 끝난 뒤 재개, 모델 동시 상주 없음 |
 
@@ -161,7 +161,7 @@ $ swift build && swift test
 ```sh
 M=.xcbuild/Build/Products/Debug/meetingctl
 
-# 1) 토큰 등록 — 토큰은 stdin으로만 입력된다 (인자·로그에 남지 않는다)
+# 1) 토큰 등록 — 앱 Settings → Atlassian, 또는 CLI stdin (인자·로그에 남지 않는다)
 $M auth --site your-team.atlassian.net --email you@example.com
 #   → 프롬프트에 API 토큰 붙여넣고 Enter
 

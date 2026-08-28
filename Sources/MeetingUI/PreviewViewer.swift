@@ -18,6 +18,8 @@ public final class PreviewViewerModel {
     public private(set) var publishedURLs: [String] = []
     /// 사용자가 게시를 승인했는지. 승인 없이는 아무것도 전송하지 않는다.
     public var approved = false
+    /// Settings에서 Atlassian 계정을 연결했는지. 없으면 게시 버튼을 끈다.
+    public var hasAtlassianCredentials: Bool
 
     /// 근거 확인 탭에서 녹음을 들을 수 있게 한다. 없으면 재생 UI를 숨긴다.
     public let playback: AudioPlaybackController?
@@ -30,6 +32,7 @@ public final class PreviewViewerModel {
         evidence: EvidenceBundle,
         findings: [MeetingQualityChecker.Finding],
         playback: AudioPlaybackController? = nil,
+        hasAtlassianCredentials: Bool = false,
         publishAction: @escaping @Sendable (PublishBundle, EvidenceBundle) async throws -> [String],
         revalidate: @escaping @MainActor (PublishBundle) -> [MeetingQualityChecker.Finding] = { _ in [] }
     ) {
@@ -37,12 +40,16 @@ public final class PreviewViewerModel {
         self.evidence = evidence
         self.findings = findings
         self.playback = playback
+        self.hasAtlassianCredentials = hasAtlassianCredentials
         self.publishAction = publishAction
         self.revalidate = revalidate
     }
 
     public var canPublish: Bool {
-        approved && !isPublishing && !findings.contains { $0.severity == .blocking }
+        approved
+            && !isPublishing
+            && hasAtlassianCredentials
+            && !findings.contains { $0.severity == .blocking }
     }
 
     public func refreshFindings() {
@@ -54,7 +61,11 @@ public final class PreviewViewerModel {
 
     public func publish() {
         guard canPublish else {
-            statusMessage = approved ? "게시를 막는 문제가 남아 있습니다." : "게시 전에 확인 체크가 필요합니다."
+            if !hasAtlassianCredentials {
+                statusMessage = "설정에서 Atlassian 계정을 연결해 주세요."
+            } else {
+                statusMessage = approved ? "게시를 막는 문제가 남아 있습니다." : "게시 전에 확인 체크가 필요합니다."
+            }
             return
         }
         isPublishing = true
@@ -383,6 +394,16 @@ public struct PreviewViewerView: View {
                         )
                         .font(.caption)
                         .foregroundStyle(finding.severity == .blocking ? .red : .orange)
+                    }
+                }
+            }
+            if !model.hasAtlassianCredentials {
+                HStack {
+                    Text("설정에서 Atlassian 계정을 연결해 주세요.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    SettingsLink {
+                        Text("설정 열기")
                     }
                 }
             }

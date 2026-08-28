@@ -9,7 +9,7 @@ import SwiftUI
 /// - 어느 항목에도 속하지 않는 안내는 그룹 **아래(footer)** 에 둔다.
 /// - 사이드바는 고정 폭이며 접기 버튼이 없다.
 ///
-/// 첫 버전에는 Atlassian(게시) 설정을 두지 않는다. 사고 모드 같은 AI 내부 동작 설정도 없다(§11).
+/// Atlassian 계정은 Keychain에 저장한다. 사고 모드 같은 AI 내부 동작 설정은 두지 않는다(§11).
 public struct SettingsView: View {
     let databaseURL: URL
     let modelDirectory: URL
@@ -18,6 +18,7 @@ public struct SettingsView: View {
     @Bindable var installs: ModelInstallCenter
 
     @State private var selection: Pane = .general
+    @State private var atlassian: AtlassianSettingsModel
 
     public init(
         databaseURL: URL,
@@ -31,6 +32,7 @@ public struct SettingsView: View {
         self.coordinator = coordinator
         self.storage = storage
         self.installs = installs
+        _atlassian = State(initialValue: AtlassianSettingsModel(store: coordinator.credentialStore))
     }
 
     enum Pane: String, CaseIterable, Identifiable {
@@ -38,6 +40,7 @@ public struct SettingsView: View {
         case detection
         case permissions
         case audio
+        case atlassian
         case privacy
 
         var id: String {
@@ -50,6 +53,7 @@ public struct SettingsView: View {
             case .detection: "회의 감지"
             case .permissions: "권한"
             case .audio: "오디오 보관"
+            case .atlassian: "Atlassian"
             case .privacy: "개인정보 및 저장 위치"
             }
         }
@@ -60,6 +64,7 @@ public struct SettingsView: View {
             case .detection: "calendar"
             case .permissions: "lock.fill"
             case .audio: "waveform"
+            case .atlassian: "link"
             case .privacy: "hand.raised.fill"
             }
         }
@@ -70,6 +75,7 @@ public struct SettingsView: View {
             case .detection: .red
             case .permissions: .green
             case .audio: .purple
+            case .atlassian: .orange
             case .privacy: .blue
             }
         }
@@ -113,6 +119,7 @@ public struct SettingsView: View {
         case .detection: DetectionPane()
         case .permissions: PermissionsPane(coordinator: coordinator)
         case .audio: AudioPane(storage: storage)
+        case .atlassian: AtlassianPane(model: atlassian, coordinator: coordinator)
         case .privacy: PrivacyPane(databaseURL: databaseURL, modelDirectory: modelDirectory)
         }
     }
@@ -318,6 +325,77 @@ private struct AudioPane: View {
     }
 }
 
+// MARK: - Atlassian
+
+private struct AtlassianPane: View {
+    @Bindable var model: AtlassianSettingsModel
+    @Bindable var coordinator: MeetingSessionCoordinator
+
+    var body: some View {
+        Section {
+            TextField(text: $model.site) {
+                Text("사이트")
+                Text("예: your-team.atlassian.net")
+            }
+            TextField(text: $model.email) {
+                Text("이메일")
+                Text("Atlassian 계정 이메일입니다.")
+            }
+            SecureField(text: $model.apiToken) {
+                Text("API 토큰")
+                Text("id.atlassian.com에서 발급한 토큰입니다. Keychain에만 저장합니다.")
+            }
+            LabeledContent {
+                Text(model.isConnected ? "연결됨" : "연결되지 않음")
+                    .foregroundStyle(model.isConnected ? .secondary : .primary)
+            } label: {
+                Text("상태")
+                if let summary = model.connectedSummary {
+                    Text(summary)
+                } else {
+                    Text("Confluence 업로드와 Jira 티켓 생성에 사용합니다.")
+                }
+            }
+            LabeledContent {
+                HStack(spacing: 10) {
+                    Button("저장") {
+                        model.save()
+                        coordinator.refreshAtlassianCredentials()
+                    }
+                    .disabled(!model.canSave)
+                    if model.isConnected {
+                        Button("연결 해제") {
+                            model.disconnect()
+                            coordinator.refreshAtlassianCredentials()
+                        }
+                        Button("연결 확인") {
+                            Task { await model.verify() }
+                        }
+                        .disabled(model.isVerifying)
+                    }
+                }
+            } label: {
+                Text("연결")
+                if let message = model.statusMessage {
+                    Text(message)
+                } else if model.isConnected {
+                    Text("토큰을 바꾸려면 다시 입력한 뒤 저장하세요.")
+                }
+            }
+            if let error = model.errorMessage {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            }
+        } header: {
+            Text("계정")
+        } footer: {
+            Text("API 토큰은 Keychain에만 저장하며 로그에 남기지 않습니다. 전체 녹취록과 음성 파일은 게시되지 않습니다.")
+        }
+        .onAppear { model.reload() }
+    }
+}
+
 // MARK: - 개인정보 및 저장 위치
 
 private struct PrivacyPane: View {
@@ -328,7 +406,7 @@ private struct PrivacyPane: View {
         Section("개인정보") {
             Label("회의 오디오·전사문·회의록은 이 기기에만 저장됩니다", systemImage: "lock.laptopcomputer")
             Label("전체 녹취록과 음성 파일은 외부로 전송하지 않습니다", systemImage: "network.slash")
-            Label("네트워크는 모델 다운로드에만 사용합니다", systemImage: "arrow.down.circle")
+            Label("네트워크는 모델 다운로드와 승인한 Atlassian 게시에만 사용합니다", systemImage: "arrow.down.circle")
         }
         Section("저장 위치") {
             PathRow(title: "데이터베이스", url: databaseURL)

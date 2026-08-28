@@ -76,6 +76,7 @@ Confluence 회의록과 Jira 이슈 본문에는 근거 타임스탬프를 넣�
 ## 4. 인증 정보 취급
 
 - Atlassian API 토큰은 **Keychain**에 저장한다(`KeychainCredentialStore`).
+- 앱 Settings의 Atlassian 항목에서 사이트·이메일·API 토큰을 저장하고, 연결 해제는 Keychain에서 삭제한다.
 - CLI는 토큰을 명령 인자로 받지 않는다. `meetingctl auth --site ... --email ...`이 **stdin**으로만 받는다.
   (`ps`나 셸 히스토리에 토큰이 남지 않는다.)
 - CI·검증용으로 `ATLASSIAN_SITE`/`ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN` 환경 변수도 읽는다.
