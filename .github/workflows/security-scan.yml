@@ -5,11 +5,11 @@ name: Security Scan (CodeQL)
 #
 # 속도 전략:
 #   병목은 우리 코드(약 120개 Swift 파일)가 아니라 mlx-swift(C++ Metal 커널)·
-#   swift-syntax 같은 의존성 풀빌드다. CodeQL은 우리 소스의 컴파일만 추적하면 되므로
-#     1) CodeQL init 전에(추적 밖에서) `.build`를 캐시 복원하고 의존성을 워밍 빌드한다.
-#     2) CodeQL init 후 Sources/ 아래 .swift를 touch해 우리 모듈만 강제 재컴파일한다.
-#        (touch가 없으면 캐시 완전 히트 시 컴파일이 0건 → "No source code was seen" 실패)
-#   두 빌드는 같은 `swift build` 인자를 써야 증분 빌드가 유지된다.
+#   swift-syntax 같은 의존성 풀빌드다. CodeQL 트레이서는 컴파일러를 copy-root로 복사해
+#   실행하므로 SwiftPM은 추적 밖에서 만든 산출물을 재사용하지 않는다(실측: 전부 재빌드).
+#   따라서 빌드는 추적 아래에서 한 번만 하고, 그 .build를 캐시해 다음 실행이 증분 빌드가
+#   되게 한다. 캐시 히트 시 우리 모듈만 다시 컴파일되도록 Sources/ 아래 .swift를 touch한다.
+#   (touch가 없으면 컴파일이 0건 → "No source code was seen" 실패)
 #   캐시 TTL이 7일이라 main 푸시가 없는 주엔 cron이 cold run이 될 수 있다.
 #
 # 비공개 저장소는 Advanced Security 라이선스 없이는 SARIF 업로드(Security 탭)가
@@ -56,11 +56,17 @@ jobs:
             swiftpm-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.swift.outputs.version }}-${{ hashFiles('Package.resolved') }}-
             swiftpm-build-${{ runner.os }}-${{ runner.arch }}-${{ steps.swift.outputs.version }}-
 
-      # CodeQL 추적 밖에서 의존성을 빌드한다. 캐시 히트면 거의 즉시 끝난다.
-      - name: Warm build (dependencies, untraced)
-        run: swift build
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: swift
 
-      # 뒤 단계가 실패하더라도 의존성 빌드 결과는 보존한다.
+      # 캐시 히트 시에도 우리 모듈은 반드시 다시 컴파일되어 추적기에 노출되게 한다.
+      - name: Build (traced)
+        run: |
+          find Sources -name '*.swift' -exec touch {} +
+          swift build
+
+      # 뒤 단계가 실패하더라도 빌드 결과는 보존한다(다음 실행은 증분 빌드).
       - name: Save SwiftPM build cache
         if: always()
         uses: actions/cache/save@v4
@@ -68,24 +74,15 @@ jobs:
           path: .build
           key: ${{ steps.cache.outputs.cache-primary-key }}
 
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: swift
-
-      # 우리 모듈만 다시 컴파일되도록 강제해 CodeQL 추적기에 노출한다.
-      - name: Build (traced, project sources only)
-        run: |
-          find Sources -name '*.swift' -exec touch {} +
-          swift build
-
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:swift"
           upload: false # 비공개 저장소는 SARIF 업로드 불가 → 아티팩트로 대체
+          output: ${{ runner.temp }}/codeql-results
 
       - name: Save results as artifact
         uses: actions/upload-artifact@v4
         with:
           name: codeql-swift-sarif
-          path: ../results/*.sarif
+          path: ${{ runner.temp }}/codeql-results/*.sarif
           if-no-files-found: error
