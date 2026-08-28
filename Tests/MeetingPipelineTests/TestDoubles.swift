@@ -35,6 +35,8 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
     private let failure: (any Error)?
     private let delay: Duration?
     private(set) var transcribeCount = 0
+    private(set) var transcribedURLs: [URL] = []
+    private(set) var transcribedDurations: [TimeInterval] = []
 
     init(
         monitor: ModelResidencyMonitor? = nil,
@@ -49,12 +51,16 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
     }
 
     func transcribe(
-        audioURL _: URL,
+        audioURL: URL,
         meetingId: UUID,
         language _: String,
         progress: (@Sendable (TranscriptionProgress) -> Void)?
     ) async throws -> [TranscriptSegment] {
         transcribeCount += 1
+        transcribedURLs.append(audioURL)
+        if let file = try? AVAudioFile(forReading: audioURL), file.processingFormat.sampleRate > 0 {
+            transcribedDurations.append(Double(file.length) / file.processingFormat.sampleRate)
+        }
         if let delay {
             try await Task.sleep(for: delay)
         }
@@ -78,6 +84,14 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
 
     func callCount() -> Int {
         transcribeCount
+    }
+
+    func recordedURLs() -> [URL] {
+        transcribedURLs
+    }
+
+    func recordedDurations() -> [TimeInterval] {
+        transcribedDurations
     }
 }
 

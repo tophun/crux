@@ -27,22 +27,22 @@ public actor MeetingProcessingPipeline {
         public var skills: MeetingSkillTrace
     }
 
-    private let repository: MeetingRepository
+    let repository: MeetingRepository
     private let jobs: ProcessingJobRepository
-    private let coordinator: ModelLifecycleCoordinator
-    private let inferenceConfiguration: LocalInferencePipeline.Configuration
-    private let language: String
-    private let logSink: (@Sendable (String) -> Void)?
+    let coordinator: ModelLifecycleCoordinator
+    let inferenceConfiguration: LocalInferencePipeline.Configuration
+    let language: String
+    let logSink: (@Sendable (String) -> Void)?
     private let editor: KoreanMeetingEditor
-    private let evidenceStore: EvidenceFileStore
+    let evidenceStore: EvidenceFileStore
     /// 회의록 문서 구성 프롬프트. 설정에서 바꾼 값이 다음 처리에 바로 반영되도록 클로저로 받는다.
     private let documentPrompt: @Sendable () -> String
     /// 오디오 보관 정책을 그때그때 읽어 온다. 설정 화면에서 바꾼 값이 바로 반영되도록 클로저로 받는다.
     private let retention: @Sendable () -> AudioRetentionPolicy
     /// 마지막으로 보고한 진행률. 단계가 겹쳐도 UI 진행률이 뒤로 가지 않게 한다.
-    private var lastReportedFraction: Double = 0
+    var lastReportedFraction: Double = 0
     /// 처리 중 여부. 두 회의가 동시에 처리되면 모델 수명 관리가 깨지므로 한 번에 하나만 돌린다(§12).
-    private var isProcessing = false
+    var isProcessing = false
 
     public init(
         repository: MeetingRepository,
@@ -69,7 +69,7 @@ public actor MeetingProcessingPipeline {
     }
 
     /// 진행률을 단조 증가하도록 보정해서 내보낸다.
-    private func emit(
+    func emit(
         _ onUpdate: (@Sendable (Update) -> Void)?,
         stage: ProcessingStage,
         fraction: Double,
@@ -406,12 +406,15 @@ public enum PipelineError: Error, LocalizedError, Sendable {
     case audioTrackMissing(UUID)
     /// 다른 회의를 처리하는 중이다. 모델을 동시에 두 개 올리지 않기 위해 거부한다.
     case busy
+    /// 다시 전사할 시작·끝 시각이 비어 있거나 뒤바뀌었다.
+    case invalidTimeRange
 
     public var errorDescription: String? {
         switch self {
         case let .meetingNotFound(id): "회의를 찾을 수 없습니다: \(id)"
         case let .audioTrackMissing(id): "회의에 연결된 오디오 파일이 없습니다: \(id)"
         case .busy: "다른 회의를 처리하는 중입니다. 끝난 뒤에 다시 시도하세요."
+        case .invalidTimeRange: "다시 전사할 구간이 올바르지 않습니다."
         }
     }
 }
