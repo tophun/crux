@@ -18,7 +18,7 @@ struct MeetingCTL: AsyncParsableCommand {
         subcommands: [
             Run.self, Transcribe.self, Note.self, List.self, Show.self, Retry.self,
             Auth.self, CalendarCommand.self, Record.self, Preview.self, Publish.self,
-            Delete.self, Retention.self, ModelsCommand.self
+            Delete.self, Retention.self, ModelsCommand.self, RetranscribeCommand.self
         ]
     )
 }

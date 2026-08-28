@@ -409,10 +409,24 @@ public final class AppState {
             errorMessage = error.localizedDescription
         }
     }
+}
+
+public extension AppState {
+    enum ExportFormat: String, CaseIterable, Sendable {
+        case markdown
+        case json
+
+        public var displayName: String {
+            switch self {
+            case .markdown: "Markdown"
+            case .json: "JSON"
+            }
+        }
+    }
 
     /// 회의록 내보내기. 로컬 파일로만 저장한다.
     @discardableResult
-    public func export(meetingId: UUID, format: ExportFormat, to directory: URL) -> URL? {
+    func export(meetingId: UUID, format: ExportFormat, to directory: URL) -> URL? {
         do {
             guard let meeting = try repository.meeting(id: meetingId),
                   let note = try repository.note(meetingId: meetingId)
@@ -441,14 +455,61 @@ public final class AppState {
         }
     }
 
-    public enum ExportFormat: String, CaseIterable, Sendable {
-        case markdown
-        case json
+    /// 전사문에서 고른 구간만 다시 인식한다. 기본은 회의록을 다시 만들지 않는다.
+    func retranscribeRange(
+        meetingId: UUID,
+        startTime: TimeInterval,
+        endTime: TimeInterval,
+        reextractNotes: Bool = false
+    ) {
+        guard !isProcessing else {
+            statusMessage = "이미 처리 중입니다."
+            return
+        }
+        isProcessing = true
+        errorMessage = nil
+        statusMessage = reextractNotes ? "선택 구간을 다시 전사하고 항목을 뽑습니다." : "선택 구간을 다시 전사합니다."
+        logLines = []
 
-        public var displayName: String {
-            switch self {
-            case .markdown: "Markdown"
-            case .json: "JSON"
+        processingTask = Task { [pipeline] in
+            do {
+                let result = try await pipeline.retranscribeRange(
+                    meetingId: meetingId,
+                    startTime: startTime,
+                    endTime: endTime,
+                    reextractNotes: reextractNotes,
+                    onUpdate: { [weak self] update in
+                        Task { @MainActor [weak self] in
+                            self?.progress = update
+                            self?.statusMessage = update.message
+                        }
+                    }
+                )
+                await MainActor.run {
+                    self.isProcessing = false
+                    self.progress = nil
+                    self.statusMessage = reextractNotes
+                        ? "선택 구간 전사와 회의록 항목을 갱신했습니다."
+                        : "선택 구간 전사를 갱신했습니다."
+                    self.logLines = result.metrics.map(\.description) + result.problems.prefix(20).map { "· \($0)" }
+                    self.reload()
+                    self.loadDetail()
+                }
+            } catch is CancellationError {
+                await MainActor.run { self.finishCancelled(meetingId: meetingId) }
+            } catch {
+                await MainActor.run {
+                    self.isProcessing = false
+                    self.progress = nil
+                    if Task.isCancelled {
+                        self.finishCancelled(meetingId: meetingId)
+                        return
+                    }
+                    self.errorMessage = error.localizedDescription
+                    self.statusMessage = "선택 구간 전사에 실패했습니다."
+                    self.reload()
+                    self.loadDetail()
+                }
             }
         }
     }

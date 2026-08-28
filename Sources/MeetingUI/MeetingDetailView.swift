@@ -313,63 +313,6 @@ struct EvidenceView: View {
     }
 }
 
-struct TranscriptTab: View {
-    @Bindable var state: AppState
-    let detail: MeetingDetail
-    @State private var showExcluded = false
-    @State private var filter = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                TextField("전사문 검색", text: $filter).textFieldStyle(.roundedBorder)
-                Toggle("회의록에서 제외된 구간 보기", isOn: $showExcluded)
-            }
-            .padding(.horizontal).padding(.top, 8)
-
-            let labels = detail.relevanceBySegment
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(detail.segments) { segment in
-                        let label = labels[segment.id] ?? .uncertain
-                        if showExcluded || label != .exclude,
-                           filter.isEmpty || segment.text.localizedCaseInsensitiveContains(filter) {
-                            let isPlayingSegment = state.playback.currentTime >= segment.startTime
-                                && state.playback.currentTime < segment.endTime
-                            HStack(alignment: .top, spacing: 8) {
-                                Button {
-                                    state.play(from: segment.startTime)
-                                } label: {
-                                    Text(TimeFormat.stamp(segment.startTime))
-                                        .font(.caption.monospacedDigit())
-                                        .frame(width: 52, alignment: .leading)
-                                }
-                                .buttonStyle(.link)
-                                .help("이 구간부터 듣기")
-                                Text(segment.text)
-                                    .foregroundStyle(label == .exclude ? .secondary : .primary)
-                                    .textSelection(.enabled)
-                                Spacer()
-                                Text(label.rawValue)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 2)
-                            .padding(.horizontal, 4)
-                            .background(
-                                isPlayingSegment ? Color.accentColor.opacity(0.12) : Color.clear,
-                                in: RoundedRectangle(cornerRadius: 4)
-                            )
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-            }
-        }
-    }
-}
-
 /// 회의록을 마크다운 문서 형태로 미리 본다.
 ///
 /// 내보내기와 **같은 문자열**을 그린다. 화면에서 본 것과 내보낸 파일이 달라지면 안 되기 때문이다.
