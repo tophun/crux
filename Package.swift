@@ -103,8 +103,8 @@ let package = Package(
                 "MeetingCore", "MeetingPipeline", "MeetingPersistence",
                 "MeetingPublishing", "MeetingCalendar", "MeetingAudio",
             ],
-            linkerSettings: [.linkedFramework("UserNotifications")],
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            swiftSettings: [.swiftLanguageMode(.v5)],
+            linkerSettings: [.linkedFramework("UserNotifications")]
         ),
 
         // MARK: - 실행 타깃
