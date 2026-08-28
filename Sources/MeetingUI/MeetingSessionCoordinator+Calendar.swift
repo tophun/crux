@@ -26,11 +26,10 @@ public extension MeetingSessionCoordinator {
         defer { calendarConnectionInProgress = false }
 
         do {
-            let granted: Bool
-            if let preferred = calendarProvider as? PreferredCalendarProvider {
-                granted = try await preferred.requestGoogleAccess()
+            let granted: Bool = if let preferred = calendarProvider as? PreferredCalendarProvider {
+                try await preferred.requestGoogleAccess()
             } else {
-                granted = try await calendarProvider.requestAccess()
+                try await calendarProvider.requestAccess()
             }
             let permissionResult = granted ? "허용" : "거부"
             log?("Google OAuth callback 처리 완료 · 권한 결과 \(permissionResult)")

@@ -201,7 +201,9 @@ private final class MemoryTokenStore: GoogleCalendarTokenStore, @unchecked Senda
         self.tokens = tokens
     }
 
-    func load() throws -> GoogleOAuthTokens? { tokens }
+    func load() throws -> GoogleOAuthTokens? {
+        tokens
+    }
 
     func save(_ tokens: GoogleOAuthTokens) throws {
         self.tokens = tokens
@@ -257,8 +259,13 @@ private final class URLProtocolRecorder: URLProtocol, @unchecked Sendable {
         return URLSession(configuration: configuration)
     }
 
-    override class func canInit(with _: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override class func canInit(with _: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
 
     override func startLoading() {
         do {
@@ -291,7 +298,9 @@ private final class URLProtocolRecorder: URLProtocol, @unchecked Sendable {
         var buffer = [UInt8](repeating: 0, count: 4096)
         while stream.hasBytesAvailable {
             let count = stream.read(&buffer, maxLength: buffer.count)
-            if count <= 0 { break }
+            if count <= 0 {
+                break
+            }
             data.append(buffer, count: count)
         }
         return data

@@ -103,7 +103,9 @@ public struct GoogleCalendarKeychainTokenStore: GoogleCalendarTokenStore {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return nil }
+        if status == errSecItemNotFound {
+            return nil
+        }
         guard status == errSecSuccess, let data = item as? Data else {
             throw GoogleCalendarError.keychain(status)
         }
@@ -223,7 +225,9 @@ public actor GoogleCalendarOAuthClient {
     static let callbackTimeout: TimeInterval = 300
 
     public func requestAccess() async throws -> Bool {
-        if authorizationStatus == .authorized { return true }
+        if authorizationStatus == .authorized {
+            return true
+        }
         guard !configuration.clientID.isEmpty else { throw GoogleCalendarError.missingClientID }
 
         let server = LoopbackOAuthCallbackServer()

@@ -410,7 +410,7 @@ private extension GoogleCalendarProvider {
         fractionalISO8601.string(from: date)
     }
 
-    // ISO8601DateFormatter는 스레드 안전하다. 이벤트마다 새로 만들지 않고 재사용한다.
+    /// ISO8601DateFormatter는 스레드 안전하다. 이벤트마다 새로 만들지 않고 재사용한다.
     private nonisolated(unsafe) static let fractionalISO8601: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -437,9 +437,15 @@ private extension GoogleCalendarProvider {
                 timeZoneIdentifier: draft.timeZoneIdentifier
             )
         ]
-        if let description = draft.description { body["description"] = description }
-        if let location = draft.location { body["location"] = location }
-        if !draft.attendees.isEmpty { body["attendees"] = attendeesBody(draft.attendees) }
+        if let description = draft.description {
+            body["description"] = description
+        }
+        if let location = draft.location {
+            body["location"] = location
+        }
+        if !draft.attendees.isEmpty {
+            body["attendees"] = attendeesBody(draft.attendees)
+        }
         return body
     }
 
@@ -515,15 +521,21 @@ private extension GoogleCalendarProvider {
             return ["date": dayFormatter(timeZoneIdentifier: timeZoneIdentifier).string(from: date)]
         }
         var body: [String: Any] = ["dateTime": rfc3339(date)]
-        if let timeZoneIdentifier { body["timeZone"] = timeZoneIdentifier }
+        if let timeZoneIdentifier {
+            body["timeZone"] = timeZoneIdentifier
+        }
         return body
     }
 
     static func attendeesBody(_ attendees: [CalendarAttendeeInput]) -> [[String: Any]] {
         attendees.map { attendee in
             var body: [String: Any] = ["email": attendee.email]
-            if let displayName = attendee.displayName { body["displayName"] = displayName }
-            if attendee.optional { body["optional"] = true }
+            if let displayName = attendee.displayName {
+                body["displayName"] = displayName
+            }
+            if attendee.optional {
+                body["optional"] = true
+            }
             return body
         }
     }
