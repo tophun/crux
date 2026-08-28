@@ -203,7 +203,7 @@ private struct DetectionPane: View {
                 MeetingDetectionSettings.includesSoloEvents = newValue
             }
         } footer: {
-            Text("종일 일정과 취소된 일정은 항상 제외합니다. 일정에 알림이 있으면 그 시각부터, 없으면 시작 5분 전부터 캡슐이 뜨고, 한 일정에 두 번 묻지 않습니다.")
+            Text("종일 일정, 취소된 일정, 참석을 거절한 일정은 항상 제외합니다. 일정에 알림이 있으면 그 시각부터, 없으면 시작 5분 전부터 캡슐이 뜨고, 한 일정에 두 번 묻지 않습니다.")
         }
     }
 }

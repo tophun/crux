@@ -16,6 +16,8 @@ import UniformTypeIdentifiers
 struct CruxApp: App {
     @State private var state: AppState
     @State private var coordinator: MeetingSessionCoordinator
+    @State private var upcoming: UpcomingCalendarStore
+    @State private var library: MainLibrary = .meetings
     /// 오디오 보관 설정과 사용량
     @State private var storage: AudioStorageModel
     @State private var installs: ModelInstallCenter
@@ -75,7 +77,14 @@ struct CruxApp: App {
         )
 
         let playback = AudioPlaybackController()
+        let calendarProvider = EventKitCalendarProvider()
         _storage = State(initialValue: AudioStorageModel(repository: repository))
+        _upcoming = State(
+            initialValue: UpcomingCalendarStore(
+                provider: calendarProvider,
+                repository: calendarRepository
+            )
+        )
 
         // 모델 설치 관리. 카탈로그의 모든 선택지를 미리 만들어 두고
         // 설정·온보딩·메뉴바가 같은 인스턴스를 바라보게 한다.
@@ -110,7 +119,7 @@ struct CruxApp: App {
         )
         _coordinator = State(
             initialValue: MeetingSessionCoordinator(
-                calendarProvider: EventKitCalendarProvider(),
+                calendarProvider: calendarProvider,
                 calendarRepository: calendarRepository,
                 capture: MeetingAudioCapture(log: log.sink(.audio)),
                 repository: repository,
@@ -133,68 +142,100 @@ struct CruxApp: App {
     var body: some Scene {
         Window(AppIdentity.productName, id: "main") {
             NavigationSplitView {
-                MeetingListView(state: state)
-                    .frame(minWidth: 280)
-                    .toolbar {
-                        // 기록: 녹음하기 또는 불러오기. 메뉴바의 "회의록 시작"과 같은 조건으로 잠근다.
+                VStack(spacing: 0) {
+                    Picker("목록", selection: $library) {
+                        ForEach(MainLibrary.allCases) { pane in
+                            Text(pane.title).tag(pane)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    switch library {
+                    case .meetings:
+                        MeetingListView(state: state)
+                    case .calendar:
+                        UpcomingEventListView(store: upcoming)
+                    }
+                }
+                .frame(minWidth: 280)
+                .toolbar {
+                    // 기록: 녹음하기 또는 불러오기. 메뉴바의 "회의록 시작"과 같은 조건으로 잠근다.
+                    ToolbarItem(placement: .automatic) {
+                        Menu {
+                            Menu("녹음하기", systemImage: "record.circle") {
+                                MeetingTypeButtons { type in
+                                    Task { await coordinator.startMeeting(meetingType: type) }
+                                }
+                            }
+                            .disabled(
+                                !canStartRecording
+                                    || coordinator.capsule.showsRecordingIndicator
+                                    || state.isProcessing
+                            )
+                            .help(
+                                canStartRecording
+                                    ? "녹음을 시작합니다. 유형을 고르면 회의록 섹션이 달라집니다"
+                                    : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
+                            )
+                            Menu("불러오기", systemImage: "square.and.arrow.down") {
+                                MeetingTypeButtons { type in
+                                    importAudio(meetingType: type)
+                                }
+                            }
+                            .disabled(state.isProcessing || !installs.readyForCapture)
+                            .help(
+                                installs.readyForCapture
+                                    ? "오디오 파일을 가져와 이 기기에서 처리합니다"
+                                    : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
+                            )
+                        } label: {
+                            Label("기록", systemImage: "square.and.pencil")
+                        }
+                    }
+                    if library == .calendar {
                         ToolbarItem(placement: .automatic) {
-                            Menu {
-                                Menu("녹음하기", systemImage: "record.circle") {
-                                    MeetingTypeButtons { type in
-                                        Task { await coordinator.startMeeting(meetingType: type) }
-                                    }
-                                }
-                                .disabled(
-                                    !canStartRecording
-                                        || coordinator.capsule.showsRecordingIndicator
-                                        || state.isProcessing
-                                )
-                                .help(
-                                    canStartRecording
-                                        ? "녹음을 시작합니다. 유형을 고르면 회의록 섹션이 달라집니다"
-                                        : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
-                                )
-                                Menu("불러오기", systemImage: "square.and.arrow.down") {
-                                    MeetingTypeButtons { type in
-                                        importAudio(meetingType: type)
-                                    }
-                                }
-                                .disabled(state.isProcessing || !installs.readyForCapture)
-                                .help(
-                                    installs.readyForCapture
-                                        ? "오디오 파일을 가져와 이 기기에서 처리합니다"
-                                        : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
-                                )
+                            Button {
+                                Task { await upcoming.reload() }
                             } label: {
-                                Label("기록", systemImage: "square.and.pencil")
+                                Label("일정 새로 고침", systemImage: "arrow.clockwise")
                             }
+                            .disabled(upcoming.isLoading)
+                            .help("다가오는 일정을 다시 읽습니다")
                         }
                     }
+                }
             } detail: {
-                MeetingDetailView(state: state)
-                    .frame(minWidth: 560, minHeight: 480)
-                    // 상세 열의 툴바. 유연한 공백(ToolbarSpacer)이 버튼 묶음을 오른쪽 끝으로 민다.
-                    // 검색은 .searchable이 별도 그룹으로 그 오른쪽에 놓인다.
-                    // 왼쪽: 미리보기 / 전사문 전환 (문서 아이콘 / 대사 아이콘)
-                    .toolbar {
-                        ToolbarItemGroup(placement: .navigation) {
-                            Picker("보기", selection: $state.detailTab) {
-                                Text("회의록").tag(DetailTab.preview)
-                                Text("전사문").tag(DetailTab.transcript)
+                switch library {
+                case .meetings:
+                    MeetingDetailView(state: state)
+                        .frame(minWidth: 560, minHeight: 480)
+                        // 상세 열의 툴바. 유연한 공백(ToolbarSpacer)이 버튼 묶음을 오른쪽 끝으로 민다.
+                        // 검색은 .searchable이 별도 그룹으로 그 오른쪽에 놓인다.
+                        // 왼쪽: 미리보기 / 전사문 전환 (문서 아이콘 / 대사 아이콘)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .navigation) {
+                                Picker("보기", selection: $state.detailTab) {
+                                    Text("회의록").tag(DetailTab.preview)
+                                    Text("전사문").tag(DetailTab.transcript)
+                                }
+                                .pickerStyle(.segmented)
+                                .labelsHidden()
                             }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
                         }
-                    }
-                    .modifier(TrailingToolbarButtons(state: state))
-                    .searchable(
-                        text: Binding(
-                            get: { state.searchText },
-                            set: { state.searchText = $0 }
-                        ),
-                        placement: .toolbar,
-                        prompt: "회의·전사문·액션아이템 검색"
-                    )
+                        .modifier(TrailingToolbarButtons(state: state))
+                        .searchable(
+                            text: Binding(
+                                get: { state.searchText },
+                                set: { state.searchText = $0 }
+                            ),
+                            placement: .toolbar,
+                            prompt: "회의·전사문·액션아이템 검색"
+                        )
+                case .calendar:
+                    UpcomingEventDetailView(store: upcoming)
+                        .frame(minWidth: 560, minHeight: 480)
+                }
             }
             // 제목 문구는 화면에 그리지 않는다. 창 제목은 남아 메뉴의 "열기"가 창을 찾는다.
             .navigationTitle(AppIdentity.productName)
@@ -209,6 +250,7 @@ struct CruxApp: App {
                     state.loadDetail()
                 }
                 await coordinator.refreshPermissions()
+                await upcoming.reload()
                 // 권한이 없으면 무엇이 필요한지 먼저 보여 준다. 없는 채로 두면 기능이 조용히 죽는다.
                 presentOnboardingIfNeeded()
                 coordinator.startMonitoring()
