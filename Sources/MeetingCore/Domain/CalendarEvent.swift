@@ -1,17 +1,48 @@
 import Foundation
 
+/// 초대에 대한 참석자 응답. 예전 JSON에는 없을 수 있어 선택 값이다.
+public enum AttendeeResponseStatus: String, Sendable, Codable, CaseIterable {
+    case unknown
+    case pending
+    case accepted
+    case declined
+    case tentative
+
+    public var displayName: String {
+        switch self {
+        case .unknown: "알 수 없음"
+        case .pending: "응답 없음"
+        case .accepted: "참석"
+        case .declined: "거절"
+        case .tentative: "미정"
+        }
+    }
+}
+
 /// 캘린더 참석자. 회의록 참석자 목록의 원천이며 임의로 추가하지 않는다.
 public struct EventAttendee: Hashable, Sendable, Codable {
     public var name: String?
     public var email: String?
     public var isOrganizer: Bool
     public var isCurrentUser: Bool
+    public var responseStatus: AttendeeResponseStatus?
 
-    public init(name: String? = nil, email: String? = nil, isOrganizer: Bool = false, isCurrentUser: Bool = false) {
+    public init(
+        name: String? = nil,
+        email: String? = nil,
+        isOrganizer: Bool = false,
+        isCurrentUser: Bool = false,
+        responseStatus: AttendeeResponseStatus? = nil
+    ) {
         self.name = name
         self.email = email
         self.isOrganizer = isOrganizer
         self.isCurrentUser = isCurrentUser
+        self.responseStatus = responseStatus
+    }
+
+    public var isDeclined: Bool {
+        responseStatus == .declined
     }
 
     /// 사람이 읽을 표시 이름. 이름이 없으면 이메일 로컬파트를 쓴다.
@@ -109,6 +140,11 @@ public struct CalendarEvent: Identifiable, Hashable, Sendable, Codable {
             let name = attendee.displayName
             return seen.insert(name).inserted ? name : nil
         }
+    }
+
+    /// 현재 사용자가 이 초대를 거절했는지. 참석자 목록에 내가 없으면 거절로 보지 않는다.
+    public var isDeclinedByCurrentUser: Bool {
+        attendees.contains { $0.isCurrentUser && $0.isDeclined }
     }
 }
 

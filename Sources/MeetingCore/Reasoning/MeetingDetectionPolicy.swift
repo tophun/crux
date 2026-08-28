@@ -17,6 +17,8 @@ public struct MeetingDetectionPolicy: Sendable {
         public var excludeCanceled: Bool
         /// 참석자가 이 수보다 적으면 제외 (혼자 있는 일정은 회의가 아니다)
         public var minimumAttendees: Int
+        /// 내가 거절한 일정 제외
+        public var excludeDeclined: Bool
 
         public init(
             leadTime: TimeInterval = 300,
@@ -24,7 +26,8 @@ public struct MeetingDetectionPolicy: Sendable {
             graceAfterStart: TimeInterval = 600,
             excludeAllDay: Bool = true,
             excludeCanceled: Bool = true,
-            minimumAttendees: Int = 2
+            minimumAttendees: Int = 2,
+            excludeDeclined: Bool = true
         ) {
             self.leadTime = leadTime
             self.maximumLeadTime = maximumLeadTime
@@ -32,6 +35,7 @@ public struct MeetingDetectionPolicy: Sendable {
             self.excludeAllDay = excludeAllDay
             self.excludeCanceled = excludeCanceled
             self.minimumAttendees = minimumAttendees
+            self.excludeDeclined = excludeDeclined
         }
     }
 
@@ -81,6 +85,7 @@ public struct MeetingDetectionPolicy: Sendable {
     public enum ExclusionReason: String, Sendable {
         case allDay
         case canceled
+        case declined
         case tooFewAttendees
         case zeroDuration
 
@@ -88,6 +93,7 @@ public struct MeetingDetectionPolicy: Sendable {
             switch self {
             case .allDay: "종일 일정"
             case .canceled: "취소된 일정"
+            case .declined: "참석 거절"
             case .tooFewAttendees: "참석자 부족"
             case .zeroDuration: "길이가 0"
             }
@@ -101,6 +107,9 @@ public struct MeetingDetectionPolicy: Sendable {
         }
         if configuration.excludeCanceled, event.status == .canceled {
             return .canceled
+        }
+        if configuration.excludeDeclined, event.isDeclinedByCurrentUser {
+            return .declined
         }
         if event.attendees.count < configuration.minimumAttendees {
             return .tooFewAttendees
