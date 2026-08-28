@@ -425,10 +425,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             detailMessage: coordinator.detailMessage,
             meetingTitle: isDemo ? "데모 회의" : coordinator.activeMeetingTitle,
             memos: memos,
+            noteBody: coordinator.sessionNote?.body ?? "",
             // 데모 모드의 생성 상태는 실제 파이프라인이 없으므로 단계 하나를 가정한다.
             processingStage: isDemo && state.kindId == "generating" ? .extractFacts : coordinator.processingStage,
             liveCaptions: captions,
-            onAddMemo: { coordinator.addMemo($0) },
+            onUpdateNote: { coordinator.updateNote($0) },
             onPrimaryAction: { [weak self] in self?.handlePrimaryAction(state) },
             onDismiss: {
                 // 녹음 중 닫기는 "숨김"이 아니라 녹음 취소다. 숨기기만 하면 녹음이 계속 돈다.
