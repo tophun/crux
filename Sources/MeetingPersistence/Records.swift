@@ -677,6 +677,18 @@ final class NotifiedEventModel {
     }
 }
 
+/// 사용자가 직접 묶은 회의. 한 회의는 그룹 하나에만 속한다.
+@Model
+final class MeetingGroupMembershipModel {
+    @Attribute(.unique) var meetingId: String
+    var groupId: String
+
+    init(meetingId: String, groupId: String) {
+        self.meetingId = meetingId
+        self.groupId = groupId
+    }
+}
+
 enum PersistenceSchema {
     static let schema = Schema([
         MeetingModel.self,
@@ -691,7 +703,8 @@ enum PersistenceSchema {
         ProcessingJobModel.self,
         CalendarEventModel.self,
         NotifiedEventModel.self,
-        PublishRecordModel.self
+        PublishRecordModel.self,
+        MeetingGroupMembershipModel.self
     ])
 }
 

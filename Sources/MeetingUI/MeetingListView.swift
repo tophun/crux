@@ -65,6 +65,15 @@ public struct MeetingListView: View {
                         .tag(summary.id)
                         .contextMenu {
                             Button("회의록 열기") { state.selectedMeetingId = summary.id }
+                            if state.summaries.contains(where: { $0.id != summary.id }) {
+                                Menu("관련 회의로 묶기") {
+                                    ForEach(state.summaries.filter { $0.id != summary.id }) { other in
+                                        Button(other.displayTitle) {
+                                            state.groupMeetings(summary.id, with: other.id)
+                                        }
+                                    }
+                                }
+                            }
                             Divider()
                             Button("회의 삭제…", role: .destructive) {
                                 state.requestDelete(meetingId: summary.id)

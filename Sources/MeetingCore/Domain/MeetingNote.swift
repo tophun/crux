@@ -84,6 +84,14 @@ public enum ActionItemStatus: String, Codable, Sendable, CaseIterable {
         case .dropped: "취소"
         }
     }
+
+    /// 지난 회의에서 다음 회의로 이어 보여줄 상태. 완료·취소는 넣지 않는다.
+    public var isUnfinished: Bool {
+        switch self {
+        case .proposed, .confirmed, .inProgress: true
+        case .done, .dropped: false
+        }
+    }
 }
 
 public struct ActionItem: Identifiable, Hashable, Sendable, Codable {

@@ -4,7 +4,7 @@ import SwiftData
 
 /// 회의 데이터 저장소. 모든 읽기·쓰기는 SwiftData ModelContext를 통해 로컬에만 일어난다.
 public struct MeetingRepository: Sendable {
-    private let database: AppDatabase
+    let database: AppDatabase
 
     public init(database: AppDatabase) {
         self.database = database
@@ -78,6 +78,9 @@ public struct MeetingRepository: Sendable {
                 context.delete(model)
             }
             for model in try context.all(PublishRecordModel.self).filter({ $0.meetingId == key }) {
+                context.delete(model)
+            }
+            for model in try context.all(MeetingGroupMembershipModel.self).filter({ $0.meetingId == key }) {
                 context.delete(model)
             }
             if let meeting = try context.all(MeetingModel.self).first(where: { $0.id == key }) {
