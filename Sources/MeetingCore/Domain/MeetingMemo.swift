@@ -19,4 +19,10 @@ public struct MeetingMemo: Identifiable, Hashable, Sendable, Codable {
     public var elapsedLabel: String {
         CruxState.clock(elapsed)
     }
+
+    /// 예전 시각 슬롯 메모를 노트 본문 초깃값으로 보여 주기 위한 읽기 전용 텍스트.
+    /// `memos.json`은 바꾸지 않는다.
+    public static func readableTranscript(_ memos: [MeetingMemo]) -> String {
+        memos.map { "\($0.elapsedLabel)  \($0.text)" }.joined(separator: "\n")
+    }
 }

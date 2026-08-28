@@ -55,9 +55,10 @@ public final class CruxWindowController {
         detailMessage: String? = nil,
         meetingTitle: String? = nil,
         memos: [MeetingMemo] = [],
+        noteBody: String = "",
         processingStage: ProcessingStage? = nil,
         liveCaptions: LiveCaptionState = LiveCaptionState(),
-        onAddMemo: @escaping (String) -> Void = { _ in },
+        onUpdateNote: @escaping (String) -> Void = { _ in },
         onPrimaryAction: @escaping () -> Void,
         onDismiss: @escaping () -> Void,
         onOpenPreview: @escaping () -> Void,
@@ -91,10 +92,11 @@ public final class CruxWindowController {
         model.detailMessage = detailMessage
         model.meetingTitle = meetingTitle
         model.memos = memos
+        model.noteBody = noteBody
         model.processingStage = processingStage
         model.liveCaptions = liveCaptions
         model.metrics = metrics
-        model.onAddMemo = onAddMemo
+        model.onUpdateNote = onUpdateNote
         model.onPrimaryAction = onPrimaryAction
         model.onDismiss = onDismiss
         model.onOpenPreview = onOpenPreview
@@ -385,7 +387,7 @@ public final class CruxWindowController {
     /// 투명이라 커도 보이지 않는다. 정확할 필요 없이 최대치만 넘으면 된다.
     private var maxContentSize: CGSize {
         let metrics = metrics ?? NotchMetrics.from(screen: Self.activeScreen())
-        return CGSize(width: metrics.expandedWidth, height: 260)
+        return CGSize(width: metrics.expandedWidth, height: 320)
     }
 
     /// 셸프의 실제 렌더 크기가 정착했을 때 창을 정확한 크기로 한 번 맞춘다.
@@ -449,12 +451,13 @@ final class CruxShelfModel {
     var detailMessage: String?
     var meetingTitle: String?
     var memos: [MeetingMemo] = []
+    var noteBody = ""
     var processingStage: ProcessingStage?
     var liveCaptions = LiveCaptionState()
     var metrics: NotchMetrics
     var expansionMode: CruxExpansionMode
 
-    @ObservationIgnored var onAddMemo: (String) -> Void = { _ in }
+    @ObservationIgnored var onUpdateNote: (String) -> Void = { _ in }
     @ObservationIgnored var onMemoFocusChange: (Bool) -> Void = { _ in }
     @ObservationIgnored var onContentSizeChange: (CGSize) -> Void = { _ in }
     @ObservationIgnored var onHoverChange: (Bool) -> Void = { _ in }
@@ -483,11 +486,12 @@ struct CruxShelfRoot: View {
             detailMessage: model.detailMessage,
             meetingTitle: model.meetingTitle,
             memos: model.memos,
+            noteBody: model.noteBody,
             processingStage: model.processingStage,
             liveCaptions: model.liveCaptions,
             metrics: model.metrics,
             expansionMode: model.expansionMode,
-            onAddMemo: model.onAddMemo,
+            onUpdateNote: model.onUpdateNote,
             onMemoFocusChange: model.onMemoFocusChange,
             onContentSizeChange: model.onContentSizeChange,
             onHoverChange: model.onHoverChange,

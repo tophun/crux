@@ -24,8 +24,10 @@ public final class MeetingSessionCoordinator {
     public private(set) var activeMeetingId: UUID?
     /// 녹음 중인 회의 제목. 노치 펼침 헤더에 쓴다.
     public private(set) var activeMeetingTitle: String?
-    /// 녹음 중 노치에서 남긴 메모. 회의 저장 폴더의 memos.json과 같은 내용이다.
+    /// 녹음 중 남긴 예전 시각 슬롯 메모. 회의 저장 폴더의 memos.json과 같은 내용이다.
     public internal(set) var memos: [MeetingMemo] = []
+    /// 녹음 중 플로팅 노트의 제목+본문. `crux-note.json`과 같은 내용이다.
+    public internal(set) var sessionNote: CruxNote?
     var memoStore: MeetingMemoStore?
     /// 회의록 생성 중 현재 단계. 캡슐 상세가 단계 체크리스트를 그리는 데 쓴다.
     public private(set) var processingStage: ProcessingStage?
@@ -175,7 +177,8 @@ public final class MeetingSessionCoordinator {
             activeMeetingId = meetingId
             activeMeetingTitle = meeting.title
             memoStore = MeetingMemoStore(storageDirectory: storage.root)
-            memos = []
+            memos = memoStore?.load() ?? []
+            sessionNote = memoStore?.loadNote()
             capsule = machine.apply(.userStartedMeeting)
             startTicking()
             await startLiveCaptions(meetingId: meetingId)
@@ -222,6 +225,7 @@ public final class MeetingSessionCoordinator {
         activeMeetingId = nil
         activeMeetingTitle = nil
         memoStore = nil
+        sessionNote = nil
         capsule = machine.apply(.recordingStopped)
         log?("녹음 종료 요청: \(meetingId)")
 
@@ -322,6 +326,7 @@ public final class MeetingSessionCoordinator {
         activeMeetingId = nil
         activeMeetingTitle = nil
         memoStore = nil
+        sessionNote = nil
         _ = try? await capture.stop()
         if let meeting = try? repository.meeting(id: meetingId) {
             try? FileManager.default.trashItem(at: meeting.storageDirectory, resultingItemURL: nil)

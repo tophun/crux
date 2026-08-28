@@ -140,6 +140,10 @@ public struct MeetingDetailView: View {
             switch state.detailTab {
             case .preview:
                 VStack(alignment: .leading, spacing: 0) {
+                    if let sessionNote = detail.sessionNote, !sessionNote.body.isEmpty {
+                        SessionNoteView(note: sessionNote)
+                        Divider()
+                    }
                     if !detail.memos.isEmpty {
                         MemoListView(memos: detail.memos) { elapsed in
                             state.playback.seek(to: elapsed)
@@ -600,7 +604,24 @@ public struct ToolbarSearchField: View {
     }
 }
 
-/// 녹음 중 남긴 메모 목록. 시각을 누르면 그 위치부터 재생한다.
+/// 녹음 중 남긴 제목+본문 노트.
+struct SessionNoteView: View {
+    let note: CruxNote
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(note.title.isEmpty ? "회의 중 메모" : note.title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(note.body)
+                .font(.callout)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// 예전 시각 슬롯 메모. 시각을 누르면 그 위치부터 재생한다.
 struct MemoListView: View {
     let memos: [MeetingMemo]
     let onSeek: (TimeInterval) -> Void

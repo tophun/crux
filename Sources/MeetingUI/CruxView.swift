@@ -11,8 +11,10 @@ public struct CruxView: View {
     let detailMessage: String?
     /// 녹음 중인 회의 제목. 없으면 상태 문구를 쓴다.
     let meetingTitle: String?
-    /// 녹음 중 남긴 메모. 최근 것부터 두 개만 보여 준다.
+    /// 예전 시각 슬롯 메모. 노트 본문이 비어 있을 때만 초깃값으로 이어 붙인다.
     let memos: [MeetingMemo]
+    /// 저장된 플로팅 노트 본문.
+    let noteBody: String
     /// 회의록 생성 중 현재 단계. 상세의 단계 체크리스트를 그린다.
     let processingStage: ProcessingStage?
     /// 녹음 중 지연 자막과 초안 요약. 화자 구분은 하지 않는다.
@@ -29,7 +31,7 @@ public struct CruxView: View {
     let onTogglePause: () -> Void
     let onStop: () -> Void
     let onCancelProcessing: () -> Void
-    let onAddMemo: (String) -> Void
+    let onUpdateNote: (String) -> Void
     /// 메모 입력 칸의 포커스 변화. 입력 중에는 창이 접히지 않아야 한다.
     let onMemoFocusChange: (Bool) -> Void
     /// 검은 셸프의 실제 렌더 크기. 창은 애니메이션 중에는 건드리지 않고, 크기 변화가 멎어
@@ -37,6 +39,8 @@ public struct CruxView: View {
     let onContentSizeChange: (CGSize) -> Void
 
     @State var memoDraft = ""
+    @State var didSeedNote = false
+    @State var suppressNoteSave = false
     @FocusState var memoFocused: Bool
 
     public init(
@@ -44,11 +48,12 @@ public struct CruxView: View {
         detailMessage: String? = nil,
         meetingTitle: String? = nil,
         memos: [MeetingMemo] = [],
+        noteBody: String = "",
         processingStage: ProcessingStage? = nil,
         liveCaptions: LiveCaptionState = LiveCaptionState(),
         metrics: NotchMetrics,
         expansionMode: CruxExpansionMode = .collapsed,
-        onAddMemo: @escaping (String) -> Void = { _ in },
+        onUpdateNote: @escaping (String) -> Void = { _ in },
         onMemoFocusChange: @escaping (Bool) -> Void = { _ in },
         onContentSizeChange: @escaping (CGSize) -> Void = { _ in },
         onHoverChange: @escaping (Bool) -> Void = { _ in },
@@ -64,11 +69,12 @@ public struct CruxView: View {
         self.detailMessage = detailMessage
         self.meetingTitle = meetingTitle
         self.memos = memos
+        self.noteBody = noteBody
         self.processingStage = processingStage
         self.liveCaptions = liveCaptions
         self.metrics = metrics
         presentation = CruxPresentationModel(state: state, detailMessage: detailMessage)
-        self.onAddMemo = onAddMemo
+        self.onUpdateNote = onUpdateNote
         self.onMemoFocusChange = onMemoFocusChange
         self.onContentSizeChange = onContentSizeChange
         self.expansionMode = expansionMode
@@ -139,9 +145,9 @@ public struct CruxView: View {
     /// 검은 노치 셸프 하나. 접힘·펼침을 한 덩어리로 스프링 변형한다.
     private var capsuleShape: some View {
         VStack(spacing: 0) {
-            if isEnlarged, case let .recording(seconds, paused) = state {
-                // 녹음 중 펼침은 바+상세 대신 미디어 플레이어형 3단 구조를 쓴다.
-                recordingExpanded(seconds: seconds, paused: paused)
+            if isEnlarged, case let .recording(_, paused) = state {
+                // 녹음 중 펼침은 바+상세 대신 제목+본문 노트다.
+                recordingExpanded(paused: paused)
                     .transition(Self.contentSwap)
             } else {
                 VStack(spacing: 0) {

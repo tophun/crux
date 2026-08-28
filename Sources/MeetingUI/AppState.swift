@@ -14,8 +14,10 @@ public struct MeetingDetail: Sendable {
     public var tracks: [AudioTrack]
     /// 캘린더에서 가져온 참석자. 없으면 비워 두고 임의로 만들지 않는다.
     public var attendees: [String]
-    /// 녹음 중 노치에서 남긴 메모.
+    /// 녹음 중 남긴 예전 시각 슬롯 메모.
     public var memos: [MeetingMemo] = []
+    /// 녹음 중 플로팅 노트. 없으면 nil.
+    public var sessionNote: CruxNote?
     /// 같은 시리즈·사용자가 묶은 이전 회의의 미완료 액션. 상태를 바꾸지 않는다.
     public var carryoverActions: [CarryoverAction] = []
 
@@ -155,7 +157,9 @@ public final class AppState {
                 tracks: tracks,
                 attendees: attendees(meetingId: id)
             )
-            detail?.memos = MeetingMemoStore(storageDirectory: meeting.storageDirectory).load()
+            let memoStore = MeetingMemoStore(storageDirectory: meeting.storageDirectory)
+            detail?.memos = memoStore.load()
+            detail?.sessionNote = memoStore.loadNote()
             detail?.carryoverActions = carryover
             playback.prepare(tracks: tracks)
         } catch {

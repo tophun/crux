@@ -1,25 +1,22 @@
 import Foundation
-import MeetingAudio
-import MeetingCalendar
 import MeetingCore
 
-/// 녹음 중 노치에서 남기는 메모.
+/// 녹음 중 플로팅 노트.
 public extension MeetingSessionCoordinator {
-    /// 녹음 중 메모를 남긴다. 빈 문자열은 무시하고, 녹음 경과 시각을 함께 기록한다.
-    func addMemo(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let memoStore else { return }
-        var elapsed: TimeInterval = 0
-        if case let .recording(seconds, _) = capsule {
-            elapsed = seconds
-        }
-        let memo = MeetingMemo(elapsed: elapsed, text: trimmed)
-        memos.append(memo)
+    /// 노트 본문을 저장한다. 예전 `memos.json` 슬롯은 덮어쓰지 않는다.
+    func updateNote(_ body: String) {
+        guard let memoStore else { return }
+        let note = CruxNote(
+            title: activeMeetingTitle ?? "",
+            body: body,
+            updatedAt: Date()
+        )
+        sessionNote = note
         do {
-            try memoStore.save(memos)
+            try memoStore.saveNote(note)
         } catch {
             lastError = error.localizedDescription
-            log?("메모 저장 실패: \(error.localizedDescription)")
+            log?("노트 저장 실패: \(error.localizedDescription)")
         }
     }
 }
