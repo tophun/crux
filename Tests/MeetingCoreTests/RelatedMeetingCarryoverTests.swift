@@ -47,7 +47,7 @@ struct RelatedMeetingCarryoverTests {
     }
 
     @Test("같은 캘린더 시리즈의 발생분은 제목이 달라도 관련이다")
-    func groupsByCalendarSeries() {
+    func groupsByCalendarSeries() throws {
         let previous = meeting(
             title: "주간 스탠드업",
             startedAt: standup,
@@ -60,7 +60,8 @@ struct RelatedMeetingCarryoverTests {
             calendarEventId: "series-abc/RID=1700086400.000000",
             calendarEventTitle: "주간 스탠드업 (변경)"
         )
-        #expect(try RelatedMeetingGrouping.seriesKey(eventId: #require(current.calendarEventId)) == "series-abc")
+        let eventId = try #require(current.calendarEventId)
+        #expect(RelatedMeetingGrouping.seriesKey(eventId: eventId) == "series-abc")
         #expect(RelatedMeetingGrouping.areRelated(current, previous))
     }
 

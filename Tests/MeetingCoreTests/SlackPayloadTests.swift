@@ -81,17 +81,23 @@ struct SlackSendGateTests {
 
     @Test("확인하지 않으면 전송을 허용하지 않는다")
     func confirmRequiredBeforeSend() {
+        // mutating 호출은 #expect 밖에서 한다. 매크로가 값을 불변 인자로 캡처한다.
         var gate = SlackSendGate()
-        #expect(!gate.confirm())
+        let confirmedBeforeBegin = gate.confirm()
+        #expect(!confirmedBeforeBegin)
 
-        #expect(gate.begin(destination: "#eng", actionCount: 2) == nil)
+        let beginError = gate.begin(destination: "#eng", actionCount: 2)
+        #expect(beginError == nil)
         #expect(gate.awaitingConfirmation)
-        #expect(gate.confirm())
+        let confirmedAfterBegin = gate.confirm()
+        #expect(confirmedAfterBegin)
         #expect(!gate.awaitingConfirmation)
 
         var cancelled = SlackSendGate()
-        #expect(cancelled.begin(destination: "U1", actionCount: 1) == nil)
+        let cancelledBeginError = cancelled.begin(destination: "U1", actionCount: 1)
+        #expect(cancelledBeginError == nil)
         cancelled.cancel()
-        #expect(!cancelled.confirm())
+        let confirmedAfterCancel = cancelled.confirm()
+        #expect(!confirmedAfterCancel)
     }
 }
