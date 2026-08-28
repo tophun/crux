@@ -31,7 +31,7 @@ actor ModelResidencyMonitor {
 /// 오디오 없이 정해진 전사 결과를 돌려주는 엔진.
 actor FakeTranscriptionEngine: TranscriptionEngine {
     private let monitor: ModelResidencyMonitor?
-    private let segments: @Sendable (UUID) -> [TranscriptSegment]
+    private let segments: @Sendable (UUID) throws -> [TranscriptSegment]
     private let failure: (any Error)?
     private let delay: Duration?
     private(set) var transcribeCount = 0
@@ -42,7 +42,7 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
         monitor: ModelResidencyMonitor? = nil,
         failure: (any Error)? = nil,
         delay: Duration? = nil,
-        segments: @escaping @Sendable (UUID) -> [TranscriptSegment]
+        segments: @escaping @Sendable (UUID) throws -> [TranscriptSegment]
     ) {
         self.monitor = monitor
         self.failure = failure
@@ -67,7 +67,7 @@ actor FakeTranscriptionEngine: TranscriptionEngine {
         if let failure {
             throw failure
         }
-        let result = segments(meetingId)
+        let result = try segments(meetingId)
         progress?(
             TranscriptionProgress(processedSeconds: 60, totalSeconds: 60, segmentCount: result.count)
         )

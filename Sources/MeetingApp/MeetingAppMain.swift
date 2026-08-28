@@ -334,6 +334,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var syncTask: Task<Void, Never>?
     private var lastState: CruxState = .hidden
     private var lastMemoCount = 0
+    private var lastCaptionFingerprint = ""
 
     func attach(coordinator: MeetingSessionCoordinator) {
         guard self.coordinator == nil else { return }
@@ -350,9 +351,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let coordinator else { return }
         let state = Self.demoCapsuleState ?? coordinator.capsule
         let memos = coordinator.memos
-        guard state != lastState || memos.count != lastMemoCount else { return }
+        let captions = isDemoCaptions(state) ? LiveCaptionState.demo : coordinator.liveCaptions
+        guard state != lastState || memos.count != lastMemoCount || captions.fingerprint != lastCaptionFingerprint
+        else { return }
         lastState = state
         lastMemoCount = memos.count
+        lastCaptionFingerprint = captions.fingerprint
 
         let isDemo = Self.demoCapsuleState != nil
         capsuleWindow.show(
@@ -362,6 +366,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             memos: memos,
             // 데모 모드의 생성 상태는 실제 파이프라인이 없으므로 단계 하나를 가정한다.
             processingStage: isDemo && state.kindId == "generating" ? .extractFacts : coordinator.processingStage,
+            liveCaptions: captions,
             onAddMemo: { coordinator.addMemo($0) },
             onPrimaryAction: { [weak self] in self?.handlePrimaryAction(state) },
             onDismiss: {
@@ -406,6 +411,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_: Notification) {
         syncTask?.cancel()
         capsuleWindow.close()
+    }
+
+    private func isDemoCaptions(_ state: CruxState) -> Bool {
+        Self.demoCapsuleState != nil && state.showsRecordingIndicator
     }
 
     /// 개발용. `CRUX_DEMO_CAPSULE=recording ./Crux.app/Contents/MacOS/Crux`처럼 실행하면

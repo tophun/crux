@@ -44,6 +44,10 @@ public actor MeetingProcessingPipeline {
     /// 처리 중 여부. 두 회의가 동시에 처리되면 모델 수명 관리가 깨지므로 한 번에 하나만 돌린다(§12).
     var isProcessing = false
 
+    public var modelLifecycle: ModelLifecycleCoordinator {
+        coordinator
+    }
+
     public init(
         repository: MeetingRepository,
         jobs: ProcessingJobRepository,
@@ -274,6 +278,9 @@ public actor MeetingProcessingPipeline {
         }
 
         await coordinator.releaseAll()
+
+        // 녹음 중 초안 자막은 공식 전사·회의록이 나온 뒤에 걷는다.
+        LiveCaptionDraftStore.remove(from: meeting.storageDirectory)
 
         // 회의록이 저장된 뒤에만 오디오를 정리한다. 실패한 회의의 오디오는 재시도의 유일한 수단이므로 남긴다(§11).
         applyRetention(meetingId: meetingId)

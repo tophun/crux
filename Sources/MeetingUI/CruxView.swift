@@ -15,6 +15,8 @@ public struct CruxView: View {
     let memos: [MeetingMemo]
     /// 회의록 생성 중 현재 단계. 상세의 단계 체크리스트를 그린다.
     let processingStage: ProcessingStage?
+    /// 녹음 중 지연 자막과 초안 요약. 화자 구분은 하지 않는다.
+    let liveCaptions: LiveCaptionState
     let metrics: NotchMetrics
     let expansionMode: CruxExpansionMode
     /// 상태별 문구·동작 매핑. 한 번만 만들어 두고 본문에서 여러 번 읽는다.
@@ -43,6 +45,7 @@ public struct CruxView: View {
         meetingTitle: String? = nil,
         memos: [MeetingMemo] = [],
         processingStage: ProcessingStage? = nil,
+        liveCaptions: LiveCaptionState = LiveCaptionState(),
         metrics: NotchMetrics,
         expansionMode: CruxExpansionMode = .collapsed,
         onAddMemo: @escaping (String) -> Void = { _ in },
@@ -62,6 +65,7 @@ public struct CruxView: View {
         self.meetingTitle = meetingTitle
         self.memos = memos
         self.processingStage = processingStage
+        self.liveCaptions = liveCaptions
         self.metrics = metrics
         presentation = CruxPresentationModel(state: state, detailMessage: detailMessage)
         self.onAddMemo = onAddMemo
@@ -160,6 +164,7 @@ public struct CruxView: View {
         .animation(CruxAnimation.swiftUI, value: isEnlarged)
         .animation(CruxAnimation.swiftUI, value: showsDetail)
         .animation(CruxAnimation.swiftUI, value: memos.count)
+        .animation(CruxAnimation.swiftUI, value: liveCaptions.fingerprint)
     }
 
     /// 창이 지금 가진 너비를 반으로 나눠 좌우 날개를 항상 같게 둔다.
@@ -320,6 +325,9 @@ public struct CruxView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("회의록 생성 진행률")
             .accessibilityValue("\(Int((progress * 100).rounded()))%")
+            if let draft = liveCaptions.draftSummary, liveCaptions.isDraft {
+                draftSummaryRow(draft)
+            }
             if steps.isEmpty, let detail = presentation.detailText {
                 Text(detail)
                     .font(.system(size: 11))

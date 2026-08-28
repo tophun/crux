@@ -8,7 +8,7 @@ import MeetingCore
 ///       raw/microphone.m4a
 ///       raw/system.m4a
 ///       mixed/meeting.m4a   ← 전사에 사용
-public actor MeetingAudioCapture: AudioCaptureService {
+public actor MeetingAudioCapture: AudioCaptureService, LiveCaptionAudioProviding {
     private let microphone: MicrophoneCapture
     private let systemAudio: SystemAudioCapture
     private let log: (@Sendable (String) -> Void)?
@@ -22,6 +22,8 @@ public actor MeetingAudioCapture: AudioCaptureService {
     private var captureState: CaptureState = .idle
     /// 캡처 중 발생한 문제 (권한 거부, 장치 없음 등). 사용자에게 그대로 알린다.
     public private(set) var problems: [String] = []
+    /// 자막용으로 닫힌 오디오 조각. 실패해도 녹음은 계속된다.
+    private var captionSink: LiveAudioChunkSink?
 
     public init(
         microphone: MicrophoneCapture = MicrophoneCapture(),
@@ -68,8 +70,13 @@ public actor MeetingAudioCapture: AudioCaptureService {
         try storage.createDirectories()
         problems = []
 
+        captionSink = Self.makeCaptionSink(in: storage.rawDirectory)
+
         // 마이크는 필수다. 실패하면 녹음을 시작하지 않는다.
-        try await microphone.start(to: storage.url(for: .microphone, extension: "m4a"))
+        try await microphone.start(
+            to: storage.url(for: .microphone, extension: "m4a"),
+            captionSink: captionSink
+        )
 
         // 시스템 오디오는 권한이 없으면 마이크만으로 계속한다.
         do {
@@ -167,6 +174,27 @@ public actor MeetingAudioCapture: AudioCaptureService {
         systemAudioActive = false
         captureState = .idle
         return tracks
+    }
+
+    public func nextCaptionChunks() async -> [LiveAudioChunk] {
+        captionSink?.takeReady() ?? []
+    }
+
+    public func finishCaptionChunks() async -> [LiveAudioChunk] {
+        let leftover = captionSink?.finish() ?? []
+        captionSink = nil
+        return leftover
+    }
+
+    /// 자막용 조각 기록기를 만든다. 실패하면 자막만 포기하고 녹음은 그대로 간다.
+    static func makeCaptionSink(in rawDirectory: URL) -> LiveAudioChunkSink? {
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1) else {
+            return nil
+        }
+        return LiveAudioChunkSink(
+            directory: rawDirectory.appendingPathComponent("live", isDirectory: true),
+            format: format
+        )
     }
 
     /// 디스크에 남아 있는 녹음 파일을 찾아 트랙으로 만든다.
