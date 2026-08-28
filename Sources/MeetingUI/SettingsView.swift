@@ -37,6 +37,7 @@ public struct SettingsView: View {
 
     enum Pane: String, CaseIterable, Identifiable {
         case general
+        case vocabulary
         case detection
         case permissions
         case audio
@@ -50,6 +51,7 @@ public struct SettingsView: View {
         var title: String {
             switch self {
             case .general: "일반"
+            case .vocabulary: "용어"
             case .detection: "회의 감지"
             case .permissions: "권한"
             case .audio: "오디오 보관"
@@ -61,6 +63,7 @@ public struct SettingsView: View {
         var symbol: String {
             switch self {
             case .general: "gearshape.fill"
+            case .vocabulary: "character.book.closed.fill"
             case .detection: "calendar"
             case .permissions: "lock.fill"
             case .audio: "waveform"
@@ -72,6 +75,7 @@ public struct SettingsView: View {
         var color: Color {
             switch self {
             case .general: .gray
+            case .vocabulary: .orange
             case .detection: .red
             case .permissions: .green
             case .audio: .purple
@@ -116,6 +120,7 @@ public struct SettingsView: View {
     private var detailForm: some View {
         switch selection {
         case .general: NotePane(installs: installs)
+        case .vocabulary: VocabularyPane()
         case .detection: DetectionPane()
         case .permissions: PermissionsPane(coordinator: coordinator)
         case .audio: AudioPane(storage: storage)
@@ -200,6 +205,74 @@ private struct DetectionPane: View {
         } footer: {
             Text("종일 일정과 취소된 일정은 항상 제외합니다. 일정에 알림이 있으면 그 시각부터, 없으면 시작 5분 전부터 캡슐이 뜨고, 한 일정에 두 번 묻지 않습니다.")
         }
+    }
+}
+
+// MARK: - 용어 (인식 힌트)
+
+private struct VocabularyPane: View {
+    @State private var isEnabled = VocabularyStore.standard.isEnabled
+    @State private var terms = VocabularyStore.standard.terms
+    @State private var draft = ""
+
+    var body: some View {
+        Section {
+            Toggle(isOn: $isEnabled) {
+                Text("인식 힌트 사용")
+                Text("똑닥·사람·티켓 이름처럼 자주 깨지는 단어를 음성 인식에 알려 줍니다.")
+            }
+            .onChange(of: isEnabled) { _, newValue in
+                VocabularyStore.standard.isEnabled = newValue
+            }
+        } footer: {
+            Text("힌트는 구간 분할을 거칠게 만들 수 있어 기본값은 꺼져 있습니다. 끄면 지금처럼 힌트 없이 인식합니다. 켠 뒤의 다음 전사부터 적용됩니다.")
+        }
+        Section {
+            HStack(spacing: 8) {
+                TextField("용어 추가", text: $draft)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addTerm() }
+                Button("추가") { addTerm() }
+                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            if terms.isEmpty {
+                Text("아직 용어가 없습니다.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(terms, id: \.self) { term in
+                    LabeledContent {
+                        Button {
+                            removeTerm(term)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("이 용어 삭제")
+                        .accessibilityLabel("\(term) 삭제")
+                    } label: {
+                        Text(term)
+                    }
+                }
+            }
+        } header: {
+            Text("용어 목록")
+        } footer: {
+            Text("이 기기에만 저장됩니다. 목록은 꺼 둔 상태에서도 고칠 수 있습니다.")
+        }
+    }
+
+    private func addTerm() {
+        let added = VocabularyStore.standard.addTerm(draft)
+        draft = ""
+        if added {
+            terms = VocabularyStore.standard.terms
+        }
+    }
+
+    private func removeTerm(_ term: String) {
+        VocabularyStore.standard.removeTerm(term)
+        terms = VocabularyStore.standard.terms
     }
 }
 
