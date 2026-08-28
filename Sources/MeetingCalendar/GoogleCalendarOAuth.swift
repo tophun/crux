@@ -373,17 +373,24 @@ public actor GoogleCalendarOAuthClient {
             throw GoogleCalendarError.tokenExchange(message)
         }
         struct Response: Decodable {
-            let access_token: String
-            let refresh_token: String?
-            let expires_in: Double?
+            let accessToken: String
+            let refreshToken: String?
+            let expiresIn: Double?
             let scope: String?
+
+            enum CodingKeys: String, CodingKey {
+                case accessToken = "access_token"
+                case refreshToken = "refresh_token"
+                case expiresIn = "expires_in"
+                case scope
+            }
         }
         do {
             let result = try JSONDecoder().decode(Response.self, from: data)
             return GoogleOAuthTokens(
-                accessToken: result.access_token,
-                refreshToken: result.refresh_token,
-                expirationDate: Date().addingTimeInterval(result.expires_in ?? 3600),
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                expirationDate: Date().addingTimeInterval(result.expiresIn ?? 3600),
                 grantedScopes: result.scope?.split(separator: " ").map(String.init) ?? []
             )
         } catch {

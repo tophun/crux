@@ -259,10 +259,13 @@ private final class URLProtocolRecorder: URLProtocol, @unchecked Sendable {
         return URLSession(configuration: configuration)
     }
 
+    // URLProtocol이 class 메서드로 선언해서 override는 static이 될 수 없다.
+    // swiftlint:disable:next static_over_final_class
     override class func canInit(with _: URLRequest) -> Bool {
         true
     }
 
+    // swiftlint:disable:next static_over_final_class
     override class func canonicalRequest(for request: URLRequest) -> URLRequest {
         request
     }
