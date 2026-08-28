@@ -1,19 +1,16 @@
 import MeetingCore
 import SwiftUI
 
-/// CruxView의 상태별 섹션. 녹음 중 펼침(제목+본문 노트)과 접힌 상태의 좌우 날개를 그린다.
+/// CruxView의 상태별 섹션. 녹음 중 노트(토글)와 접힌 상태의 좌우 날개를 그린다.
 /// 본체 파일이 길어지지 않게 분리했고, 레이아웃 규칙은 `CruxView` 본문 주석을 따른다.
 extension CruxView {
-    // MARK: 녹음 중 펼침
+    // MARK: 녹음 중 노트
 
-    /// 녹음 중 펼침은 제목+본문 플로팅 노트다. 시각 슬롯·자막 패널은 두지 않는다.
-    ///
-    /// 상단은 하드웨어 노치가 가리므로 제목 줄은 접힌 캡슐 높이만큼 비운 뒤에 둔다.
-    func recordingExpanded(paused: Bool) -> some View {
-        let title = meetingTitle ?? (paused ? "녹음 일시정지" : "녹음 중")
+    /// 사용자가 노트를 켰을 때만 제목+본문을 보여 준다. 일시정지·종료는 위 캡슐 바에 둔다.
+    var recordingNote: some View {
+        let title = meetingTitle ?? "녹음 중"
         return VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: barHeight)
-            noteHeader(title: title, paused: paused)
+            noteHeader(title: title)
             noteEditor
         }
         .padding(.horizontal, 18)
@@ -35,7 +32,7 @@ extension CruxView {
     }
 
     /// 왼쪽 제목, 오른쪽 목록·Aa·고정·더보기. 고정만 기존 동작에 연결한다.
-    func noteHeader(title: String, paused: Bool) -> some View {
+    func noteHeader(title: String) -> some View {
         HStack(spacing: 10) {
             Text(title)
                 .font(.system(size: 15, weight: .bold))
@@ -54,22 +51,7 @@ extension CruxView {
             .buttonStyle(.plain)
             .help(expansionMode.isPinned ? "고정 해제" : "고정")
             .accessibilityLabel(expansionMode.isPinned ? "고정 해제" : "고정")
-            Menu(
-                content: {
-                    Button(paused ? "재개" : "일시정지", action: onTogglePause)
-                    Button("녹음 종료", role: .destructive, action: onStop)
-                    Button("앱 열기", action: onOpenPreview)
-                },
-                label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.72))
-                        .frame(width: 22, height: 22)
-                }
-            )
-            .menuStyle(.borderlessButton)
-            .help("더보기")
-            .accessibilityLabel("더보기")
+            noteChromeButton("ellipsis.circle", label: "더보기")
         }
         .padding(.top, 4)
         .padding(.bottom, 10)

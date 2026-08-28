@@ -142,6 +142,7 @@ public final class MeetingSessionCoordinator {
     // MARK: - 회의록 시작·종료
 
     /// 사용자가 "회의록 시작"을 눌렀을 때. 자동으로 시작하지 않는다.
+    /// 유형은 녹음 버튼에서 고르지 않는다. 기본은 일반이고, 나중에 정하면 캘린더 일정에서 온다.
     public func startMeeting(meetingType: MeetingType = .general) async {
         lastError = nil
         // 모델 미설치 같은 상태에서는 녹음해도 처리가 실패하므로 시작 전에 막는다.
