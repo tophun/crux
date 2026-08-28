@@ -61,7 +61,7 @@ public actor MicrophoneCapture {
         AVCaptureDevice.default(for: .audio) != nil
     }
 
-    public func start(to url: URL) async throws {
+    public func start(to url: URL, captionSink: LiveAudioChunkSink? = nil) async throws {
         guard state == .idle else { throw CaptureError.invalidState(String(describing: state)) }
         guard Self.permission() == .granted else { throw CaptureError.permissionDenied("마이크") }
         guard Self.hasInputDevice() else { throw CaptureError.noInputDevice }
@@ -95,7 +95,12 @@ public actor MicrophoneCapture {
         outputURL = url
         isWriting = true
 
-        let sink = AudioFileSink(file: file, inputFormat: inputFormat, targetFormat: targetFormat)
+        let sink = AudioFileSink(
+            file: file,
+            inputFormat: inputFormat,
+            targetFormat: targetFormat,
+            captionSink: captionSink
+        )
         input.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { buffer, _ in
             sink.write(buffer)
         }
@@ -173,11 +178,18 @@ final class AudioFileSink: @unchecked Sendable {
     private let file: AVAudioFile
     private let converter: AVAudioConverter?
     private let targetFormat: AVAudioFormat?
+    private let captionSink: LiveAudioChunkSink?
     private let lock = NSLock()
     private var interrupted = false
 
-    init(file: AVAudioFile, inputFormat: AVAudioFormat, targetFormat: AVAudioFormat?) {
+    init(
+        file: AVAudioFile,
+        inputFormat: AVAudioFormat,
+        targetFormat: AVAudioFormat?,
+        captionSink: LiveAudioChunkSink? = nil
+    ) {
         self.file = file
+        self.captionSink = captionSink
         if let targetFormat, targetFormat != inputFormat {
             self.targetFormat = targetFormat
             converter = AVAudioConverter(from: inputFormat, to: targetFormat)
@@ -194,6 +206,7 @@ final class AudioFileSink: @unchecked Sendable {
 
         guard let converter, let targetFormat else {
             try? file.write(from: buffer)
+            captionSink?.write(buffer)
             return
         }
         let ratio = targetFormat.sampleRate / buffer.format.sampleRate
@@ -213,6 +226,7 @@ final class AudioFileSink: @unchecked Sendable {
         }
         guard error == nil, converted.frameLength > 0 else { return }
         try? file.write(from: converted)
+        captionSink?.write(converted)
     }
 
     func markInterrupted() {

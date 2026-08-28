@@ -56,6 +56,7 @@ public final class CruxWindowController {
         meetingTitle: String? = nil,
         memos: [MeetingMemo] = [],
         processingStage: ProcessingStage? = nil,
+        liveCaptions: LiveCaptionState = LiveCaptionState(),
         onAddMemo: @escaping (String) -> Void = { _ in },
         onPrimaryAction: @escaping () -> Void,
         onDismiss: @escaping () -> Void,
@@ -91,6 +92,7 @@ public final class CruxWindowController {
         model.meetingTitle = meetingTitle
         model.memos = memos
         model.processingStage = processingStage
+        model.liveCaptions = liveCaptions
         model.metrics = metrics
         model.onAddMemo = onAddMemo
         model.onPrimaryAction = onPrimaryAction
@@ -448,6 +450,7 @@ final class CruxShelfModel {
     var meetingTitle: String?
     var memos: [MeetingMemo] = []
     var processingStage: ProcessingStage?
+    var liveCaptions = LiveCaptionState()
     var metrics: NotchMetrics
     var expansionMode: CruxExpansionMode
 
@@ -481,6 +484,7 @@ struct CruxShelfRoot: View {
             meetingTitle: model.meetingTitle,
             memos: model.memos,
             processingStage: model.processingStage,
+            liveCaptions: model.liveCaptions,
             metrics: model.metrics,
             expansionMode: model.expansionMode,
             onAddMemo: model.onAddMemo,

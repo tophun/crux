@@ -29,6 +29,9 @@ public final class MeetingSessionCoordinator {
     var memoStore: MeetingMemoStore?
     /// 회의록 생성 중 현재 단계. 캡슐 상세가 단계 체크리스트를 그리는 데 쓴다.
     public private(set) var processingStage: ProcessingStage?
+    /// 녹음 중 Whisper 부분 결과. 실패해도 녹음은 계속된다.
+    public internal(set) var liveCaptions = LiveCaptionState()
+    var captionSession: LiveCaptionSession?
 
     /// 회의 목록이 바뀌었을 때 알린다. 앱이 회의 목록·상세 화면을 새로 고치는 데 쓴다.
     /// (녹음 시작, 처리 완료, 처리 실패 시점)
@@ -52,8 +55,8 @@ public final class MeetingSessionCoordinator {
     private var lastDiagnostic: String?
     private var lastDiagnosticAt: Date?
     let capture: MeetingAudioCapture
-    private let repository: MeetingRepository
-    private let pipeline: MeetingProcessingPipeline
+    let repository: MeetingRepository
+    let pipeline: MeetingProcessingPipeline
     private let preparation: PublishPreparation
     let credentialStore: any AtlassianCredentialStore
     /// 검토 화면에서 녹음을 들을 수 있게 공유하는 재생 컨트롤러
@@ -251,6 +254,7 @@ public final class MeetingSessionCoordinator {
             memos = []
             capsule = machine.apply(.userStartedMeeting)
             startTicking()
+            await startLiveCaptions(meetingId: meetingId)
             log?("녹음 시작: \(meeting.title)")
             onMeetingsChanged?(meetingId)
             let problems = await capture.problems
@@ -287,6 +291,7 @@ public final class MeetingSessionCoordinator {
             // 회의 식별자를 잃은 상태에서도 캡슐이 "녹음 중"으로 남지 않게 정리한다.
             log?("종료 요청을 받았지만 진행 중인 회의가 없어 상태만 정리합니다.")
             _ = try? await capture.stop()
+            await stopLiveCaptions(persist: false)
             capsule = machine.apply(.reset)
             return
         }
@@ -298,6 +303,7 @@ public final class MeetingSessionCoordinator {
 
         do {
             let tracks = try await capture.stop()
+            await stopLiveCaptions(persist: true, meetingId: meetingId)
             guard !tracks.isEmpty else {
                 throw CaptureError.mixFailed("저장된 오디오가 없습니다.")
             }
@@ -344,6 +350,7 @@ public final class MeetingSessionCoordinator {
                 .previewReady(meetingId: meetingId, actionItemCount: result.note.actionItems.count)
             )
             log?("회의록 생성 완료: 결정 \(result.note.decisions.count)건, 액션 \(result.note.actionItems.count)건")
+            liveCaptions = LiveCaptionState()
             preparePreview(meetingId: meetingId)
             onMeetingsChanged?(meetingId)
         } catch where error is CancellationError || processingCancelRequested {
@@ -378,6 +385,7 @@ public final class MeetingSessionCoordinator {
     /// 녹음 중 캡슐을 닫으면 녹음을 취소한다. 오디오와 회의 기록을 남기지 않는다.
     public func cancelRecording() async {
         stopTicking()
+        await stopLiveCaptions(persist: false)
         guard let meetingId = activeMeetingId else {
             capsule = machine.apply(.dismissed)
             detailMessage = nil
@@ -393,10 +401,13 @@ public final class MeetingSessionCoordinator {
         try? repository.delete(meetingId: meetingId)
         capsule = machine.apply(.dismissed)
         detailMessage = nil
+        liveCaptions = LiveCaptionState()
         log?("녹음 취소: \(meetingId) — 오디오는 휴지통, 회의 기록은 삭제")
         onMeetingsChanged?(nil)
     }
+}
 
+extension MeetingSessionCoordinator {
     // MARK: - Preview · 게시
 
     public func preparePreview(meetingId: UUID) {

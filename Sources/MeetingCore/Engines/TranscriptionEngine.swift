@@ -19,6 +19,8 @@ public struct TranscriptionProgress: Hashable, Sendable {
 }
 
 /// 음성 인식 추상화. 구현은 교체 가능하며 오디오를 외부로 전송하지 않는다.
+///
+/// 녹음 중 자막도 같은 `transcribe`를 조각 파일에 대해 호출한다. 부분 결과용 별도 API는 두지 않는다.
 public protocol TranscriptionEngine: Sendable {
     /// 오디오 파일을 전사한다.
     /// - Parameters:

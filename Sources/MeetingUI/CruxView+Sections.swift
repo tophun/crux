@@ -65,6 +65,8 @@ extension CruxView {
             .padding(.top, 6)
             .padding(.bottom, 10)
 
+            liveCaptionPanel
+
             memoComposer
 
             HStack {
@@ -78,6 +80,62 @@ extension CruxView {
         .padding(.horizontal, 18)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 지연된 Whisper 자막과 초안 요약. 화자 구분은 하지 않는다.
+    var liveCaptionPanel: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if liveCaptions.recentLines.isEmpty {
+                Text(liveCaptions.lastError == nil ? "자막은 조금 늦게 나타납니다" : "자막을 표시하지 못했습니다")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.45))
+            } else {
+                ForEach(liveCaptions.recentLines) { line in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(TimeFormat.stamp(line.startTime))
+                            .font(.system(size: 10, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(.white.opacity(0.45))
+                        Text(line.text)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .lineLimit(2)
+                    }
+                }
+            }
+            if let draft = liveCaptions.draftSummary, !draft.isEmpty {
+                draftSummaryRow(draft)
+            }
+        }
+        .padding(.bottom, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(liveCaptionAccessibility)
+    }
+
+    func draftSummaryRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text("초안")
+                .font(.system(size: 9, weight: .bold))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(.white.opacity(0.16), in: Capsule())
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundStyle(.white.opacity(0.8))
+                .lineLimit(3)
+        }
+        .accessibilityLabel("초안 요약. \(text)")
+    }
+
+    private var liveCaptionAccessibility: String {
+        if liveCaptions.recentLines.isEmpty {
+            return liveCaptions.lastError == nil ? "자막은 조금 늦게 나타납니다" : "자막을 표시하지 못했습니다"
+        }
+        let captions = liveCaptions.recentLines.map(\.text).joined(separator: " ")
+        if let draft = liveCaptions.draftSummary, liveCaptions.isDraft {
+            return "자막. \(captions). 초안 요약. \(draft)"
+        }
+        return "자막. \(captions)"
     }
 
     /// 메모 입력 칸과 최근 메모 두 개. Return으로 저장하고 칸을 비운다.
