@@ -60,7 +60,7 @@ struct RelatedMeetingCarryoverTests {
             calendarEventId: "series-abc/RID=1700086400.000000",
             calendarEventTitle: "주간 스탠드업 (변경)"
         )
-        #expect(RelatedMeetingGrouping.seriesKey(eventId: try #require(current.calendarEventId)) == "series-abc")
+        #expect(try RelatedMeetingGrouping.seriesKey(eventId: #require(current.calendarEventId)) == "series-abc")
         #expect(RelatedMeetingGrouping.areRelated(current, previous))
     }
 
@@ -178,7 +178,7 @@ struct RelatedMeetingCarryoverTests {
         let future = CarryoverMeetingSnapshot(
             meeting: meeting(
                 title: "주간 스탠드업",
-                startedAt: today.addingTimeInterval(86_400),
+                startedAt: today.addingTimeInterval(86400),
                 calendarEventId: "evt-next",
                 calendarEventTitle: "주간 스탠드업"
             ),

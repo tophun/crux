@@ -68,7 +68,7 @@ struct CarryoverRepositoryTests {
     func loadsUnfinishedActionsWithJiraKey() throws {
         let harness = try makeHarness()
         let lastWeek = Date(timeIntervalSince1970: 1_700_000_000)
-        let today = lastWeek.addingTimeInterval(86_400)
+        let today = lastWeek.addingTimeInterval(86400)
         let previous = try saveMeeting(
             harness,
             title: "주간 스탠드업",
@@ -108,7 +108,7 @@ struct CarryoverRepositoryTests {
     func loadsUserGroupedMeetings() throws {
         let harness = try makeHarness()
         let lastWeek = Date(timeIntervalSince1970: 1_700_000_000)
-        let today = lastWeek.addingTimeInterval(86_400)
+        let today = lastWeek.addingTimeInterval(86400)
         let payment = try saveMeeting(harness, title: "결제 점검", startedAt: lastWeek)
         let hiring = try saveMeeting(harness, title: "채용 회의", startedAt: lastWeek.addingTimeInterval(60))
         let launch = try saveMeeting(harness, title: "출시 준비", startedAt: today)

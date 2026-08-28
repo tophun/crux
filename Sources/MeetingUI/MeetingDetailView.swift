@@ -129,7 +129,6 @@ public struct MeetingDetailView: View {
         return detail.note == nil ? "회의록 생성" : "다시 생성"
     }
 
-    @ViewBuilder
     private func content(_ detail: MeetingDetail) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if !detail.carryoverActions.isEmpty {

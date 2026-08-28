@@ -18,7 +18,7 @@ struct SlackActionPayloadTests {
     }
 
     @Test("포함하기로 고른 액션만 들어가고 회의 요약·근거는 빠진다")
-    func includesApprovedActionsOnly() throws {
+    func includesApprovedActionsOnly() {
         let source = bundle()
         let payload = SlackActionPayload.make(from: source, destination: "#eng")
         #expect(payload.actions.count == 2)

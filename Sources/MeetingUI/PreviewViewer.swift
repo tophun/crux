@@ -550,7 +550,11 @@ public struct PreviewViewerView: View {
     private var slackConfirmationBinding: Binding<Bool> {
         Binding(
             get: { model.isAwaitingSlackConfirmation },
-            set: { if !$0 { model.cancelSlackSend() } }
+            set: {
+                if !$0 {
+                    model.cancelSlackSend()
+                }
+            }
         )
     }
 

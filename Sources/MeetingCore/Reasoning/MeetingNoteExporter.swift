@@ -301,9 +301,15 @@ public enum MeetingNoteExporter {
 
     private static func doneWorkItems(_ note: MeetingNote) -> [String] {
         var items = note.topics.compactMap { topic -> String? in
-            if topic.title.isEmpty, topic.summary.isEmpty { return nil }
-            if topic.summary.isEmpty { return topic.title }
-            if topic.title.isEmpty { return topic.summary }
+            if topic.title.isEmpty, topic.summary.isEmpty {
+                return nil
+            }
+            if topic.summary.isEmpty {
+                return topic.title
+            }
+            if topic.title.isEmpty {
+                return topic.summary
+            }
             return "\(topic.title) — \(topic.summary)"
         }
         items += note.actionItems.filter { $0.status == .done }.map(\.task)

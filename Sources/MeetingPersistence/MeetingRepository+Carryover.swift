@@ -1,9 +1,9 @@
 import Foundation
 import MeetingCore
 
-extension MeetingRepository {
+public extension MeetingRepository {
     /// 두 회의를 같은 그룹으로 묶는다. 이미 다른 그룹에 있으면 합친다.
-    public func groupMeetings(_ firstId: UUID, with secondId: UUID) throws {
+    func groupMeetings(_ firstId: UUID, with secondId: UUID) throws {
         guard firstId != secondId else { return }
         try database.write { context in
             let memberships = try context.all(MeetingGroupMembershipModel.self)
@@ -35,7 +35,7 @@ extension MeetingRepository {
         }
     }
 
-    public func relatedGroupId(meetingId: UUID) throws -> UUID? {
+    func relatedGroupId(meetingId: UUID) throws -> UUID? {
         try database.read { context in
             try context.all(MeetingGroupMembershipModel.self)
                 .first { $0.meetingId == meetingId.uuidString }
@@ -46,22 +46,22 @@ extension MeetingRepository {
     /// 관련 이전 회의의 미완료 액션. 로컬 publishRecord의 Jira 키가 있으면 같이 붙인다.
     ///
     /// 액션 상태를 바꾸지 않는다.
-    public func carryoverActions(for meetingId: UUID) throws -> [CarryoverAction] {
+    func carryoverActions(for meetingId: UUID) throws -> [CarryoverAction] {
         try database.read { context in
             let meetings = try context.all(MeetingModel.self)
             guard let currentModel = meetings.first(where: { $0.id == meetingId.uuidString }) else {
                 return []
             }
-            let eventsById = Dictionary(
-                try context.all(CalendarEventModel.self).map { ($0.id, $0) },
+            let eventsById = try Dictionary(
+                context.all(CalendarEventModel.self).map { ($0.id, $0) },
                 uniquingKeysWith: { first, _ in first }
             )
-            let groupByMeeting = Dictionary(
-                try context.all(MeetingGroupMembershipModel.self).map { ($0.meetingId, $0.groupId) },
+            let groupByMeeting = try Dictionary(
+                context.all(MeetingGroupMembershipModel.self).map { ($0.meetingId, $0.groupId) },
                 uniquingKeysWith: { first, _ in first }
             )
-            let actionsByMeeting = Dictionary(grouping: try context.all(ActionItemModel.self), by: \.meetingId)
-            let recordsByMeeting = Dictionary(grouping: try context.all(PublishRecordModel.self), by: \.meetingId)
+            let actionsByMeeting = try Dictionary(grouping: context.all(ActionItemModel.self), by: \.meetingId)
+            let recordsByMeeting = try Dictionary(grouping: context.all(PublishRecordModel.self), by: \.meetingId)
 
             func ref(for model: MeetingModel) -> RelatedMeetingRef? {
                 guard let meeting = model.domain else { return nil }

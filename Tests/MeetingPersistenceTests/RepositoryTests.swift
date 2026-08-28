@@ -344,7 +344,7 @@ struct ProcessingJobRepositoryTests {
 struct EventSkipRepositoryTests {
     @Test("스킵을 저장하고 해제하면 다시 비운다")
     func skipRoundTripAndUnskip() throws {
-        let calendar = CalendarRepository(database: try AppDatabase.inMemory())
+        let calendar = try CalendarRepository(database: AppDatabase.inMemory())
         let start = Date(timeIntervalSince1970: 1_772_000_000)
         let event = CalendarEvent(
             id: "weekly#1",
@@ -368,7 +368,7 @@ struct EventSkipRepositoryTests {
 
     @Test("일정 메타데이터는 seriesId를 함께 저장한다")
     func savesSeriesIdWithEvent() throws {
-        let calendar = CalendarRepository(database: try AppDatabase.inMemory())
+        let calendar = try CalendarRepository(database: AppDatabase.inMemory())
         let start = Date(timeIntervalSince1970: 1_772_000_000)
         let event = CalendarEvent(
             id: "weekly#1",
