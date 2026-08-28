@@ -81,11 +81,14 @@ public enum EventNotificationError: Error, Equatable, Sendable {
     case denied
     /// 알림 시각이 이미 지났다.
     case fireDatePassed
+    /// 건너뛴 일정에는 알림을 걸 수 없다.
+    case skipped
 
     public var errorDescription: String? {
         switch self {
         case .denied: "알림 권한이 없습니다"
         case .fireDatePassed: "이미 지난 시각이라 알림을 걸 수 없습니다"
+        case .skipped: "건너뛴 일정에는 알림을 걸 수 없습니다"
         }
     }
 }

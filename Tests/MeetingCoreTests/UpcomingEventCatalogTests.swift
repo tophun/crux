@@ -122,6 +122,26 @@ struct UpcomingEventCatalogMappingTests {
         #expect(row.endDate == end)
         #expect(row.calendarTitle == "제품")
         #expect(row.conferenceURL == link)
+        #expect(row.seriesId == nil)
+    }
+
+    @Test("반복 일정의 행은 seriesId를 옮기고 스킵해도 목록에 남긴다")
+    func mapsSeriesIdAndKeepsSkippedVisible() {
+        let start = now.addingTimeInterval(1800)
+        let event = CalendarEvent(
+            id: "weekly#1",
+            seriesId: "series-weekly",
+            title: "주간 스탠드업",
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            attendees: [EventAttendee(name: "가")],
+            calendarTitle: "업무"
+        )
+        let rows = catalog.rows(from: [event], now: now)
+        #expect(rows.map(\.id) == ["weekly#1"])
+        #expect(rows.first?.seriesId == "series-weekly")
+        #expect(EventSkipIndex(records: [EventSkipPolicy.record(for: event, scope: .series, at: now)])
+            .isSkipped(id: rows[0].id, seriesId: rows[0].seriesId, startDate: rows[0].startDate))
     }
 
     @Test("숨긴 일정은 행으로 만들지 않고 시작 시각 순으로 정렬한다")

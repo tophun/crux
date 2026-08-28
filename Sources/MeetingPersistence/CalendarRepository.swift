@@ -14,6 +14,7 @@ public struct CalendarRepository: NotifiedEventStore, Sendable {
             let existing = try context.all(CalendarEventModel.self)
             for event in events {
                 if let model = existing.first(where: { $0.id == event.id }) {
+                    model.seriesId = event.seriesId
                     model.title = event.title
                     model.startDate = event.startDate
                     model.endDate = event.endDate
@@ -88,6 +89,45 @@ public struct CalendarRepository: NotifiedEventStore, Sendable {
                 context.delete(model)
             }
         }
+    }
+
+    // MARK: - 일정 스킵 (이 기기 로컬)
+
+    public func skipRecords() throws -> [EventSkipRecord] {
+        try database.read { context in
+            try context.all(SkippedEventModel.self).compactMap(\.domain)
+        }
+    }
+
+    public func upsertSkip(_ record: EventSkipRecord) throws {
+        try database.write { context in
+            if let model = try context.all(SkippedEventModel.self).first(where: { $0.id == record.id }) {
+                model.eventId = record.eventId
+                model.seriesId = record.seriesId
+                model.startDate = record.startDate
+                model.scope = record.scope.rawValue
+                model.skippedAt = record.skippedAt
+            } else {
+                context.insert(SkippedEventModel(record))
+            }
+        }
+    }
+
+    public func removeSkips(ids: [String]) throws {
+        guard !ids.isEmpty else { return }
+        let idSet = Set(ids)
+        try database.write { context in
+            for model in try context.all(SkippedEventModel.self) where idSet.contains(model.id) {
+                context.delete(model)
+            }
+        }
+    }
+
+    public func removeSkips(matching event: CalendarEvent) throws {
+        let records = try skipRecords()
+        let remaining = EventSkipPolicy.removing(event: event, from: records)
+        let removed = Set(records.map(\.id)).subtracting(remaining.map(\.id))
+        try removeSkips(ids: Array(removed))
     }
 }
 

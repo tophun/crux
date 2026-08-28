@@ -147,13 +147,15 @@ public final class MeetingSessionCoordinator {
         }
 
         let notified = (try? calendarRepository.notifiedEventIds()) ?? []
+        let skipIndex = EventSkipIndex(records: (try? calendarRepository.skipRecords()) ?? [])
         let verdict = policy.decide(
             events: events,
             now: Date(),
             notifiedEventIds: notified,
-            conferenceApps: detector.detect()
+            conferenceApps: detector.detect(),
+            skipIndex: skipIndex
         )
-        report(events: events, notified: notified, verdict: verdict)
+        report(events: events, notified: notified, skipIndex: skipIndex, verdict: verdict)
 
         let message = policy.confirmationMessage(for: verdict)
         capsule = machine.apply(.detection(verdict, message: message))
@@ -172,11 +174,12 @@ public final class MeetingSessionCoordinator {
     private func report(
         events: [CalendarEvent],
         notified: Set<String>,
+        skipIndex: EventSkipIndex,
         verdict: MeetingDetectionPolicy.Verdict
     ) {
         // 권한 상태를 항상 남긴다. 이게 빠지면 "일정 0건"이 권한 문제인지 일정이 없는 것인지 알 수 없다.
         var parts: [String] = ["캘린더 \(calendarStatus.displayName)", "일정 \(events.count)건"]
-        let eligible = policy.eligibleEvents(events)
+        let eligible = policy.eligibleEvents(events, skipIndex: skipIndex)
         parts.append("대상 \(eligible.count)건")
         for event in eligible.prefix(3) {
             let lead = Int(policy.leadTime(for: event) / 60)
@@ -184,7 +187,7 @@ public final class MeetingSessionCoordinator {
             parts.append("\(event.title): \(lead)분 전부터(\(source))")
         }
 
-        for (event, reason) in policy.exclusions(events).prefix(5) {
+        for (event, reason) in policy.exclusions(events, skipIndex: skipIndex).prefix(5) {
             parts.append("제외: \(event.title) — \(reason.displayName)")
         }
         let alreadyAsked = eligible.filter { notified.contains($0.id) }
