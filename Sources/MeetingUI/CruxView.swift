@@ -41,6 +41,8 @@ public struct CruxView: View {
     @State var memoDraft = ""
     @State var didSeedNote = false
     @State var suppressNoteSave = false
+    /// 녹음 중 노트를 펼쳤는지. 기본은 끄고 일시정지·종료를 항상 보여 준다.
+    @State var showsNote = false
     @FocusState var memoFocused: Bool
 
     public init(
@@ -145,18 +147,14 @@ public struct CruxView: View {
     /// 검은 노치 셸프 하나. 접힘·펼침을 한 덩어리로 스프링 변형한다.
     private var capsuleShape: some View {
         VStack(spacing: 0) {
-            if isEnlarged, case let .recording(_, paused) = state {
-                // 녹음 중 펼침은 바+상세 대신 제목+본문 노트다.
-                recordingExpanded(paused: paused)
+            // 녹음 중에도 캡슐 바를 유지한다. 일시정지·종료는 여기 1순위 버튼이다.
+            capsuleBar
+            if isEnlarged, case .recording = state, showsNote {
+                recordingNote
                     .transition(Self.contentSwap)
-            } else {
-                VStack(spacing: 0) {
-                    capsuleBar
-                    if showsDetail {
-                        detail
-                    }
-                }
-                .transition(Self.contentSwap)
+            } else if showsDetail {
+                detail
+                    .transition(Self.contentSwap)
             }
         }
         // 위 모서리가 바깥으로 흘러내리는 만큼 내용은 안쪽으로 들인다.
@@ -169,8 +167,14 @@ public struct CruxView: View {
         // 접힘/펼침·상세·메모 변화를 모두 같은 스프링으로 묶는다.
         .animation(CruxAnimation.swiftUI, value: isEnlarged)
         .animation(CruxAnimation.swiftUI, value: showsDetail)
+        .animation(CruxAnimation.swiftUI, value: showsNote)
         .animation(CruxAnimation.swiftUI, value: memos.count)
         .animation(CruxAnimation.swiftUI, value: liveCaptions.fingerprint)
+        .onChange(of: state.showsRecordingIndicator) { _, recording in
+            if !recording {
+                showsNote = false
+            }
+        }
     }
 
     /// 창이 지금 가진 너비를 반으로 나눠 좌우 날개를 항상 같게 둔다.
@@ -253,6 +257,11 @@ public struct CruxView: View {
         }
         switch state {
         case let .recording(_, paused):
+            capsuleIconButton(
+                "square.and.pencil",
+                help: showsNote ? "노트 닫기" : "노트",
+                action: { showsNote.toggle() }
+            )
             capsuleIconButton(paused ? "play.fill" : "pause.fill", help: paused ? "재개" : "일시정지", action: onTogglePause)
             capsuleIconButton("stop.fill", help: "녹음 종료", tint: .red, action: onStop)
         case .generating:

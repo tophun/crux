@@ -179,10 +179,8 @@ struct CruxApp: App {
                     // 기록: 녹음하기 또는 불러오기. 메뉴바의 "회의록 시작"과 같은 조건으로 잠근다.
                     ToolbarItem(placement: .automatic) {
                         Menu {
-                            Menu("녹음하기", systemImage: "record.circle") {
-                                MeetingTypeButtons { type in
-                                    Task { await coordinator.startMeeting(meetingType: type) }
-                                }
+                            Button("녹음하기", systemImage: "record.circle") {
+                                Task { await coordinator.startMeeting() }
                             }
                             .disabled(
                                 !canStartRecording
@@ -191,7 +189,7 @@ struct CruxApp: App {
                             )
                             .help(
                                 canStartRecording
-                                    ? "녹음을 시작합니다. 유형을 고르면 회의록 섹션이 달라집니다"
+                                    ? "녹음을 시작합니다"
                                     : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
                             )
                             Menu("불러오기", systemImage: "square.and.arrow.down") {

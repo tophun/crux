@@ -45,15 +45,13 @@ public struct MenuBarContentView: View {
             // 작성 중에는 누를 것이 없다. 상태 줄에 진행 상황이 나온다.
             EmptyView()
         default:
-            Menu("회의록 시작") {
-                MeetingTypeButtons { type in
-                    Task { await coordinator.startMeeting(meetingType: type) }
-                }
+            Button("회의록 시작") {
+                Task { await coordinator.startMeeting() }
             }
             .disabled(!canStartRecording)
             .help(
                 canStartRecording
-                    ? "녹음을 시작합니다. 유형을 고르면 회의록 섹션이 달라집니다"
+                    ? "녹음을 시작합니다"
                     : "음성 인식·회의록 생성 모델을 먼저 내려받으세요"
             )
         }
